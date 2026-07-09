@@ -911,7 +911,7 @@ def imprimir_resumo(contagem: dict[str, int]) -> None:
     print(f"{'=' * 65}")
     for tabela, qtd in contagem.items():
         print(f"  {tabela:45s} {qtd:>8,} registros")
-    print(f"{'─' * 65}")
+    print(f"{'-' * 65}")
     print(f"  {'TOTAL':45s} {total:>8,} registros")
     print(f"{'=' * 65}\n")
 
