@@ -18,7 +18,7 @@ from awsglue.job import Job
 from pyspark.context import SparkContext
 from pyspark.sql import functions as F
 from pyspark.sql.window import Window
-from pyspark.sql.types import StringType, IntegerType, TimestampType
+from pyspark.sql.types import StringType, IntegerType, TimestampType, LongType
 
 args = getResolvedOptions(sys.argv, ["JOB_NAME", "BUCKET_NAME", "ENV"])
 JOB_NAME = args["JOB_NAME"]
@@ -34,14 +34,12 @@ job.init(JOB_NAME, args)
 print(f"[INFO] Job iniciado | Tabela: tb_ura_navegacao | ENV: {ENV}")
 
 BRONZE_DATABASE = "db_bronze"
-BRONZE_TABLE    = "tb_ura_navegacao"
+BRONZE_TABLE    = "ura"
 SILVER_PATH     = f"s3://{BUCKET}/silver/operacao/ura_navegacao/"
 CHECKPOINT_KEY  = "checkpoints/tb_ura_navegacao/watermark.json"
 QUARANTINE_PATH = f"s3://{BUCKET}/quarantine/tb_ura_navegacao/"
 SILVER_TABLE    = "db_silver.ura_navegacao"
 
-spark.conf.set("spark.sql.extensions",
-    "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions")
 spark.conf.set("spark.sql.catalog.glue_catalog",
     "org.apache.iceberg.spark.SparkCatalog")
 spark.conf.set("spark.sql.catalog.glue_catalog.catalog-impl",
@@ -133,50 +131,54 @@ now_ts = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
 df_transformed = (
     df_dedup
 
-    .withColumn("dt_evento",
-        F.to_timestamp(F.col("dt_evento"), "yyyy-MM-dd'T'HH:mm:ss"))
+    # IDs: cast explícito de STRING (bronze/CSV) para BIGINT
+    .withColumn("id_ura", F.col("id_ura").cast(LongType()))
+    .withColumn("id_cliente", F.col("id_cliente").cast(LongType()))
+    .withColumn("id_chamada", F.lit(None).cast(LongType()))  # nao existe no bronze
+    .withColumn("dt_navegacao",
+        F.to_timestamp(F.col("dt_navegacao"), "yyyy-MM-dd'T'HH:mm:ss"))
 
-    .withColumn("ds_opcao",
-        F.upper(F.trim(F.col("ds_opcao"))))
-    .withColumn("ds_opcao",
-        F.coalesce(F.col("ds_opcao"), F.lit("DESCONHECIDO")))
+    .withColumn("ds_opcao_selecionada",
+        F.upper(F.trim(F.col("ds_opcao_selecionada"))))
+    .withColumn("ds_opcao_selecionada",
+        F.coalesce(F.col("ds_opcao_selecionada"), F.lit("DESCONHECIDO")))
 
-    .withColumn("nr_tempo_espera",
-        F.col("nr_tempo_espera").cast(IntegerType()))
-    .withColumn("nr_tempo_espera",
-        F.coalesce(F.col("nr_tempo_espera"), F.lit(0)))
+    .withColumn("nr_duracao_segundos",
+        F.col("nr_duracao_segundos").cast(IntegerType()))
+    .withColumn("nr_duracao_segundos",
+        F.coalesce(F.col("nr_duracao_segundos"), F.lit(0)))
 
     .withColumn("fl_abandonou_ura",
-        F.when(F.col("ds_opcao") == "ABANDONO", F.lit(1))
+        F.when(F.col("ds_opcao_selecionada") == "ABANDONO", F.lit(1))
          .otherwise(F.lit(0)).cast("smallint"))
 
     .withColumn("ds_faixa_espera",
-        F.when(F.col("nr_tempo_espera") <= 30,  F.lit("ATE_30S"))
-         .when(F.col("nr_tempo_espera") <= 60,  F.lit("31_A_60S"))
-         .when(F.col("nr_tempo_espera") <= 120, F.lit("61_A_120S"))
-         .when(F.col("nr_tempo_espera") > 120,  F.lit("ACIMA_120S"))
+        F.when(F.col("nr_duracao_segundos") <= 30,  F.lit("ATE_30S"))
+         .when(F.col("nr_duracao_segundos") <= 60,  F.lit("31_A_60S"))
+         .when(F.col("nr_duracao_segundos") <= 120, F.lit("61_A_120S"))
+         .when(F.col("nr_duracao_segundos") > 120,  F.lit("ACIMA_120S"))
          .otherwise(F.lit("DESCONHECIDO")))
 
     .withColumn("hash_registro",
         F.md5(F.concat_ws("|",
             F.coalesce(F.col("id_ura").cast("string"),        F.lit("")),
-            F.coalesce(F.col("id_chamada").cast("string"),    F.lit("")),
-            F.coalesce(F.col("ds_opcao"),                     F.lit("")),
-            F.coalesce(F.col("dt_evento").cast("string"),     F.lit("")),
-            F.coalesce(F.col("nr_tempo_espera").cast("string"), F.lit("")),
+            # id_chamada nao existe na tabela ura
+            # F.coalesce(F.col("id_chamada").cast("string"), F.lit("")),
+            F.coalesce(F.col("ds_opcao_selecionada"),                     F.lit("")),
+            F.coalesce(F.col("dt_navegacao").cast("string"),     F.lit("")),
+            F.coalesce(F.col("nr_duracao_segundos").cast("string"), F.lit("")),
         )))
 
     .withColumn("dt_ingestao_silver", F.lit(now_ts).cast(TimestampType()))
-    .withColumn("ano", F.year(F.col("dt_evento")))
-    .withColumn("mes", F.month(F.col("dt_evento")))
-    .withColumn("dia", F.dayofmonth(F.col("dt_evento")))
+    .withColumn("ano", F.year(F.col("dt_navegacao")))
+    .withColumn("mes", F.month(F.col("dt_navegacao")))
+    .withColumn("dia", F.dayofmonth(F.col("dt_navegacao")))
 )
 
 df_transformed = df_transformed.withColumn(
     "_motivo_quarentena",
     F.when(F.col("id_ura").isNull(),     F.lit("id_ura_nulo"))
-     .when(F.col("id_chamada").isNull(), F.lit("id_chamada_nulo"))
-     .when(F.col("dt_evento").isNull(),  F.lit("dt_evento_nula"))
+          .when(F.col("dt_navegacao").isNull(),  F.lit("dt_evento_nula"))
      .otherwise(F.lit(None).cast(StringType()))
 )
 

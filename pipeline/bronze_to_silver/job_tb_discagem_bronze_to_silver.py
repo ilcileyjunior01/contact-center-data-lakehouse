@@ -23,7 +23,7 @@ from awsglue.job import Job
 from pyspark.context import SparkContext
 from pyspark.sql import functions as F
 from pyspark.sql.window import Window
-from pyspark.sql.types import StringType, TimestampType
+from pyspark.sql.types import StringType, TimestampType, LongType
 
 args = getResolvedOptions(sys.argv, ["JOB_NAME", "BUCKET_NAME", "ENV"])
 JOB_NAME = args["JOB_NAME"]
@@ -39,14 +39,12 @@ job.init(JOB_NAME, args)
 print(f"[INFO] Job iniciado | Tabela: tb_discagem | ENV: {ENV}")
 
 BRONZE_DATABASE = "db_bronze"
-BRONZE_TABLE    = "tb_discagem"
+BRONZE_TABLE    = "discagem"
 SILVER_PATH     = f"s3://{BUCKET}/silver/comercial/discagem/"
 CHECKPOINT_KEY  = "checkpoints/tb_discagem/watermark.json"
 QUARANTINE_PATH = f"s3://{BUCKET}/quarantine/tb_discagem/"
 SILVER_TABLE    = "db_silver.discagem"
 
-spark.conf.set("spark.sql.extensions",
-    "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions")
 spark.conf.set("spark.sql.catalog.glue_catalog",
     "org.apache.iceberg.spark.SparkCatalog")
 spark.conf.set("spark.sql.catalog.glue_catalog.catalog-impl",
@@ -138,8 +136,13 @@ now_ts = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
 df_transformed = (
     df_dedup
 
-    .withColumn("dt_discagem",
-        F.to_timestamp(F.col("dt_discagem"), "yyyy-MM-dd'T'HH:mm:ss"))
+    # IDs: cast explícito de STRING (bronze/CSV) para BIGINT
+    .withColumn("id_discagem", F.col("id_discagem").cast(LongType()))
+    .withColumn("id_campanha", F.col("id_campanha").cast(LongType()))
+    .withColumn("id_cliente", F.col("id_cliente").cast(LongType()))
+    .withColumn("id_operador", F.col("id_operador").cast(LongType()))
+    .withColumn("dt_ultima_tentativa",
+        F.to_timestamp(F.col("dt_ultima_tentativa"), "yyyy-MM-dd'T'HH:mm:ss"))
 
     .withColumn("st_discagem",
         F.upper(F.trim(F.col("st_discagem"))))
@@ -148,11 +151,11 @@ df_transformed = (
 
     # Mascara telefone (LGPD)
     .withColumn("nr_telefone",
-        F.regexp_replace(F.col("nr_telefone"), r"[^\d+]", ""))
+        F.regexp_replace(F.lit(""), r"[^\d+]", ""))
     .withColumn("nr_telefone_mascarado",
         F.when(
-            F.col("nr_telefone").isNotNull() & (F.length(F.col("nr_telefone")) > 0),
-            F.concat(F.lit("******"), F.substring(F.col("nr_telefone"), -4, 4))
+            F.lit("").isNotNull() & (F.length(F.lit("")) > 0),
+            F.concat(F.lit("******"), F.substring(F.lit(""), -4, 4))
         ).otherwise(F.lit("")))
     .drop("nr_telefone")
 
@@ -171,15 +174,15 @@ df_transformed = (
             F.coalesce(F.col("id_discagem").cast("string"),   F.lit("")),
             F.coalesce(F.col("id_campanha").cast("string"),   F.lit("")),
             F.coalesce(F.col("id_cliente").cast("string"),    F.lit("")),
-            F.coalesce(F.col("nr_telefone_mascarado"),        F.lit("")),
-            F.coalesce(F.col("dt_discagem").cast("string"),   F.lit("")),
+            F.coalesce(F.lit(""),        F.lit("")),
+            F.coalesce(F.col("dt_ultima_tentativa").cast("string"),   F.lit("")),
             F.coalesce(F.col("st_discagem"),                  F.lit("")),
         )))
 
     .withColumn("dt_ingestao_silver", F.lit(now_ts).cast(TimestampType()))
-    .withColumn("ano", F.year(F.col("dt_discagem")))
-    .withColumn("mes", F.month(F.col("dt_discagem")))
-    .withColumn("dia", F.dayofmonth(F.col("dt_discagem")))
+    .withColumn("ano", F.year(F.col("dt_ultima_tentativa")))
+    .withColumn("mes", F.month(F.col("dt_ultima_tentativa")))
+    .withColumn("dia", F.dayofmonth(F.col("dt_ultima_tentativa")))
 )
 
 df_transformed = df_transformed.withColumn(
@@ -187,7 +190,7 @@ df_transformed = df_transformed.withColumn(
     F.when(F.col("id_discagem").isNull(),  F.lit("id_discagem_nulo"))
      .when(F.col("id_campanha").isNull(),  F.lit("id_campanha_nulo"))
      .when(F.col("id_cliente").isNull(),   F.lit("id_cliente_nulo"))
-     .when(F.col("dt_discagem").isNull(),  F.lit("dt_discagem_nula"))
+     .when(F.col("dt_ultima_tentativa").isNull(),  F.lit("dt_ultima_tentativa_nula"))
      .otherwise(F.lit(None).cast(StringType()))
 )
 
@@ -215,7 +218,7 @@ spark.sql(f"""
         id_campanha                 BIGINT,
         id_cliente                  BIGINT,
         nr_telefone_mascarado       STRING,
-        dt_discagem                 TIMESTAMP,
+        dt_ultima_tentativa                 TIMESTAMP,
         st_discagem                 STRING,
         fl_discagem_atendida        SMALLINT,
         fl_discagem_nao_atendida    SMALLINT,

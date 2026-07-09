@@ -8,7 +8,7 @@ os jobs que devem ser registrados.
 
 Uso:
     python 02_setup_glue.py
-    python 02_setup_glue.py --region sa-east-1 --bucket-name act-cc-dev-lakehouse
+    python 02_setup_glue.py --region us-east-1 --bucket-name act-cc-dev-lakehouse
 
 Requisitos:
     pip install boto3
@@ -25,13 +25,13 @@ from botocore.exceptions import ClientError
 # Defaults
 # ---------------------------------------------------------------------------
 DEFAULT_BUCKET = "act-cc-dev-lakehouse"
-DEFAULT_REGION = "sa-east-1"
+DEFAULT_REGION = "us-east-1"
 
 GLUE_DATABASES = ["db_bronze", "db_silver", "db_gold"]
 
 WORKFLOW_NAME = "wf-cc-pipeline-diario"
 
-# Mapeamento: nome_curto → path S3 (prefixo relativo ao bucket)
+# Mapeamento: nome_curto -> path S3 (prefixo relativo ao bucket)
 # 18 tabelas conforme especificação
 TABLES = {
     # Domínio: operacao
@@ -187,7 +187,7 @@ def create_glue_crawler(
                 ]
             },
             SchemaChangePolicy={
-                "UpdateBehavior": "UPDATE_IN_DATABASE",
+                "UpdateBehavior": "LOG",
                 "DeleteBehavior": "LOG",
             },
             RecrawlPolicy={
@@ -224,7 +224,7 @@ def json_config() -> str:
         },
         "Grouping": {
             "TableGroupingPolicy": "CombineCompatibleSchemas",
-            "TableLevelConfiguration": 3,
+            "TableLevelConfiguration": 4,
         },
     }
     return json.dumps(config)
@@ -244,7 +244,7 @@ def create_glue_workflow(glue_client) -> None:
             Name=WORKFLOW_NAME,
             Description=(
                 "Pipeline diário Contact Center Data Lakehouse. "
-                "Orquestra crawlers e jobs Bronze→Silver→Gold."
+                "Orquestra crawlers e jobs Bronze->Silver->Gold."
             ),
             DefaultRunProperties={
                 "project": "contact-center-data-lakehouse",
@@ -295,7 +295,7 @@ def print_job_upload_guide(bucket_name: str) -> None:
             f"        --worker-type G.1X\n"
         )
 
-    print("  4. Adicione os jobs ao workflow via Glue Console → Triggers")
+    print("  4. Adicione os jobs ao workflow via Glue Console -> Triggers")
     print("=" * 65)
 
 

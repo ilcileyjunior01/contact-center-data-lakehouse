@@ -72,7 +72,7 @@ print(f"[INFO] Job iniciado | Tabela: tb_operador | ENV: {ENV}")
 # =========================================================
 
 BRONZE_DATABASE = "db_bronze"
-BRONZE_TABLE    = "tb_operador"
+BRONZE_TABLE    = "operador"
 SILVER_PATH     = f"s3://{BUCKET}/silver/cadastro/operador/"
 CHECKPOINT_KEY  = "checkpoints/tb_operador/watermark.json"
 QUARANTINE_PATH = f"s3://{BUCKET}/quarantine/tb_operador/"
@@ -82,10 +82,6 @@ SILVER_TABLE    = "db_silver.operador"
 # CONFIGURAÇÃO ICEBERG
 # =========================================================
 
-spark.conf.set(
-    "spark.sql.extensions",
-    "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions"
-)
 spark.conf.set(
     "spark.sql.catalog.glue_catalog",
     "org.apache.iceberg.spark.SparkCatalog"
@@ -218,6 +214,9 @@ df_transformed = (
     df_dedup
 
     # --- Conversão de tipos ---
+    # IDs: cast explícito de STRING (bronze/CSV) para BIGINT
+    .withColumn("id_operador", F.col("id_operador").cast(LongType()))
+    .withColumn("ds_login", F.col("ds_email"))  # alias para mascaramento PII
     .withColumn("dt_admissao",
         F.to_date(F.col("dt_admissao"), "yyyy-MM-dd"))
 

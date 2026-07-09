@@ -18,7 +18,7 @@ from awsglue.job import Job
 from pyspark.context import SparkContext
 from pyspark.sql import functions as F
 from pyspark.sql.window import Window
-from pyspark.sql.types import StringType, TimestampType
+from pyspark.sql.types import StringType, TimestampType, LongType
 
 args = getResolvedOptions(sys.argv, ["JOB_NAME", "BUCKET_NAME", "ENV"])
 JOB_NAME = args["JOB_NAME"]
@@ -34,14 +34,12 @@ job.init(JOB_NAME, args)
 print(f"[INFO] Job iniciado | Tabela: tb_whatsapp_atendimento | ENV: {ENV}")
 
 BRONZE_DATABASE = "db_bronze"
-BRONZE_TABLE    = "tb_whatsapp_atendimento"
+BRONZE_TABLE    = "whatsapp"
 SILVER_PATH     = f"s3://{BUCKET}/silver/canais/whatsapp_atendimento/"
 CHECKPOINT_KEY  = "checkpoints/tb_whatsapp_atendimento/watermark.json"
 QUARANTINE_PATH = f"s3://{BUCKET}/quarantine/tb_whatsapp_atendimento/"
 SILVER_TABLE    = "db_silver.whatsapp_atendimento"
 
-spark.conf.set("spark.sql.extensions",
-    "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions")
 spark.conf.set("spark.sql.catalog.glue_catalog",
     "org.apache.iceberg.spark.SparkCatalog")
 spark.conf.set("spark.sql.catalog.glue_catalog.catalog-impl",
@@ -117,7 +115,7 @@ df_cdc = (
 
 window_dedup = (
     Window
-    .partitionBy("id_atendimento_whatsapp")
+    .partitionBy("id_whatsapp")
     .orderBy(F.col("dt_cdc_evento").desc())
 )
 
@@ -135,6 +133,10 @@ now_ts = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
 df_transformed = (
     df_dedup
 
+    # IDs: cast explícito de STRING (bronze/CSV) para BIGINT
+    .withColumn("id_whatsapp", F.col("id_whatsapp").cast(LongType()))
+    .withColumn("id_cliente", F.col("id_cliente").cast(LongType()))
+    .withColumn("id_operador", F.col("id_operador").cast(LongType()))
     .withColumn("dt_inicio",
         F.to_timestamp(F.col("dt_inicio"), "yyyy-MM-dd'T'HH:mm:ss"))
     .withColumn("dt_fim",
@@ -148,14 +150,14 @@ df_transformed = (
         F.coalesce(F.col("id_operador"), F.lit(-1).cast("long")))
 
     # Mascara telefone (LGPD)
-    .withColumn("nr_telefone",
-        F.regexp_replace(F.col("nr_telefone"), r"[^\d+]", ""))
+    .withColumn("nr_telefone_cliente",
+        F.regexp_replace(F.col("nr_telefone_cliente"), r"[^\d+]", ""))
     .withColumn("nr_telefone_mascarado",
         F.when(
-            F.col("nr_telefone").isNotNull() & (F.length(F.col("nr_telefone")) > 0),
-            F.concat(F.lit("******"), F.substring(F.col("nr_telefone"), -4, 4))
+            F.col("nr_telefone_cliente").isNotNull() & (F.length(F.col("nr_telefone_cliente")) > 0),
+            F.concat(F.lit("******"), F.substring(F.col("nr_telefone_cliente"), -4, 4))
         ).otherwise(F.lit("")))
-    .drop("nr_telefone")
+    .drop("nr_telefone_cliente")
 
     .withColumn("nr_duracao_segundos",
         F.when(
@@ -177,7 +179,7 @@ df_transformed = (
 
     .withColumn("hash_registro",
         F.md5(F.concat_ws("|",
-            F.coalesce(F.col("id_atendimento_whatsapp").cast("string"), F.lit("")),
+            F.coalesce(F.col("id_whatsapp").cast("string"), F.lit("")),
             F.coalesce(F.col("id_cliente").cast("string"),              F.lit("")),
             F.coalesce(F.col("id_operador").cast("string"),             F.lit("")),
             F.coalesce(F.col("nr_telefone_mascarado"),                  F.lit("")),
@@ -194,7 +196,7 @@ df_transformed = (
 
 df_transformed = df_transformed.withColumn(
     "_motivo_quarentena",
-    F.when(F.col("id_atendimento_whatsapp").isNull(), F.lit("id_atendimento_whatsapp_nulo"))
+    F.when(F.col("id_whatsapp").isNull(), F.lit("id_whatsapp_nulo"))
      .when(F.col("id_cliente").isNull(),              F.lit("id_cliente_nulo"))
      .when(F.col("dt_inicio").isNull(),               F.lit("dt_inicio_nula"))
      .otherwise(F.lit(None).cast(StringType()))
@@ -220,7 +222,7 @@ if not df_quarantine.rdd.isEmpty():
 
 spark.sql(f"""
     CREATE TABLE IF NOT EXISTS glue_catalog.{SILVER_TABLE} (
-        id_atendimento_whatsapp     BIGINT,
+        id_whatsapp     BIGINT,
         id_cliente                  BIGINT,
         id_operador                 BIGINT,
         nr_telefone_mascarado       STRING,
@@ -254,7 +256,7 @@ df_valid.createOrReplaceTempView("stg_whatsapp_atendimento")
 spark.sql(f"""
     MERGE INTO glue_catalog.{SILVER_TABLE} AS target
     USING stg_whatsapp_atendimento AS source
-    ON target.id_atendimento_whatsapp = source.id_atendimento_whatsapp
+    ON target.id_whatsapp = source.id_whatsapp
     WHEN MATCHED AND target.hash_registro <> source.hash_registro
     THEN UPDATE SET *
     WHEN NOT MATCHED THEN INSERT *

@@ -44,8 +44,6 @@ GOLD_TABLE        = "db_gold.dim_operador"
 GOLD_PATH_SUP     = f"s3://{BUCKET}/gold/dimensoes/dim_supervisor/"
 GOLD_TABLE_SUP    = "db_gold.dim_supervisor"
 
-spark.conf.set("spark.sql.extensions",
-    "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions")
 spark.conf.set("spark.sql.catalog.glue_catalog",
     "org.apache.iceberg.spark.SparkCatalog")
 spark.conf.set("spark.sql.catalog.glue_catalog.catalog-impl",

@@ -26,7 +26,7 @@ from awsglue.job import Job
 from pyspark.context import SparkContext
 from pyspark.sql import functions as F
 from pyspark.sql.window import Window
-from pyspark.sql.types import StringType, TimestampType
+from pyspark.sql.types import StringType, TimestampType, LongType
 
 args = getResolvedOptions(sys.argv, ["JOB_NAME", "BUCKET_NAME", "ENV"])
 JOB_NAME = args["JOB_NAME"]
@@ -42,14 +42,12 @@ job.init(JOB_NAME, args)
 print(f"[INFO] Job iniciado | Tabela: tb_avaliacao_qualidade | ENV: {ENV}")
 
 BRONZE_DATABASE = "db_bronze"
-BRONZE_TABLE    = "tb_avaliacao_qualidade"
+BRONZE_TABLE    = "avaliacao"
 SILVER_PATH     = f"s3://{BUCKET}/silver/qualidade/avaliacao_qualidade/"
 CHECKPOINT_KEY  = "checkpoints/tb_avaliacao_qualidade/watermark.json"
 QUARANTINE_PATH = f"s3://{BUCKET}/quarantine/tb_avaliacao_qualidade/"
 SILVER_TABLE    = "db_silver.avaliacao_qualidade"
 
-spark.conf.set("spark.sql.extensions",
-    "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions")
 spark.conf.set("spark.sql.catalog.glue_catalog",
     "org.apache.iceberg.spark.SparkCatalog")
 spark.conf.set("spark.sql.catalog.glue_catalog.catalog-impl",
@@ -144,16 +142,20 @@ df_transformed = (
     df_dedup
 
     # --- Conversão de tipos ---
+    # IDs: cast explícito de STRING (bronze/CSV) para BIGINT
+    .withColumn("id_avaliacao", F.col("id_avaliacao").cast(LongType()))
+    .withColumn("id_chamada", F.col("id_chamada").cast(LongType()))
+    .withColumn("id_operador", F.col("id_operador").cast(LongType()))
     .withColumn("dt_avaliacao",
         F.to_timestamp(F.col("dt_avaliacao"), "yyyy-MM-dd'T'HH:mm:ss"))
-    .withColumn("nr_nota",
-        F.col("nr_nota").cast("double"))
+    .withColumn("nr_nota_geral",
+        F.col("nr_nota_geral").cast("double"))
 
     # --- Tratamento de nulos ---
-    .withColumn("id_avaliador",
-        F.coalesce(F.col("id_avaliador"), F.lit(-1).cast("long")))
-    .withColumn("nr_nota",
-        F.coalesce(F.col("nr_nota"), F.lit(0.0)))
+    .withColumn("id_supervisor",
+        F.coalesce(F.col("id_supervisor"), F.lit(-1).cast("long")))
+    .withColumn("nr_nota_geral",
+        F.coalesce(F.col("nr_nota_geral"), F.lit(0.0)))
 
     # --- Substituição do feedback por metadados (LGPD) ---
     .withColumn("nr_tamanho_feedback_chars",
@@ -163,7 +165,7 @@ df_transformed = (
         ).otherwise(F.lit(0)))
 
     .withColumn("fl_tem_feedback",
-        F.when(F.col("nr_tamanho_feedback_chars") > 0, F.lit(1))
+        F.when(F.length(F.col("ds_feedback")) > 0, F.lit(1))
          .otherwise(F.lit(0)).cast("smallint"))
 
     .drop("ds_feedback")
@@ -173,19 +175,19 @@ df_transformed = (
     # de qualidade no QuickSight sem precisar de filtros
     # numéricos complexos.
     .withColumn("ds_faixa_nota",
-        F.when(F.col("nr_nota") >= 9.0, F.lit("EXCELENTE"))
-         .when(F.col("nr_nota") >= 7.0, F.lit("BOM"))
-         .when(F.col("nr_nota") >= 5.0, F.lit("REGULAR"))
-         .when(F.col("nr_nota") >= 3.0, F.lit("RUIM"))
-         .when(F.col("nr_nota") <  3.0, F.lit("CRITICO"))
+        F.when(F.col("nr_nota_geral") >= 9.0, F.lit("EXCELENTE"))
+         .when(F.col("nr_nota_geral") >= 7.0, F.lit("BOM"))
+         .when(F.col("nr_nota_geral") >= 5.0, F.lit("REGULAR"))
+         .when(F.col("nr_nota_geral") >= 3.0, F.lit("RUIM"))
+         .when(F.col("nr_nota_geral") <  3.0, F.lit("CRITICO"))
          .otherwise(F.lit("DESCONHECIDO")))
 
     .withColumn("fl_aprovado",
-        F.when(F.col("nr_nota") >= 7.0, F.lit(1))
+        F.when(F.col("nr_nota_geral") >= 7.0, F.lit(1))
          .otherwise(F.lit(0)).cast("smallint"))
 
     .withColumn("fl_critico",
-        F.when(F.col("nr_nota") < 5.0, F.lit(1))
+        F.when(F.col("nr_nota_geral") < 5.0, F.lit(1))
          .otherwise(F.lit(0)).cast("smallint"))
 
     # --- Hash de integridade ---
@@ -193,8 +195,8 @@ df_transformed = (
         F.md5(F.concat_ws("|",
             F.coalesce(F.col("id_avaliacao").cast("string"),  F.lit("")),
             F.coalesce(F.col("id_chamada").cast("string"),    F.lit("")),
-            F.coalesce(F.col("id_avaliador").cast("string"),  F.lit("")),
-            F.coalesce(F.col("nr_nota").cast("string"),       F.lit("")),
+            F.coalesce(F.col("id_supervisor").cast("string"),  F.lit("")),
+            F.coalesce(F.col("nr_nota_geral").cast("string"),       F.lit("")),
             F.coalesce(F.col("dt_avaliacao").cast("string"),  F.lit("")),
         )))
 
@@ -220,8 +222,8 @@ df_transformed = df_transformed.withColumn(
      .when(F.col("id_chamada").isNull(),    F.lit("id_chamada_nulo"))
      .when(F.col("dt_avaliacao").isNull(),  F.lit("dt_avaliacao_nula"))
      .when(
-         F.col("nr_nota").isNotNull() &
-         ((F.col("nr_nota") < 0) | (F.col("nr_nota") > 10)),
+         F.col("nr_nota_geral").isNotNull() &
+         ((F.col("nr_nota_geral") < 0) | (F.col("nr_nota_geral") > 10)),
          F.lit("nr_nota_fora_do_range")
      )
      .otherwise(F.lit(None).cast(StringType()))

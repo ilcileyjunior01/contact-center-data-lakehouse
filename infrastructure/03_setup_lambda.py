@@ -9,7 +9,7 @@ a Lambda como target.
 
 Uso:
     python 03_setup_lambda.py
-    python 03_setup_lambda.py --region sa-east-1 --bucket-name act-cc-dev-lakehouse
+    python 03_setup_lambda.py --region us-east-1 --bucket-name act-cc-dev-lakehouse
 
 Requisitos:
     pip install boto3
@@ -31,7 +31,7 @@ from botocore.exceptions import ClientError
 # Defaults
 # ---------------------------------------------------------------------------
 DEFAULT_BUCKET = "act-cc-dev-lakehouse"
-DEFAULT_REGION = "sa-east-1"
+DEFAULT_REGION = "us-east-1"
 LAMBDA_NAME = "fn-start-glue-crawler"
 LAMBDA_ROLE_NAME = "LambdaGlueCrawlerRole"
 EVENTBRIDGE_RULE_NAME = "rule-s3-bronze-to-lambda"
@@ -361,7 +361,7 @@ def add_lambda_as_target(
             Principal="events.amazonaws.com",
             SourceArn=f"arn:aws:events:{region}:{account_id}:rule/{rule_name}",
         )
-        print(f"  [+] Permissão concedida: EventBridge → Lambda.")
+        print(f"  [+] Permissão concedida: EventBridge -> Lambda.")
     except lambda_client.exceptions.ResourceConflictException:
         print(f"  [OK] Permissão '{statement_id}' já existia — pulando.")
     except ClientError as e:
@@ -451,9 +451,9 @@ def main():
     print()
     print("  Fluxo configurado:")
     print(f"    S3 {bucket_name}/bronze/**")
-    print(f"    → EventBridge (rule: {EVENTBRIDGE_RULE_NAME})")
-    print(f"    → Lambda {LAMBDA_NAME}")
-    print(f"    → Glue StartCrawler (crawler correspondente à tabela)")
+    print(f"    -> EventBridge (rule: {EVENTBRIDGE_RULE_NAME})")
+    print(f"    -> Lambda {LAMBDA_NAME}")
+    print(f"    -> Glue StartCrawler (crawler correspondente à tabela)")
     print()
     print("  Variáveis de ambiente da Lambda:")
     print(f"    REGION      = {region}")
@@ -461,7 +461,7 @@ def main():
     print(f"    LOG_LEVEL   = INFO")
     print()
     print("  Logs disponíveis em:")
-    print(f"    CloudWatch Logs → /aws/lambda/{LAMBDA_NAME}")
+    print(f"    CloudWatch Logs -> /aws/lambda/{LAMBDA_NAME}")
     print("=" * 65)
     print("  Setup Lambda finalizado com sucesso!")
     print("=" * 65)

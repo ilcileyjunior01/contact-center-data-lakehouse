@@ -41,8 +41,6 @@ print(f"[INFO] Job iniciado | dim_canal | ENV: {ENV}")
 GOLD_PATH  = f"s3://{BUCKET}/gold/dimensoes/dim_canal/"
 GOLD_TABLE = "db_gold.dim_canal"
 
-spark.conf.set("spark.sql.extensions",
-    "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions")
 spark.conf.set("spark.sql.catalog.glue_catalog",
     "org.apache.iceberg.spark.SparkCatalog")
 spark.conf.set("spark.sql.catalog.glue_catalog.catalog-impl",

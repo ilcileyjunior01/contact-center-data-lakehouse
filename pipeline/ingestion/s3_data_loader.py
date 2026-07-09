@@ -1,7 +1,7 @@
 """
 s3_data_loader.py
 =================
-Simula a ingestão CDC do pipeline DMS → Kinesis → Firehose → S3 Bronze,
+Simula a ingestão CDC do pipeline DMS -> Kinesis -> Firehose -> S3 Bronze,
 escrevendo arquivos Parquet particionados diretamente no S3.
 
 Em produção, esse caminho é feito automaticamente pelo AWS DMS capturando
@@ -27,7 +27,7 @@ import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
 
-# ─── Mapeamento: tabela → path S3 Bronze ──────────────────────────────────────
+# ─── Mapeamento: tabela -> path S3 Bronze ──────────────────────────────────────
 TABLE_S3_PREFIX = {
     "tb_cliente":                "bronze/cadastro/cliente",
     "tb_endereco_cliente":       "bronze/cadastro/endereco",
@@ -188,7 +188,7 @@ def process_table(
     s3_client,
     dry_run: bool,
 ) -> dict:
-    """Processa uma tabela: carrega CSV → adiciona partições → faz upload no S3."""
+    """Processa uma tabela: carrega CSV -> adiciona partições -> faz upload no S3."""
     result = {"tabela": tabela, "linhas": 0, "arquivos": 0, "status": "OK", "erro": ""}
 
     try:
@@ -240,7 +240,7 @@ def print_summary(results: list[dict], dry_run: bool) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Carrega dados sintéticos CSV → S3 Bronze (Parquet + Snappy)",
+        description="Carrega dados sintéticos CSV -> S3 Bronze (Parquet + Snappy)",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=__doc__,
     )
@@ -257,8 +257,8 @@ def main() -> None:
     )
     parser.add_argument(
         "--region",
-        default="sa-east-1",
-        help="Região AWS (padrão: sa-east-1)",
+        default="us-east-1",
+        help="Região AWS (padrão: us-east-1)",
     )
     parser.add_argument(
         "--dry-run",

@@ -24,7 +24,7 @@ from awsglue.job import Job
 from pyspark.context import SparkContext
 from pyspark.sql import functions as F
 from pyspark.sql.window import Window
-from pyspark.sql.types import StringType, TimestampType
+from pyspark.sql.types import StringType, TimestampType, LongType
 
 args = getResolvedOptions(sys.argv, ["JOB_NAME", "BUCKET_NAME", "ENV"])
 JOB_NAME = args["JOB_NAME"]
@@ -40,14 +40,12 @@ job.init(JOB_NAME, args)
 print(f"[INFO] Job iniciado | Tabela: tb_mensagem_chat | ENV: {ENV}")
 
 BRONZE_DATABASE = "db_bronze"
-BRONZE_TABLE    = "tb_mensagem_chat"
+BRONZE_TABLE    = "mensagem_chat"
 SILVER_PATH     = f"s3://{BUCKET}/silver/canais/mensagem_chat/"
 CHECKPOINT_KEY  = "checkpoints/tb_mensagem_chat/watermark.json"
 QUARANTINE_PATH = f"s3://{BUCKET}/quarantine/tb_mensagem_chat/"
 SILVER_TABLE    = "db_silver.mensagem_chat"
 
-spark.conf.set("spark.sql.extensions",
-    "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions")
 spark.conf.set("spark.sql.catalog.glue_catalog",
     "org.apache.iceberg.spark.SparkCatalog")
 spark.conf.set("spark.sql.catalog.glue_catalog.catalog-impl",
@@ -139,8 +137,11 @@ now_ts = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
 df_transformed = (
     df_dedup
 
-    .withColumn("dt_envio",
-        F.to_timestamp(F.col("dt_envio"), "yyyy-MM-dd'T'HH:mm:ss"))
+    # IDs: cast explícito de STRING (bronze/CSV) para BIGINT
+    .withColumn("id_mensagem", F.col("id_mensagem").cast(LongType()))
+    .withColumn("id_chat", F.col("id_chat").cast(LongType()))
+    .withColumn("dt_mensagem",
+        F.to_timestamp(F.col("dt_mensagem"), "yyyy-MM-dd'T'HH:mm:ss"))
 
     .withColumn("ds_remetente",
         F.upper(F.trim(F.col("ds_remetente"))))
@@ -150,8 +151,8 @@ df_transformed = (
     # Substitui conteúdo da mensagem por tamanho (LGPD)
     .withColumn("nr_tamanho_chars",
         F.when(
-            F.col("ds_mensagem").isNotNull(),
-            F.length(F.col("ds_mensagem"))
+            F.col("ds_conteudo").isNotNull(),
+            F.length(F.col("ds_conteudo"))
         ).otherwise(F.lit(0)))
 
     .withColumn("fl_mensagem_cliente",
@@ -162,27 +163,27 @@ df_transformed = (
         F.when(F.col("ds_remetente") == "OPERADOR", F.lit(1))
          .otherwise(F.lit(0)).cast("smallint"))
 
-    .drop("ds_mensagem")
+    .drop("ds_conteudo")
 
     .withColumn("hash_registro",
         F.md5(F.concat_ws("|",
             F.coalesce(F.col("id_mensagem").cast("string"), F.lit("")),
             F.coalesce(F.col("id_chat").cast("string"),     F.lit("")),
             F.coalesce(F.col("ds_remetente"),               F.lit("")),
-            F.coalesce(F.col("dt_envio").cast("string"),    F.lit("")),
+            F.coalesce(F.col("dt_mensagem").cast("string"),    F.lit("")),
         )))
 
     .withColumn("dt_ingestao_silver", F.lit(now_ts).cast(TimestampType()))
-    .withColumn("ano", F.year(F.col("dt_envio")))
-    .withColumn("mes", F.month(F.col("dt_envio")))
-    .withColumn("dia", F.dayofmonth(F.col("dt_envio")))
+    .withColumn("ano", F.year(F.col("dt_mensagem")))
+    .withColumn("mes", F.month(F.col("dt_mensagem")))
+    .withColumn("dia", F.dayofmonth(F.col("dt_mensagem")))
 )
 
 df_transformed = df_transformed.withColumn(
     "_motivo_quarentena",
     F.when(F.col("id_mensagem").isNull(), F.lit("id_mensagem_nulo"))
      .when(F.col("id_chat").isNull(),     F.lit("id_chat_nulo"))
-     .when(F.col("dt_envio").isNull(),    F.lit("dt_envio_nula"))
+     .when(F.col("dt_mensagem").isNull(),    F.lit("dt_envio_nula"))
      .otherwise(F.lit(None).cast(StringType()))
 )
 

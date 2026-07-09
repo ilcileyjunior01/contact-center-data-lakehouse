@@ -40,8 +40,6 @@ DIM_DATA     = "db_gold.dim_data"
 GOLD_PATH    = f"s3://{BUCKET}/gold/fatos/fato_interacao_ticket/"
 GOLD_TABLE   = "db_gold.fato_interacao_ticket"
 
-spark.conf.set("spark.sql.extensions",
-    "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions")
 spark.conf.set("spark.sql.catalog.glue_catalog",
     "org.apache.iceberg.spark.SparkCatalog")
 spark.conf.set("spark.sql.catalog.glue_catalog.catalog-impl",
