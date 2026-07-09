@@ -18,7 +18,7 @@ from awsglue.job import Job
 from pyspark.context import SparkContext
 from pyspark.sql import functions as F
 from pyspark.sql.window import Window
-from pyspark.sql.types import StringType, TimestampType
+from pyspark.sql.types import StringType, TimestampType, LongType
 
 args = getResolvedOptions(sys.argv, ["JOB_NAME", "BUCKET_NAME", "ENV"])
 JOB_NAME = args["JOB_NAME"]
@@ -34,14 +34,12 @@ job.init(JOB_NAME, args)
 print(f"[INFO] Job iniciado | Tabela: tb_campanha | ENV: {ENV}")
 
 BRONZE_DATABASE = "db_bronze"
-BRONZE_TABLE    = "tb_campanha"
+BRONZE_TABLE    = "campanha"
 SILVER_PATH     = f"s3://{BUCKET}/silver/comercial/campanha/"
 CHECKPOINT_KEY  = "checkpoints/tb_campanha/watermark.json"
 QUARANTINE_PATH = f"s3://{BUCKET}/quarantine/tb_campanha/"
 SILVER_TABLE    = "db_silver.campanha"
 
-spark.conf.set("spark.sql.extensions",
-    "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions")
 spark.conf.set("spark.sql.catalog.glue_catalog",
     "org.apache.iceberg.spark.SparkCatalog")
 spark.conf.set("spark.sql.catalog.glue_catalog.catalog-impl",
@@ -133,6 +131,11 @@ now_ts = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
 df_transformed = (
     df_dedup
 
+    # Derivar st_campanha de fl_ativa (campo nao existe no Bronze)
+    .withColumn("st_campanha",
+        F.when(F.col("fl_ativa") == "True", F.lit("ATIVA")).otherwise(F.lit("INATIVA")))
+    # IDs: cast explícito de STRING (bronze/CSV) para BIGINT
+    .withColumn("id_campanha", F.col("id_campanha").cast(LongType()))
     .withColumn("dt_inicio",
         F.to_date(F.col("dt_inicio"), "yyyy-MM-dd"))
     .withColumn("dt_fim",

@@ -18,7 +18,7 @@ from awsglue.job import Job
 from pyspark.context import SparkContext
 from pyspark.sql import functions as F
 from pyspark.sql.window import Window
-from pyspark.sql.types import StringType, IntegerType, TimestampType
+from pyspark.sql.types import StringType, IntegerType, TimestampType, LongType
 
 args = getResolvedOptions(sys.argv, ["JOB_NAME", "BUCKET_NAME", "ENV"])
 JOB_NAME = args["JOB_NAME"]
@@ -34,14 +34,12 @@ job.init(JOB_NAME, args)
 print(f"[INFO] Job iniciado | Tabela: tb_skill_operador | ENV: {ENV}")
 
 BRONZE_DATABASE = "db_bronze"
-BRONZE_TABLE    = "tb_skill_operador"
+BRONZE_TABLE    = "skill"
 SILVER_PATH     = f"s3://{BUCKET}/silver/cadastro/skill_operador/"
 CHECKPOINT_KEY  = "checkpoints/tb_skill_operador/watermark.json"
 QUARANTINE_PATH = f"s3://{BUCKET}/quarantine/tb_skill_operador/"
 SILVER_TABLE    = "db_silver.skill_operador"
 
-spark.conf.set("spark.sql.extensions",
-    "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions")
 spark.conf.set("spark.sql.catalog.glue_catalog",
     "org.apache.iceberg.spark.SparkCatalog")
 spark.conf.set("spark.sql.catalog.glue_catalog.catalog-impl",
@@ -116,7 +114,7 @@ df_cdc = (
 )
 
 window_dedup = (
-    Window.partitionBy("id_skill_operador").orderBy(F.col("dt_cdc_evento").desc())
+    Window.partitionBy("id_skill").orderBy(F.col("dt_cdc_evento").desc())
 )
 
 df_dedup = (
@@ -133,6 +131,9 @@ now_ts = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
 df_transformed = (
     df_dedup
 
+    # IDs: cast explícito de STRING (bronze/CSV) para BIGINT
+    .withColumn("id_skill", F.col("id_skill").cast(LongType()))
+    .withColumn("id_operador", F.col("id_operador").cast(LongType()))
     # --- Normalização de strings ---
     .withColumn("ds_skill",
         F.upper(F.trim(F.col("ds_skill"))))
@@ -156,7 +157,7 @@ df_transformed = (
     # --- Hash de integridade ---
     .withColumn("hash_registro",
         F.md5(F.concat_ws("|",
-            F.coalesce(F.col("id_skill_operador").cast("string"), F.lit("")),
+            F.coalesce(F.col("id_skill").cast("string"), F.lit("")),
             F.coalesce(F.col("id_operador").cast("string"),       F.lit("")),
             F.coalesce(F.col("ds_skill"),                         F.lit("")),
             F.coalesce(F.col("nr_nivel").cast("string"),          F.lit("")),
@@ -168,7 +169,7 @@ df_transformed = (
 
 df_transformed = df_transformed.withColumn(
     "_motivo_quarentena",
-    F.when(F.col("id_skill_operador").isNull(), F.lit("id_skill_operador_nulo"))
+    F.when(F.col("id_skill").isNull(), F.lit("id_skill_nulo"))
      .when(F.col("id_operador").isNull(),       F.lit("id_operador_nulo"))
      .when(F.col("ds_skill").isNull(),          F.lit("ds_skill_nulo"))
      .otherwise(F.lit(None).cast(StringType()))
@@ -194,7 +195,7 @@ if not df_quarantine.rdd.isEmpty():
 
 spark.sql(f"""
     CREATE TABLE IF NOT EXISTS glue_catalog.{SILVER_TABLE} (
-        id_skill_operador   BIGINT,
+        id_skill   BIGINT,
         id_operador         BIGINT,
         ds_skill            STRING,
         nr_nivel            INT,
@@ -221,7 +222,7 @@ df_valid.createOrReplaceTempView("stg_skill_operador")
 spark.sql(f"""
     MERGE INTO glue_catalog.{SILVER_TABLE} AS target
     USING stg_skill_operador AS source
-    ON target.id_skill_operador = source.id_skill_operador
+    ON target.id_skill = source.id_skill
     WHEN MATCHED AND target.hash_registro <> source.hash_registro
     THEN UPDATE SET *
     WHEN NOT MATCHED THEN INSERT *

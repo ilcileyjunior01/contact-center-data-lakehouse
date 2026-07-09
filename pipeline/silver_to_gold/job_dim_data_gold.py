@@ -49,8 +49,6 @@ print(f"[INFO] Range: {DT_INICIO} → {DT_FIM}")
 GOLD_PATH  = f"s3://{BUCKET}/gold/dimensoes/dim_data/"
 GOLD_TABLE = "db_gold.dim_data"
 
-spark.conf.set("spark.sql.extensions",
-    "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions")
 spark.conf.set("spark.sql.catalog.glue_catalog",
     "org.apache.iceberg.spark.SparkCatalog")
 spark.conf.set("spark.sql.catalog.glue_catalog.catalog-impl",

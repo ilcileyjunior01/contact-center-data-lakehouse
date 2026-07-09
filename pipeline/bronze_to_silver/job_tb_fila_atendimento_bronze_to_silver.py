@@ -18,7 +18,7 @@ from awsglue.job import Job
 from pyspark.context import SparkContext
 from pyspark.sql import functions as F
 from pyspark.sql.window import Window
-from pyspark.sql.types import StringType, IntegerType, TimestampType
+from pyspark.sql.types import StringType, IntegerType, TimestampType, LongType
 
 args = getResolvedOptions(sys.argv, ["JOB_NAME", "BUCKET_NAME", "ENV"])
 JOB_NAME = args["JOB_NAME"]
@@ -34,14 +34,12 @@ job.init(JOB_NAME, args)
 print(f"[INFO] Job iniciado | Tabela: tb_fila_atendimento | ENV: {ENV}")
 
 BRONZE_DATABASE = "db_bronze"
-BRONZE_TABLE    = "tb_fila_atendimento"
+BRONZE_TABLE    = "fila"
 SILVER_PATH     = f"s3://{BUCKET}/silver/operacao/fila_atendimento/"
 CHECKPOINT_KEY  = "checkpoints/tb_fila_atendimento/watermark.json"
 QUARANTINE_PATH = f"s3://{BUCKET}/quarantine/tb_fila_atendimento/"
 SILVER_TABLE    = "db_silver.fila_atendimento"
 
-spark.conf.set("spark.sql.extensions",
-    "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions")
 spark.conf.set("spark.sql.catalog.glue_catalog",
     "org.apache.iceberg.spark.SparkCatalog")
 spark.conf.set("spark.sql.catalog.glue_catalog.catalog-impl",
@@ -133,33 +131,35 @@ now_ts = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
 df_transformed = (
     df_dedup
 
+    # IDs: cast explícito de STRING (bronze/CSV) para BIGINT
+    .withColumn("id_fila", F.col("id_fila").cast(LongType()))
     # --- Normalização de strings ---
     .withColumn("nm_fila",
         F.upper(F.trim(F.col("nm_fila"))))
-    .withColumn("ds_tipo_canal",
-        F.upper(F.trim(F.col("ds_tipo_canal"))))
+    .withColumn("ds_tipo_fila",
+        F.upper(F.trim(F.col("ds_tipo_fila"))))
 
     # --- Conversão e tratamento de nulos ---
     .withColumn("nr_sla_segundos",
-        F.col("nr_sla_segundos").cast(IntegerType()))
+        F.lit(None).cast("int").cast(IntegerType()))
     .withColumn("nm_fila",
         F.coalesce(F.col("nm_fila"), F.lit("DESCONHECIDO")))
-    .withColumn("ds_tipo_canal",
-        F.coalesce(F.col("ds_tipo_canal"), F.lit("DESCONHECIDO")))
+    .withColumn("ds_tipo_fila",
+        F.coalesce(F.col("ds_tipo_fila"), F.lit("DESCONHECIDO")))
     .withColumn("nr_sla_segundos",
-        F.coalesce(F.col("nr_sla_segundos"), F.lit(0)))
+        F.coalesce(F.lit(None).cast("int"), F.lit(0)))
 
     # --- Campo derivado ---
     .withColumn("nr_sla_minutos",
-        F.round(F.col("nr_sla_segundos") / 60.0, 2))
+        F.round(F.lit(None).cast("int") / 60.0, 2))
 
     # --- Hash de integridade ---
     .withColumn("hash_registro",
         F.md5(F.concat_ws("|",
             F.coalesce(F.col("id_fila").cast("string"),         F.lit("")),
             F.coalesce(F.col("nm_fila"),                        F.lit("")),
-            F.coalesce(F.col("ds_tipo_canal"),                  F.lit("")),
-            F.coalesce(F.col("nr_sla_segundos").cast("string"), F.lit("")),
+            F.coalesce(F.col("ds_tipo_fila"),                  F.lit("")),
+            F.coalesce(F.lit(None).cast("int").cast("string"), F.lit("")),
         )))
 
     # --- Auditoria ---
@@ -195,7 +195,7 @@ spark.sql(f"""
     CREATE TABLE IF NOT EXISTS glue_catalog.{SILVER_TABLE} (
         id_fila             BIGINT,
         nm_fila             STRING,
-        ds_tipo_canal       STRING,
+        ds_tipo_fila       STRING,
         nr_sla_segundos     INT,
         nr_sla_minutos      DOUBLE,
         dt_cdc_evento       TIMESTAMP,

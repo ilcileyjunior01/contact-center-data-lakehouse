@@ -9,7 +9,7 @@ Glue Data Catalog (db_gold), e imprime orientações de uso e custo.
 
 Uso:
     python 04_setup_redshift.py
-    python 04_setup_redshift.py --region sa-east-1 --admin-password MinhaSenha123!
+    python 04_setup_redshift.py --region us-east-1 --admin-password MinhaSenha123!
 
 IMPORTANTE:
     Antes de executar, preencha as variáveis SUBNET_IDS e SECURITY_GROUP_IDS
@@ -30,7 +30,7 @@ from botocore.exceptions import ClientError
 # ---------------------------------------------------------------------------
 # Defaults
 # ---------------------------------------------------------------------------
-DEFAULT_REGION = "sa-east-1"
+DEFAULT_REGION = "us-east-1"
 DEFAULT_BUCKET = "act-cc-dev-lakehouse"
 NAMESPACE_NAME = "ns-cc-lakehouse"
 WORKGROUP_NAME = "wg-cc-analytics"
@@ -38,8 +38,8 @@ ADMIN_USERNAME = "admin"
 
 # PREENCHA ANTES DE EXECUTAR:
 # Você pode descobrir esses valores via:
-#   aws ec2 describe-subnets --region sa-east-1
-#   aws ec2 describe-security-groups --region sa-east-1
+#   aws ec2 describe-subnets --region us-east-1
+#   aws ec2 describe-security-groups --region us-east-1
 PLACEHOLDER_SUBNET_IDS = [
     "subnet-XXXXXXXXXXXXXXXXX",   # <-- substitua pelos IDs reais das suas subnets privadas
     "subnet-YYYYYYYYYYYYYYYYY",   # Recomendado: ao menos 2 subnets em AZs diferentes
@@ -141,7 +141,7 @@ def create_workgroup(
 ) -> dict:
     """
     Cria o Redshift Serverless Workgroup.
-    base_capacity: 8 RPUs (mínimo para sa-east-1).
+    base_capacity: 8 RPUs (mínimo para us-east-1).
     """
     if workgroup_exists(rs_client, workgroup_name):
         print(f"  [OK] Workgroup '{workgroup_name}' já existe — pulando criação.")
@@ -319,7 +319,7 @@ def print_pause_resume_guide(workgroup_name: str, region: str) -> None:
   Redshift provisioned. Para pausar, delete o workgroup e recrie
   quando necessário, OU use auto-pause via CloudWatch Alarm.
 
-  CUSTO ESTIMADO (sa-east-1, 2024):
+  CUSTO ESTIMADO (us-east-1, 2024):
   ──────────────────────────────────
   • 8 RPUs × $0.36/RPU-hora = $2.88/hora
   • 8h/dia × 22 dias úteis  = ~$506/mês

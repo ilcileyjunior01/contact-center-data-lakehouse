@@ -67,7 +67,7 @@ print(f"[INFO] Job iniciado | Tabela: tb_ticket | ENV: {ENV}")
 # =========================================================
 
 BRONZE_DATABASE = "db_bronze"
-BRONZE_TABLE    = "tb_ticket"
+BRONZE_TABLE    = "ticket"
 SILVER_PATH     = f"s3://{BUCKET}/silver/operacao/ticket/"
 CHECKPOINT_KEY  = "checkpoints/tb_ticket/watermark.json"
 QUARANTINE_PATH = f"s3://{BUCKET}/quarantine/tb_ticket/"
@@ -77,10 +77,6 @@ SILVER_TABLE    = "db_silver.ticket"
 # CONFIGURAÇÃO ICEBERG
 # =========================================================
 
-spark.conf.set(
-    "spark.sql.extensions",
-    "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions"
-)
 spark.conf.set(
     "spark.sql.catalog.glue_catalog",
     "org.apache.iceberg.spark.SparkCatalog"
@@ -209,10 +205,14 @@ df_transformed = (
     df_dedup
 
     # --- Conversão de tipos ---
+    # IDs: cast explícito de STRING (bronze/CSV) para BIGINT
+    .withColumn("id_ticket", F.col("id_ticket").cast(LongType()))
+    .withColumn("id_cliente", F.col("id_cliente").cast(LongType()))
+    .withColumn("id_operador", F.col("id_operador").cast(LongType()))
     .withColumn("dt_abertura",
         F.to_timestamp(F.col("dt_abertura"), "yyyy-MM-dd'T'HH:mm:ss"))
-    .withColumn("dt_fechamento",
-        F.to_timestamp(F.col("dt_fechamento"), "yyyy-MM-dd'T'HH:mm:ss"))
+    .withColumn("dt_resolucao",
+        F.to_timestamp(F.col("dt_resolucao"), "yyyy-MM-dd'T'HH:mm:ss"))
 
     # --- Normalização de strings ---
     .withColumn("st_ticket",
@@ -222,11 +222,11 @@ df_transformed = (
     .withColumn("ds_categoria",
         F.upper(F.trim(F.col("ds_categoria"))))
     .withColumn("nr_protocolo",
-        F.trim(F.col("nr_protocolo")))
+        F.trim(F.col("id_ticket").cast("string")))
 
     # --- Tratamento de nulos ---
-    .withColumn("id_operador_abertura",
-        F.coalesce(F.col("id_operador_abertura"), F.lit(-1).cast(LongType())))
+    .withColumn("id_operador",
+        F.coalesce(F.col("id_operador"), F.lit(-1).cast(LongType())))
     .withColumn("st_ticket",
         F.coalesce(F.col("st_ticket"), F.lit("DESCONHECIDO")))
     .withColumn("ds_prioridade",
@@ -237,9 +237,9 @@ df_transformed = (
     # --- Campos derivados ---
     .withColumn("nr_tempo_resolucao_min",
         F.when(
-            F.col("dt_fechamento").isNotNull() & F.col("dt_abertura").isNotNull(),
+            F.col("dt_resolucao").isNotNull() & F.col("dt_abertura").isNotNull(),
             F.round(
-                (F.unix_timestamp(F.col("dt_fechamento")) -
+                (F.unix_timestamp(F.col("dt_resolucao")) -
                  F.unix_timestamp(F.col("dt_abertura"))) / 60.0, 2
             )
         ).otherwise(F.lit(None)))
@@ -252,7 +252,7 @@ df_transformed = (
 
     .withColumn("fl_dentro_sla",
         F.when(
-            F.col("nr_tempo_resolucao_min") <= F.lit(480),  # 8 horas como SLA padrão
+            F.round(F.col("nr_tempo_resolucao_horas") * 60.0, 0).cast("int") <= F.lit(480),  # 8 horas como SLA padrão
             F.lit(1)
         ).otherwise(F.lit(0)).cast("smallint"))
 
@@ -260,11 +260,11 @@ df_transformed = (
     .withColumn("hash_registro",
         F.md5(F.concat_ws("|",
             F.coalesce(F.col("id_ticket").cast("string"),            F.lit("")),
-            F.coalesce(F.col("nr_protocolo"),                        F.lit("")),
+            F.coalesce(F.col("id_ticket").cast("string"),                        F.lit("")),
             F.coalesce(F.col("id_cliente").cast("string"),           F.lit("")),
-            F.coalesce(F.col("id_operador_abertura").cast("string"), F.lit("")),
+            F.coalesce(F.col("id_operador").cast("string"), F.lit("")),
             F.coalesce(F.col("dt_abertura").cast("string"),          F.lit("")),
-            F.coalesce(F.col("dt_fechamento").cast("string"),        F.lit("")),
+            F.coalesce(F.col("dt_resolucao").cast("string"),        F.lit("")),
             F.coalesce(F.col("ds_categoria"),                        F.lit("")),
             F.coalesce(F.col("ds_prioridade"),                       F.lit("")),
             F.coalesce(F.col("st_ticket"),                           F.lit("")),
@@ -292,7 +292,7 @@ df_transformed = (
 df_transformed = df_transformed.withColumn(
     "_motivo_quarentena",
     F.when(F.col("id_ticket").isNull(),    F.lit("id_ticket_nulo"))
-     .when(F.col("nr_protocolo").isNull(), F.lit("nr_protocolo_nulo"))
+     .when(F.col("id_ticket").cast("string").isNull(), F.lit("nr_protocolo_nulo"))
      .when(F.col("id_cliente").isNull(),   F.lit("id_cliente_nulo"))
      .when(F.col("dt_abertura").isNull(),  F.lit("dt_abertura_nula"))
      .otherwise(F.lit(None).cast(StringType()))

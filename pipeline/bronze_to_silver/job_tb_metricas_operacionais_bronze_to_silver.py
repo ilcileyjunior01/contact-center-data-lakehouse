@@ -24,7 +24,7 @@ from awsglue.job import Job
 from pyspark.context import SparkContext
 from pyspark.sql import functions as F
 from pyspark.sql.window import Window
-from pyspark.sql.types import StringType, IntegerType, TimestampType
+from pyspark.sql.types import StringType, IntegerType, TimestampType, LongType
 
 args = getResolvedOptions(sys.argv, ["JOB_NAME", "BUCKET_NAME", "ENV"])
 JOB_NAME = args["JOB_NAME"]
@@ -40,14 +40,12 @@ job.init(JOB_NAME, args)
 print(f"[INFO] Job iniciado | Tabela: tb_metricas_operacionais | ENV: {ENV}")
 
 BRONZE_DATABASE = "db_bronze"
-BRONZE_TABLE    = "tb_metricas_operacionais"
+BRONZE_TABLE    = "metricas"
 SILVER_PATH     = f"s3://{BUCKET}/silver/operacao/metricas_operacionais/"
 CHECKPOINT_KEY  = "checkpoints/tb_metricas_operacionais/watermark.json"
 QUARANTINE_PATH = f"s3://{BUCKET}/quarantine/tb_metricas_operacionais/"
 SILVER_TABLE    = "db_silver.metricas_operacionais"
 
-spark.conf.set("spark.sql.extensions",
-    "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions")
 spark.conf.set("spark.sql.catalog.glue_catalog",
     "org.apache.iceberg.spark.SparkCatalog")
 spark.conf.set("spark.sql.catalog.glue_catalog.catalog-impl",
@@ -140,11 +138,15 @@ now_ts = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
 df_transformed = (
     df_dedup
 
+    # IDs: cast explícito de STRING (bronze/CSV) para BIGINT
+    .withColumn("id_metrica", F.col("id_metrica").cast(LongType()))
+    .withColumn("id_operador", F.col("id_operador").cast(LongType()))
+    .withColumn("id_fila", F.col("id_fila").cast(LongType()))
     .withColumn("dt_referencia",
         F.to_timestamp(F.col("dt_referencia"), "yyyy-MM-dd'T'HH:mm:ss"))
 
-    .withColumn("nr_chamadas_recebidas",
-        F.coalesce(F.col("nr_chamadas_recebidas").cast(IntegerType()),  F.lit(0)))
+    .withColumn("nr_chamadas_atendidas",
+        F.coalesce(F.col("nr_chamadas_atendidas").cast(IntegerType()),  F.lit(0)))
     .withColumn("nr_chamadas_atendidas",
         F.coalesce(F.col("nr_chamadas_atendidas").cast(IntegerType()),  F.lit(0)))
     .withColumn("nr_chamadas_abandonadas",
@@ -154,26 +156,26 @@ df_transformed = (
     .withColumn("nr_tme_segundos",
         F.coalesce(F.col("nr_tme_segundos").cast(IntegerType()),        F.lit(0)))
     .withColumn("nr_nivel_servico",
-        F.coalesce(F.col("nr_nivel_servico").cast("double"),            F.lit(0.0)))
+        F.coalesce(F.lit(None).cast("double").cast("double"),            F.lit(0.0)))
     .withColumn("id_fila",
         F.coalesce(F.col("id_fila"), F.lit(-1).cast("long")))
 
     # --- Campos derivados ---
     .withColumn("nr_taxa_atendimento",
         F.when(
-            F.col("nr_chamadas_recebidas") > 0,
+            F.col("nr_chamadas_atendidas") > 0,
             F.round(
                 F.col("nr_chamadas_atendidas") * 100.0 /
-                F.col("nr_chamadas_recebidas"), 2
+                F.col("nr_chamadas_atendidas"), 2
             )
         ).otherwise(F.lit(0.0)))
 
     .withColumn("nr_taxa_abandono",
         F.when(
-            F.col("nr_chamadas_recebidas") > 0,
+            F.col("nr_chamadas_atendidas") > 0,
             F.round(
                 F.col("nr_chamadas_abandonadas") * 100.0 /
-                F.col("nr_chamadas_recebidas"), 2
+                F.col("nr_chamadas_atendidas"), 2
             )
         ).otherwise(F.lit(0.0)))
 
@@ -184,7 +186,7 @@ df_transformed = (
         F.round(F.col("nr_tme_segundos") / 60.0, 2))
 
     .withColumn("fl_meta_nivel_servico",
-        F.when(F.col("nr_nivel_servico") >= 80.0, F.lit(1))
+        F.when(F.lit(None).cast("double") >= 80.0, F.lit(1))
          .otherwise(F.lit(0)).cast("smallint"))
 
     .withColumn("fl_alto_abandono",
@@ -196,10 +198,10 @@ df_transformed = (
             F.coalesce(F.col("id_metrica").cast("string"),              F.lit("")),
             F.coalesce(F.col("id_fila").cast("string"),                 F.lit("")),
             F.coalesce(F.col("dt_referencia").cast("string"),           F.lit("")),
-            F.coalesce(F.col("nr_chamadas_recebidas").cast("string"),   F.lit("")),
+            F.coalesce(F.col("nr_chamadas_atendidas").cast("string"),   F.lit("")),
             F.coalesce(F.col("nr_chamadas_atendidas").cast("string"),   F.lit("")),
             F.coalesce(F.col("nr_chamadas_abandonadas").cast("string"), F.lit("")),
-            F.coalesce(F.col("nr_nivel_servico").cast("string"),        F.lit("")),
+            F.coalesce(F.lit(None).cast("double").cast("string"),        F.lit("")),
         )))
 
     .withColumn("dt_ingestao_silver", F.lit(now_ts).cast(TimestampType()))
@@ -213,8 +215,8 @@ df_transformed = df_transformed.withColumn(
     F.when(F.col("id_metrica").isNull(),    F.lit("id_metrica_nulo"))
      .when(F.col("dt_referencia").isNull(), F.lit("dt_referencia_nula"))
      .when(
-         F.col("nr_nivel_servico").isNotNull() &
-         ((F.col("nr_nivel_servico") < 0) | (F.col("nr_nivel_servico") > 100)),
+         F.lit(None).cast("double").isNotNull() &
+         ((F.lit(None).cast("double") < 0) | (F.lit(None).cast("double") > 100)),
          F.lit("nr_nivel_servico_fora_do_range")
      )
      .otherwise(F.lit(None).cast(StringType()))
@@ -243,7 +245,7 @@ spark.sql(f"""
         id_metrica                  BIGINT,
         dt_referencia               TIMESTAMP,
         id_fila                     BIGINT,
-        nr_chamadas_recebidas       INT,
+        nr_chamadas_atendidas       INT,
         nr_chamadas_atendidas       INT,
         nr_chamadas_abandonadas     INT,
         nr_tma_segundos             INT,

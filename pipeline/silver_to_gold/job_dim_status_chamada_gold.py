@@ -40,8 +40,6 @@ SILVER_TABLE = "db_silver.chamada"
 GOLD_PATH    = f"s3://{BUCKET}/gold/dimensoes/dim_status_chamada/"
 GOLD_TABLE   = "db_gold.dim_status_chamada"
 
-spark.conf.set("spark.sql.extensions",
-    "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions")
 spark.conf.set("spark.sql.catalog.glue_catalog",
     "org.apache.iceberg.spark.SparkCatalog")
 spark.conf.set("spark.sql.catalog.glue_catalog.catalog-impl",

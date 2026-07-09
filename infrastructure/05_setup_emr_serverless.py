@@ -9,7 +9,7 @@ submit_spark_job() para submeter jobs PySpark.
 
 Uso:
     python 05_setup_emr_serverless.py
-    python 05_setup_emr_serverless.py --region sa-east-1 --bucket-name act-cc-dev-lakehouse
+    python 05_setup_emr_serverless.py --region us-east-1 --bucket-name act-cc-dev-lakehouse
     python 05_setup_emr_serverless.py --submit-example  # submete job de exemplo
 
 Requisitos:
@@ -31,7 +31,7 @@ from botocore.exceptions import ClientError
 # ---------------------------------------------------------------------------
 # Defaults
 # ---------------------------------------------------------------------------
-DEFAULT_REGION = "sa-east-1"
+DEFAULT_REGION = "us-east-1"
 DEFAULT_BUCKET = "act-cc-dev-lakehouse"
 APP_NAME = "app-cc-spark"
 EMR_RELEASE = "emr-6.15.0"
@@ -541,15 +541,15 @@ def wait_job_completion(
 def print_cost_estimate(bucket_name: str) -> None:
     """Imprime estimativa de custo por job no EMR Serverless."""
     print("\n" + "=" * 65)
-    print("  CUSTO ESTIMADO POR JOB (EMR Serverless - sa-east-1)")
+    print("  CUSTO ESTIMADO POR JOB (EMR Serverless - us-east-1)")
     print("=" * 65)
     print("""
-  Configuração típica para jobs Bronze→Silver:
+  Configuração típica para jobs Bronze->Silver:
   ─────────────────────────────────────────────
   Driver  : 2 vCPU × 4 GB por 10 minutos
   Executor: 2 workers × 4 vCPU × 8 GB por 10 minutos
 
-  Preços EMR Serverless (sa-east-1, 2024):
+  Preços EMR Serverless (us-east-1, 2024):
   • vCPU-hora : ~$0.052632
   • GB-hora   : ~$0.005789
 
@@ -568,7 +568,7 @@ def print_cost_estimate(bucket_name: str) -> None:
   • Use auto-stop (configurado: 15min idle) para não desperdiçar
   • Prefira Parquet + Snappy para reduzir I/O e tempo de execução
   • Use particionamento por data para evitar full table scans
-  • Monitore via EMR Serverless Console → Applications → Job Runs
+  • Monitore via EMR Serverless Console -> Applications -> Job Runs
 
   ALTERNATIVA MAIS ECONÔMICA PARA DEV:
   • AWS Glue ETL: cobra por DPU-hora (~$0.44/DPU-hora)
@@ -605,7 +605,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--submit-example",
         action="store_true",
-        help="Submete um job de exemplo Bronze→Silver após criar a aplicação",
+        help="Submete um job de exemplo Bronze->Silver após criar a aplicação",
     )
     parser.add_argument(
         "--wait-job",
@@ -662,7 +662,7 @@ def main():
     # Exemplo de submissão de job
     # -----------------------------------------------------------------------
     if args.submit_example:
-        print("\n[ETAPA 5] Submetendo job de exemplo Bronze→Silver (chamada)...")
+        print("\n[ETAPA 5] Submetendo job de exemplo Bronze->Silver (chamada)...")
 
         example_script = f"s3://{bucket_name}/scripts/bronze_to_silver_chamada.py"
         example_args = [
@@ -753,7 +753,7 @@ def main():
     print(f"  1. Faça upload dos scripts PySpark:")
     print(f"     aws s3 sync pipeline/ s3://{bucket_name}/scripts/")
     print(f"  2. Submeta jobs com: python 05_setup_emr_serverless.py --submit-example")
-    print(f"  3. Monitore em: AWS Console → EMR Serverless → {APP_NAME}")
+    print(f"  3. Monitore em: AWS Console -> EMR Serverless -> {APP_NAME}")
     print()
     print("  PARA DELETAR A APLICAÇÃO (economizar custo):")
     print(

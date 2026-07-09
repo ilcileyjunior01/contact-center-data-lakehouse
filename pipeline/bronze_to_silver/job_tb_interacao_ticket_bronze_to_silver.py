@@ -22,7 +22,7 @@ from awsglue.job import Job
 from pyspark.context import SparkContext
 from pyspark.sql import functions as F
 from pyspark.sql.window import Window
-from pyspark.sql.types import StringType, TimestampType
+from pyspark.sql.types import StringType, TimestampType, LongType
 
 args = getResolvedOptions(sys.argv, ["JOB_NAME", "BUCKET_NAME", "ENV"])
 JOB_NAME = args["JOB_NAME"]
@@ -38,14 +38,12 @@ job.init(JOB_NAME, args)
 print(f"[INFO] Job iniciado | Tabela: tb_interacao_ticket | ENV: {ENV}")
 
 BRONZE_DATABASE = "db_bronze"
-BRONZE_TABLE    = "tb_interacao_ticket"
+BRONZE_TABLE    = "ticket_interacao"
 SILVER_PATH     = f"s3://{BUCKET}/silver/operacao/interacao_ticket/"
 CHECKPOINT_KEY  = "checkpoints/tb_interacao_ticket/watermark.json"
 QUARANTINE_PATH = f"s3://{BUCKET}/quarantine/tb_interacao_ticket/"
 SILVER_TABLE    = "db_silver.interacao_ticket"
 
-spark.conf.set("spark.sql.extensions",
-    "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions")
 spark.conf.set("spark.sql.catalog.glue_catalog",
     "org.apache.iceberg.spark.SparkCatalog")
 spark.conf.set("spark.sql.catalog.glue_catalog.catalog-impl",
@@ -137,28 +135,32 @@ now_ts = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
 df_transformed = (
     df_dedup
 
+    # IDs: cast explícito de STRING (bronze/CSV) para BIGINT
+    .withColumn("id_interacao", F.col("id_interacao").cast(LongType()))
+    .withColumn("id_ticket", F.col("id_ticket").cast(LongType()))
+    .withColumn("id_operador", F.col("id_operador").cast(LongType()))
     .withColumn("dt_interacao",
         F.to_timestamp(F.col("dt_interacao"), "yyyy-MM-dd'T'HH:mm:ss"))
 
-    .withColumn("ds_canal",
-        F.upper(F.trim(F.col("ds_canal"))))
-    .withColumn("ds_canal",
-        F.coalesce(F.col("ds_canal"), F.lit("DESCONHECIDO")))
+    .withColumn("ds_tipo_interacao",
+        F.upper(F.trim(F.col("ds_tipo_interacao"))))
+    .withColumn("ds_tipo_interacao",
+        F.coalesce(F.col("ds_tipo_interacao"), F.lit("DESCONHECIDO")))
     .withColumn("id_operador",
         F.coalesce(F.col("id_operador"), F.lit(-1).cast("long")))
 
     # Substitui texto livre por tamanho (LGPD)
     .withColumn("nr_tamanho_observacao_chars",
         F.when(
-            F.col("ds_observacao").isNotNull(),
-            F.length(F.col("ds_observacao"))
+            F.col("ds_descricao").isNotNull(),
+            F.length(F.col("ds_descricao"))
         ).otherwise(F.lit(0)))
 
     .withColumn("fl_tem_observacao",
-        F.when(F.col("nr_tamanho_observacao_chars") > 0, F.lit(1))
+        F.when(F.length(F.col("ds_descricao")) > 0, F.lit(1))
          .otherwise(F.lit(0)).cast("smallint"))
 
-    .drop("ds_observacao")
+    .drop("ds_descricao")
 
     .withColumn("hash_registro",
         F.md5(F.concat_ws("|",
@@ -166,7 +168,7 @@ df_transformed = (
             F.coalesce(F.col("id_ticket").cast("string"),    F.lit("")),
             F.coalesce(F.col("id_operador").cast("string"),  F.lit("")),
             F.coalesce(F.col("dt_interacao").cast("string"), F.lit("")),
-            F.coalesce(F.col("ds_canal"),                    F.lit("")),
+            F.coalesce(F.col("ds_tipo_interacao"),                    F.lit("")),
         )))
 
     .withColumn("dt_ingestao_silver", F.lit(now_ts).cast(TimestampType()))
@@ -207,7 +209,7 @@ spark.sql(f"""
         id_ticket                       BIGINT,
         id_operador                     BIGINT,
         dt_interacao                    TIMESTAMP,
-        ds_canal                        STRING,
+        ds_tipo_interacao                        STRING,
         nr_tamanho_observacao_chars     INT,
         fl_tem_observacao               SMALLINT,
         dt_cdc_evento                   TIMESTAMP,

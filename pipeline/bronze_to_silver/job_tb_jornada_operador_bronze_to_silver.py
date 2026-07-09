@@ -1,14 +1,12 @@
 # =========================================================
 # JOB: job_tb_jornada_operador_bronze_to_silver.py
-# PIPELINE: Bronze → Silver
+# PIPELINE: Bronze -> Silver
 # TABELA: tb_jornada_operador
 # GLUE VERSION: 4.0
 # WORKER TYPE: G.1X / 2 workers
 # =========================================================
 
 import sys
-import json
-import boto3
 from datetime import datetime, timezone
 
 from awsglue.utils import getResolvedOptions
@@ -18,7 +16,9 @@ from awsglue.job import Job
 from pyspark.context import SparkContext
 from pyspark.sql import functions as F
 from pyspark.sql.window import Window
-from pyspark.sql.types import StringType, IntegerType, TimestampType
+from pyspark.sql.types import (
+    StringType, IntegerType, TimestampType, LongType
+)
 
 args = getResolvedOptions(sys.argv, ["JOB_NAME", "BUCKET_NAME", "ENV"])
 JOB_NAME = args["JOB_NAME"]
@@ -34,14 +34,11 @@ job.init(JOB_NAME, args)
 print(f"[INFO] Job iniciado | Tabela: tb_jornada_operador | ENV: {ENV}")
 
 BRONZE_DATABASE = "db_bronze"
-BRONZE_TABLE    = "tb_jornada_operador"
-SILVER_PATH     = f"s3://{BUCKET}/silver/operacao/jornada_operador/"
-CHECKPOINT_KEY  = "checkpoints/tb_jornada_operador/watermark.json"
+BRONZE_TABLE    = "jornada"
+SILVER_PATH     = f"s3://{BUCKET}/silver/qualidade/jornada/"
 QUARANTINE_PATH = f"s3://{BUCKET}/quarantine/tb_jornada_operador/"
 SILVER_TABLE    = "db_silver.jornada_operador"
 
-spark.conf.set("spark.sql.extensions",
-    "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions")
 spark.conf.set("spark.sql.catalog.glue_catalog",
     "org.apache.iceberg.spark.SparkCatalog")
 spark.conf.set("spark.sql.catalog.glue_catalog.catalog-impl",
@@ -50,55 +47,16 @@ spark.conf.set("spark.sql.catalog.glue_catalog.io-impl",
     "org.apache.iceberg.aws.s3.S3FileIO")
 spark.conf.set("spark.sql.catalog.glue_catalog.warehouse",
     f"s3://{BUCKET}/silver/")
-spark.conf.set("spark.sql.adaptive.enabled", "true")
-spark.conf.set("spark.sql.adaptive.coalescePartitions.enabled", "true")
-
-DEFAULT_WATERMARK = "1970-01-01T00:00:00Z"
-s3_client = boto3.client("s3")
-
-def get_watermark():
-    try:
-        obj     = s3_client.get_object(Bucket=BUCKET, Key=CHECKPOINT_KEY)
-        content = json.loads(obj["Body"].read().decode("utf-8"))
-        wm      = content.get("last_watermark", DEFAULT_WATERMARK)
-        print(f"[INFO] Watermark recuperado: {wm}")
-        return wm
-    except s3_client.exceptions.NoSuchKey:
-        print("[INFO] Nenhum watermark encontrado. Executando full load.")
-        return DEFAULT_WATERMARK
-    except Exception as e:
-        raise RuntimeError(f"[ERROR] Falha ao ler watermark: {str(e)}")
-
-def save_watermark(new_ts):
-    payload = {
-        "table_name":     "tb_jornada_operador",
-        "last_watermark": new_ts,
-        "updated_at":     datetime.now(timezone.utc).isoformat(),
-        "job_name":       JOB_NAME,
-    }
-    s3_client.put_object(
-        Bucket=BUCKET,
-        Key=CHECKPOINT_KEY,
-        Body=json.dumps(payload, indent=2, ensure_ascii=False),
-        ContentType="application/json",
-    )
-    print(f"[INFO] Watermark atualizado para: {new_ts}")
-
-last_watermark = get_watermark()
 
 dynamic_frame = glue_context.create_dynamic_frame.from_catalog(
     database=BRONZE_DATABASE,
     table_name=BRONZE_TABLE,
-    transformation_ctx="bronze_tb_jornada_operador",
+    transformation_ctx="bronze_jornada_operador",
 )
-
-df_bronze = (
-    dynamic_frame.toDF()
-    .filter(F.col("_timestamp") > F.lit(last_watermark))
-)
+df_bronze = dynamic_frame.toDF()
 
 count_bronze = df_bronze.count()
-print(f"[INFO] Registros lidos do Bronze (incremental): {count_bronze}")
+print(f"[INFO] Registros lidos do Bronze: {count_bronze}")
 
 if count_bronze == 0:
     print("[INFO] Nenhum registro novo. Job encerrado.")
@@ -109,74 +67,130 @@ df_cdc = (
     df_bronze
     .withColumn("dt_cdc_evento", F.to_timestamp(F.col("_timestamp")))
     .withColumn("op_cdc",
-        F.when(F.col("Op") == "I", F.lit("INSERT"))
-         .when(F.col("Op") == "U", F.lit("UPDATE"))
-         .when(F.col("Op") == "D", F.lit("DELETE"))
+        F.when(F.col("op") == "I", F.lit("INSERT"))
+         .when(F.col("op") == "U", F.lit("UPDATE"))
+         .when(F.col("op") == "D", F.lit("DELETE"))
          .otherwise(F.lit("UNKNOWN")))
 )
 
-window_dedup = (
-    Window.partitionBy("id_jornada").orderBy(F.col("dt_cdc_evento").desc())
-)
-
+window_dedup = Window.partitionBy("id_jornada").orderBy(F.col("dt_cdc_evento").desc())
 df_dedup = (
     df_cdc
     .withColumn("_row_num", F.row_number().over(window_dedup))
     .filter(F.col("_row_num") == 1)
-    .drop("_row_num", "Op", "_timestamp")
+    .drop("_row_num", "op", "_timestamp")
 )
 
-print(f"[INFO] Registros após deduplicação CDC: {df_dedup.count()}")
+print(f"[INFO] Registros apos dedup: {df_dedup.count()}")
 
 now_ts = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
 
 df_transformed = (
     df_dedup
+    .withColumn("id_jornada",  F.col("id_jornada").cast(LongType()))
+    .withColumn("id_operador", F.col("id_operador").cast(LongType()))
+    .withColumn("dt_jornada",  F.to_date(F.col("dt_jornada"),  "yyyy-MM-dd"))
+    .withColumn("dt_entrada",  F.to_timestamp(F.col("dt_entrada"),  "yyyy-MM-dd'T'HH:mm:ss"))
+    .withColumn("dt_saida",    F.to_timestamp(F.col("dt_saida"),    "yyyy-MM-dd'T'HH:mm:ss"))
+    .withColumn("nr_horas_trabalhadas",  F.col("nr_horas_trabalhadas").cast("double"))
+    .withColumn("nr_chamadas_atendidas", F.col("nr_chamadas_atendidas").cast(IntegerType()))
+    .withColumn("nr_tickets_resolvidos", F.col("nr_tickets_resolvidos").cast(IntegerType()))
+    .withColumn("st_presenca", F.upper(F.trim(F.col("st_presenca"))))
+    .withColumn("st_presenca",
+        F.coalesce(F.col("st_presenca"), F.lit("DESCONHECIDO")))
+    .withColumn("nr_horas_trabalhadas",
+        F.coalesce(F.col("nr_horas_trabalhadas"), F.lit(0.0)))
+    .withColumn("nr_chamadas_atendidas",
+        F.coalesce(F.col("nr_chamadas_atendidas"), F.lit(0)))
+    .withColumn("nr_tickets_resolvidos",
+        F.coalesce(F.col("nr_tickets_resolvidos"), F.lit(0)))
+    .withColumn("fl_presente",
+        F.when(F.col("st_presenca") == "PRESENTE", F.lit(1))
+         .otherwise(F.lit(0)).cast("smallint"))
+    .withColumn("hash_registro",
+        F.md5(F.concat_ws("|",
+            F.coalesce(F.col("id_jornada").cast("string"),          F.lit("")),
+            F.coalesce(F.col("id_operador").cast("string"),         F.lit("")),
+            F.coalesce(F.col("dt_jornada").cast("string"),          F.lit("")),
+            F.coalesce(F.col("nr_horas_trabalhadas").cast("string"),F.lit("")),
+            F.coalesce(F.col("st_presenca"),                        F.lit("")),
+        )))
+    .withColumn("dt_ingestao_silver", F.lit(now_ts).cast(TimestampType()))
+    .withColumn("ano", F.year(F.col("dt_jornada")))
+    .withColumn("mes", F.month(F.col("dt_jornada")))
+    .withColumn("dia", F.dayofmonth(F.col("dt_jornada")))
+)
 
-    .withColumn("dt_inicio_turno",
-        F.to_timestamp(F.col("dt_inicio_turno"), "yyyy-MM-dd'T'HH:mm:ss"))
-    .withColumn("dt_fim_turno",
-        F.to_timestamp(F.col("dt_fim_turno"), "yyyy-MM-dd'T'HH:mm:ss"))
+df_transformed = df_transformed.withColumn(
+    "_motivo_quarentena",
+    F.when(F.col("id_jornada").isNull(),  F.lit("id_jornada_nulo"))
+     .when(F.col("id_operador").isNull(), F.lit("id_operador_nulo"))
+     .when(F.col("dt_jornada").isNull(),  F.lit("dt_jornada_nulo"))
+     .otherwise(F.lit(None).cast(StringType()))
+)
 
-    .withColumn("nr_tempo_pausa_min",
-        F.col("nr_tempo_pausa_min").cast(IntegerType()))
-    .withColumn("nr_tempo_pausa_min",
-        F.coalesce(F.col("nr_tempo_pausa_min"), F.lit(0)))
+df_valid      = df_transformed.filter(F.col("_motivo_quarentena").isNull()).drop("_motivo_quarentena")
+df_quarantine = df_transformed.filter(F.col("_motivo_quarentena").isNotNull())
 
-    # --- Campos derivados ---
-    .withColumn("nr_duracao_turno_min",
-        F.when(
-            F.col("dt_fim_turno").isNotNull() & F.col("dt_inicio_turno").isNotNull(),
-            F.round(
-                (F.unix_timestamp(F.col("dt_fim_turno")) -
-                 F.unix_timestamp(F.col("dt_inicio_turno"))) / 60.0, 2
-            )
-        ).otherwise(F.lit(None)))
+print(f"[INFO] Validos: {df_valid.count()} | Quarentena: {df_quarantine.count()}")
 
-    .withColumn("nr_duracao_produtiva_min",
-        F.when(
-            F.col("nr_duracao_turno_min").isNotNull(),
-            F.round(F.col("nr_duracao_turno_min") - F.col("nr_tempo_pausa_min"), 2)
-        ).otherwise(F.lit(None)))
+if not df_quarantine.rdd.isEmpty():
+    (
+        df_quarantine
+        .withColumn("ano_ingestao", F.year(F.current_timestamp()))
+        .withColumn("mes_ingestao", F.month(F.current_timestamp()))
+        .withColumn("dia_ingestao", F.dayofmonth(F.current_timestamp()))
+        .write.mode("append")
+        .partitionBy("ano_ingestao", "mes_ingestao", "dia_ingestao")
+        .parquet(QUARANTINE_PATH)
+    )
 
-    .withColumn("fl_turno_completo",
-        F.when(
-            F.col("dt_fim_turno").isNotNull() & F.col("dt_inicio_turno").isNotNull(),
-            F.lit(1)
-        ).otherwise(F.lit(0)).cast("smallint"))
+spark.sql(f"""
+    CREATE TABLE IF NOT EXISTS glue_catalog.{SILVER_TABLE} (
+        id_jornada              BIGINT,
+        id_operador             BIGINT,
+        dt_jornada              DATE,
+        dt_entrada              TIMESTAMP,
+        dt_saida                TIMESTAMP,
+        nr_horas_trabalhadas    DOUBLE,
+        nr_chamadas_atendidas   INT,
+        nr_tickets_resolvidos   INT,
+        st_presenca             STRING,
+        fl_presente             SMALLINT,
+        dt_cdc_evento           TIMESTAMP,
+        op_cdc                  STRING,
+        hash_registro           STRING,
+        dt_ingestao_silver      TIMESTAMP,
+        ano                     INT,
+        mes                     INT,
+        dia                     INT
+    )
+    USING iceberg
+    LOCATION '{SILVER_PATH}'
+    PARTITIONED BY (ano, mes, dia)
+    TBLPROPERTIES (
+        'format-version'                  = '2',
+        'write.format.default'            = 'parquet',
+        'write.parquet.compression-codec' = 'snappy',
+        'write.target-file-size-bytes'    = '134217728'
+    )
+""")
 
-    # Turno considerado normal entre 4h e 10h (240 a 600 min)
-    .withColumn("fl_turno_normal",
-        F.when(
-            F.col("nr_duracao_turno_min").isNotNull() &
-            (F.col("nr_duracao_turno_min") >= 240) &
-            (F.col("nr_duracao_turno_min") <= 600),
-            F.lit(1)
-        ).otherwise(F.lit(0)).cast("smallint"))
+df_valid.createOrReplaceTempView("stg_jornada_operador")
 
-    .withColumn("ds_turno",
-        F.when(
-            F.col("dt_inicio_turno").isNotNull(),
-            F.when(F.hour(F.col("dt_inicio_turno")).between(5,  11), F.lit("MANHA"))
+spark.sql(f"""
+    MERGE INTO glue_catalog.{SILVER_TABLE} AS target
+    USING stg_jornada_operador AS source
+    ON target.id_jornada = source.id_jornada
 
+    WHEN MATCHED AND target.hash_registro <> source.hash_registro
+    THEN UPDATE SET *
 
+    WHEN NOT MATCHED
+    THEN INSERT *
+""")
+
+print(f"[INFO] MERGE concluido: {SILVER_TABLE}")
+
+job.commit()
+print("[INFO] Job finalizado com sucesso.")

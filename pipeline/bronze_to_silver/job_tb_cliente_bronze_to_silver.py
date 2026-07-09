@@ -26,7 +26,7 @@ from awsglue.job import Job
 from pyspark.context import SparkContext
 from pyspark.sql import functions as F
 from pyspark.sql.window import Window
-from pyspark.sql.types import (
+from pyspark.sql.types import (, LongType
     LongType, StringType, TimestampType
 )
 
@@ -66,7 +66,7 @@ print(f"[INFO] Job iniciado | Tabela: tb_cliente | ENV: {ENV}")
 # =========================================================
 
 BRONZE_DATABASE = "db_bronze"
-BRONZE_TABLE    = "tb_cliente"
+BRONZE_TABLE    = "cliente"
 SILVER_PATH     = f"s3://{BUCKET}/silver/cadastro/cliente/"
 CHECKPOINT_KEY  = "checkpoints/tb_cliente/watermark.json"
 QUARANTINE_PATH = f"s3://{BUCKET}/quarantine/tb_cliente/"
@@ -76,10 +76,6 @@ SILVER_TABLE    = "db_silver.cliente"
 # CONFIGURAÇÃO ICEBERG
 # =========================================================
 
-spark.conf.set(
-    "spark.sql.extensions",
-    "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions"
-)
 spark.conf.set(
     "spark.sql.catalog.glue_catalog",
     "org.apache.iceberg.spark.SparkCatalog"
@@ -216,6 +212,8 @@ df_transformed = (
     df_dedup
 
     # --- Conversão de tipos ---
+    # IDs: cast explícito de STRING (bronze/CSV) para BIGINT
+    .withColumn("id_cliente", F.col("id_cliente").cast(LongType()))
     .withColumn("dt_cadastro",
         F.to_timestamp(F.col("dt_cadastro"), "yyyy-MM-dd'T'HH:mm:ss"))
 

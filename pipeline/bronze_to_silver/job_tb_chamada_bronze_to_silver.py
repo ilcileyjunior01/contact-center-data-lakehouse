@@ -23,7 +23,7 @@ from awsglue.job import Job
 from pyspark.context import SparkContext
 from pyspark.sql import functions as F
 from pyspark.sql.window import Window
-from pyspark.sql.types import (
+from pyspark.sql.types import (, LongType
     StructType, StructField,
     LongType, StringType, IntegerType, TimestampType
 )
@@ -68,7 +68,7 @@ print(f"[INFO] Job iniciado | Tabela: tb_chamada | ENV: {ENV}")
 # =========================================================
 
 BRONZE_DATABASE = "db_bronze"
-BRONZE_TABLE    = "tb_chamada"
+BRONZE_TABLE    = "chamada"
 SILVER_PATH     = f"s3://{BUCKET}/silver/operacao/chamada/"
 QUARANTINE_PATH = f"s3://{BUCKET}/quarantine/tb_chamada/"
 SILVER_TABLE    = "db_silver.chamada"
@@ -79,10 +79,6 @@ SILVER_TABLE    = "db_silver.chamada"
 # Aplicada sobre a sessão existente do Glue,
 # antes de qualquer operação com tabelas Iceberg.
 
-spark.conf.set(
-    "spark.sql.extensions",
-    "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions"
-)
 spark.conf.set(
     "spark.sql.catalog.glue_catalog",
     "org.apache.iceberg.spark.SparkCatalog"
@@ -172,6 +168,11 @@ df_transformed = (
     df_dedup
 
     # --- Conversão de tipos ---
+    # IDs: cast explícito de STRING (bronze/CSV) para BIGINT
+    .withColumn("id_chamada", F.col("id_chamada").cast(LongType()))
+    .withColumn("id_cliente", F.col("id_cliente").cast(LongType()))
+    .withColumn("id_operador", F.col("id_operador").cast(LongType()))
+    .withColumn("id_fila", F.col("id_fila").cast(LongType()))
     .withColumn("dt_inicio",
         F.to_timestamp(F.col("dt_inicio"), "yyyy-MM-dd'T'HH:mm:ss"))
     .withColumn("dt_fim",

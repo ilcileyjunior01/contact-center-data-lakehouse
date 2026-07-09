@@ -24,7 +24,7 @@ from awsglue.job import Job
 from pyspark.context import SparkContext
 from pyspark.sql import functions as F
 from pyspark.sql.window import Window
-from pyspark.sql.types import StringType, TimestampType
+from pyspark.sql.types import StringType, TimestampType, LongType
 
 args = getResolvedOptions(sys.argv, ["JOB_NAME", "BUCKET_NAME", "ENV"])
 JOB_NAME = args["JOB_NAME"]
@@ -40,14 +40,12 @@ job.init(JOB_NAME, args)
 print(f"[INFO] Job iniciado | Tabela: tb_gravacao_chamada | ENV: {ENV}")
 
 BRONZE_DATABASE = "db_bronze"
-BRONZE_TABLE    = "tb_gravacao_chamada"
+BRONZE_TABLE    = "gravacao"
 SILVER_PATH     = f"s3://{BUCKET}/silver/operacao/gravacao_chamada/"
 CHECKPOINT_KEY  = "checkpoints/tb_gravacao_chamada/watermark.json"
 QUARANTINE_PATH = f"s3://{BUCKET}/quarantine/tb_gravacao_chamada/"
 SILVER_TABLE    = "db_silver.gravacao_chamada"
 
-spark.conf.set("spark.sql.extensions",
-    "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions")
 spark.conf.set("spark.sql.catalog.glue_catalog",
     "org.apache.iceberg.spark.SparkCatalog")
 spark.conf.set("spark.sql.catalog.glue_catalog.catalog-impl",
@@ -140,8 +138,11 @@ df_transformed = (
     df_dedup
 
     # --- Conversão de tipos ---
-    .withColumn("dt_expiracao",
-        F.to_date(F.col("dt_expiracao"), "yyyy-MM-dd"))
+    # IDs: cast explícito de STRING (bronze/CSV) para BIGINT
+    .withColumn("id_gravacao", F.col("id_gravacao").cast(LongType()))
+    .withColumn("id_chamada", F.col("id_chamada").cast(LongType()))
+    .withColumn("dt_gravacao",
+        F.to_date(F.col("dt_gravacao"), "yyyy-MM-dd"))
     .withColumn("nr_tamanho_mb",
         F.col("nr_tamanho_mb").cast("double"))
     .withColumn("nr_tamanho_mb",
@@ -150,25 +151,25 @@ df_transformed = (
     # --- Omite URL real da Silver (dado sensível) ---
     .withColumn("fl_tem_gravacao",
         F.when(
-            F.col("ds_url_arquivo").isNotNull() &
-            (F.length(F.col("ds_url_arquivo")) > 0),
+            F.col("ds_url_gravacao").isNotNull() &
+            (F.length(F.col("ds_url_gravacao")) > 0),
             F.lit(1)
         ).otherwise(F.lit(0)).cast("smallint"))
 
-    .drop("ds_url_arquivo")
+    .drop("ds_url_gravacao")
 
     # --- Campos derivados ---
     .withColumn("fl_expirada",
         F.when(
-            F.col("dt_expiracao").isNotNull() &
-            (F.col("dt_expiracao") < F.current_date()),
+            F.col("dt_gravacao").isNotNull() &
+            (F.col("dt_gravacao") < F.current_date()),
             F.lit(1)
         ).otherwise(F.lit(0)).cast("smallint"))
 
     .withColumn("nr_dias_para_expirar",
         F.when(
-            F.col("dt_expiracao").isNotNull(),
-            F.datediff(F.col("dt_expiracao"), F.current_date())
+            F.col("dt_gravacao").isNotNull(),
+            F.datediff(F.col("dt_gravacao"), F.current_date())
         ).otherwise(F.lit(None)))
 
     # --- Hash de integridade ---
@@ -177,7 +178,7 @@ df_transformed = (
             F.coalesce(F.col("id_gravacao").cast("string"),   F.lit("")),
             F.coalesce(F.col("id_chamada").cast("string"),    F.lit("")),
             F.coalesce(F.col("nr_tamanho_mb").cast("string"), F.lit("")),
-            F.coalesce(F.col("dt_expiracao").cast("string"),  F.lit("")),
+            F.coalesce(F.col("dt_gravacao").cast("string"),  F.lit("")),
         )))
 
     # --- Auditoria ---
@@ -214,7 +215,7 @@ spark.sql(f"""
         id_gravacao             BIGINT,
         id_chamada              BIGINT,
         nr_tamanho_mb           DOUBLE,
-        dt_expiracao            DATE,
+        dt_gravacao            DATE,
         fl_tem_gravacao         SMALLINT,
         fl_expirada             SMALLINT,
         nr_dias_para_expirar    INT,

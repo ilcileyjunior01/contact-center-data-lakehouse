@@ -25,7 +25,7 @@ from awsglue.job import Job
 from pyspark.context import SparkContext
 from pyspark.sql import functions as F
 from pyspark.sql.window import Window
-from pyspark.sql.types import StringType, TimestampType
+from pyspark.sql.types import StringType, TimestampType, LongType
 
 args = getResolvedOptions(sys.argv, ["JOB_NAME", "BUCKET_NAME", "ENV"])
 JOB_NAME = args["JOB_NAME"]
@@ -41,14 +41,12 @@ job.init(JOB_NAME, args)
 print(f"[INFO] Job iniciado | Tabela: tb_endereco_cliente | ENV: {ENV}")
 
 BRONZE_DATABASE = "db_bronze"
-BRONZE_TABLE    = "tb_endereco_cliente"
+BRONZE_TABLE    = "endereco"
 SILVER_PATH     = f"s3://{BUCKET}/silver/cadastro/endereco_cliente/"
 CHECKPOINT_KEY  = "checkpoints/tb_endereco_cliente/watermark.json"
 QUARANTINE_PATH = f"s3://{BUCKET}/quarantine/tb_endereco_cliente/"
 SILVER_TABLE    = "db_silver.endereco_cliente"
 
-spark.conf.set("spark.sql.extensions",
-    "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions")
 spark.conf.set("spark.sql.catalog.glue_catalog",
     "org.apache.iceberg.spark.SparkCatalog")
 spark.conf.set("spark.sql.catalog.glue_catalog.catalog-impl",
@@ -140,6 +138,9 @@ now_ts = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
 df_transformed = (
     df_dedup
 
+    # IDs: cast explícito de STRING (bronze/CSV) para BIGINT
+    .withColumn("id_endereco", F.col("id_endereco").cast(LongType()))
+    .withColumn("id_cliente", F.col("id_cliente").cast(LongType()))
     # --- Normalização de strings ---
     .withColumn("ds_logradouro",
         F.upper(F.trim(F.col("ds_logradouro"))))
@@ -149,8 +150,7 @@ df_transformed = (
         F.upper(F.trim(F.col("ds_cidade"))))
     .withColumn("ds_estado",
         F.upper(F.trim(F.col("ds_estado"))))
-    .withColumn("nr_numero",
-        F.trim(F.col("nr_numero")))
+    .withColumn("nr_numero", F.lit(""))
 
     # --- Limpeza do CEP ---
     .withColumn("nr_cep",
@@ -165,8 +165,7 @@ df_transformed = (
         F.coalesce(F.col("ds_cidade"), F.lit("")))
     .withColumn("ds_estado",
         F.coalesce(F.col("ds_estado"), F.lit("")))
-    .withColumn("nr_numero",
-        F.coalesce(F.col("nr_numero"), F.lit("")))
+
     .withColumn("nr_cep",
         F.coalesce(F.col("nr_cep"), F.lit("")))
 
@@ -190,7 +189,7 @@ df_transformed = (
             F.coalesce(F.col("ds_bairro"),                  F.lit("")),
             F.coalesce(F.col("ds_cidade"),                  F.lit("")),
             F.coalesce(F.col("ds_estado"),                  F.lit("")),
-            F.coalesce(F.col("nr_cep_mascarado"),           F.lit("")),
+            F.coalesce(F.concat(F.substring(F.col("nr_cep"), 1, 5), F.lit("***")),           F.lit("")),
         )))
 
     # --- Auditoria ---
