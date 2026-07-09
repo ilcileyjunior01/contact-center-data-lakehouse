@@ -1,0 +1,55 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+*.whl
+.env
+.venv
+env/
+venv/
+.python-version
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# AWS credentials — NUNCA commitar
+.aws/
+credentials
+*.pem
+*.key
+
+# Dados locais e temporários
+data/raw/
+data/temp/
+*.parquet
+*.csv
+*.json.bak
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Terraform
+**/.terraform/
+*.tfstate
+*.tfstate.backup
+*.tfvars
+.terraform.lock.hcl
+
+# Pytest / Coverage
+.pytest_cache/
+.coverage
+htmlcov/
