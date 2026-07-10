@@ -454,10 +454,11 @@ contact-center-data-lakehouse/
 │
 ├── infrastructure/
 │   ├── 01_setup_s3.py                ← Bucket, pastas, lifecycle, versionamento
-│   ├── 02_setup_glue.py              ← Databases, 18 crawlers, registro dos jobs
+│   ├── 02_setup_glue.py              ← Databases, 18 crawlers, IAM role, registro dos 40 jobs
 │   ├── 03_setup_lambda.py            ← Deploy da Lambda de trigger de crawler
 │   ├── 04_setup_redshift.py          ← Redshift Serverless + Spectrum
-│   └── 05_setup_emr_serverless.py    ← EMR Serverless application
+│   ├── 05_setup_emr_serverless.py    ← EMR Serverless application
+│   └── 06_run_pipeline.py            ← Orquestrador: executa os 40 jobs em sequência
 │
 ├── pipeline/
 │   ├── ingestion/
@@ -587,16 +588,28 @@ python pipeline/ingestion/s3_data_loader.py
 ### Passo 3 — Executar pipeline
 
 ```bash
-# Os crawlers disparam automaticamente via Lambda + EventBridge após o upload
-# Os jobs Glue executam em sequência via Glue Workflow
+# Executa os 40 jobs na ordem correta com paralelismo controlado
+python infrastructure/06_run_pipeline.py
 
-# Ou acione manualmente via AWS CLI:
-aws glue start-job-run --job-name job-tb-chamada-bronze-to-silver
-# ... (repetir para cada job)
+# Simula sem executar (mostra a ordem e as etapas)
+python infrastructure/06_run_pipeline.py --dry-run
 
-# Ou via Glue Workflow no console:
-# AWS Console > Glue > Workflows > cc-pipeline-workflow > Run
+# Executa apenas uma etapa
+python infrastructure/06_run_pipeline.py --only bronze   # Bronze→Silver
+python infrastructure/06_run_pipeline.py --only gold     # Dims + Fatos
+
+# Executa um job específico
+python infrastructure/06_run_pipeline.py --job job-tb-chamada-bronze-to-silver
+
+# Controla paralelismo (padrão: 5 jobs simultâneos por lote)
+python infrastructure/06_run_pipeline.py --max-parallel 3 --fail-fast
 ```
+
+O script respeita a ordem de dependências entre as etapas:
+1. Bronze → Silver (18 jobs, lotes de 5 em paralelo)
+2. Silver → Gold Dimensões (11 jobs, paralelo total)
+3. Silver → Gold Fatos Wave 1 (8 fatos base, paralelo total)
+4. Silver → Gold Fatos Wave 2 (3 fatos dependentes, paralelo total)
 
 ### Passo 4 — Consultar KPIs com Athena
 
@@ -677,6 +690,8 @@ Execute os 12 arquivos em `sql/athena_kpis/` no **Amazon Athena** (workgroup: `w
 ## Autor
 
 **Ilciley Junior**
-GitHub: [@ilcileyjunior01](https://github.com/ilcileyjunior01)
 
 Engenheiro de Dados especializado em pipelines AWS, arquitetura Lakehouse e processamento distribuído com PySpark.
+
+[![GitHub](https://img.shields.io/badge/GitHub-ilcileyjunior01-181717?logo=github)](https://github.com/ilcileyjunior01)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-Ilciley%20Junior-0A66C2?logo=linkedin)](https://www.linkedin.com/in/ilcileyjunior)
