@@ -155,7 +155,7 @@ df_transformed = (
         ).otherwise(F.lit(None)))
 
     .withColumn("fl_campanha_ativa",
-        F.when(F.col("st_campanha") == "ATIVO", F.lit(1))
+        F.when(F.col("st_campanha") == "ATIVA", F.lit(1))
          .otherwise(F.lit(0)).cast("smallint"))
 
     .withColumn("fl_campanha_vigente",

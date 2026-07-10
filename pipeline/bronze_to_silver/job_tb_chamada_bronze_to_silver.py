@@ -23,8 +23,7 @@ from awsglue.job import Job
 from pyspark.context import SparkContext
 from pyspark.sql import functions as F
 from pyspark.sql.window import Window
-from pyspark.sql.types import (, LongType
-    StructType, StructField,
+from pyspark.sql.types import (
     LongType, StringType, IntegerType, TimestampType
 )
 

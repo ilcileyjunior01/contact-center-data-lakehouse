@@ -27,7 +27,6 @@ from pyspark.context import SparkContext
 from pyspark.sql import functions as F
 from pyspark.sql.window import Window
 from pyspark.sql.types import (
-    StructType, StructField,
     LongType, StringType, TimestampType
 )
 
@@ -144,14 +143,9 @@ def save_watermark(new_ts):
 
 last_watermark = get_watermark()
 
-dynamic_frame = glue_context.create_dynamic_frame.from_catalog(
-    database=BRONZE_DATABASE,
-    table_name=BRONZE_TABLE,
-    transformation_ctx="bronze_tb_ticket",
-)
-
+BRONZE_S3_PATH = f"s3://{BUCKET}/bronze/operacao/ticket/"
 df_bronze = (
-    dynamic_frame.toDF()
+    spark.read.parquet(BRONZE_S3_PATH)
     .filter(F.col("_timestamp") > F.lit(last_watermark))
 )
 
@@ -210,9 +204,9 @@ df_transformed = (
     .withColumn("id_cliente", F.col("id_cliente").cast(LongType()))
     .withColumn("id_operador", F.col("id_operador").cast(LongType()))
     .withColumn("dt_abertura",
-        F.to_timestamp(F.col("dt_abertura"), "yyyy-MM-dd'T'HH:mm:ss"))
+        F.to_timestamp(F.col("dt_abertura"), "yyyy-MM-dd HH:mm:ss"))
     .withColumn("dt_resolucao",
-        F.to_timestamp(F.col("dt_resolucao"), "yyyy-MM-dd'T'HH:mm:ss"))
+        F.to_timestamp(F.col("dt_resolucao"), "yyyy-MM-dd HH:mm:ss"))
 
     # --- Normalização de strings ---
     .withColumn("st_ticket",
@@ -252,7 +246,8 @@ df_transformed = (
 
     .withColumn("fl_dentro_sla",
         F.when(
-            F.round(F.col("nr_tempo_resolucao_horas") * 60.0, 0).cast("int") <= F.lit(480),  # 8 horas como SLA padrão
+            F.col("nr_tempo_resolucao_min").isNotNull() &
+            (F.col("nr_tempo_resolucao_min").cast("int") <= F.lit(480)),  # 8 horas = 480 min como SLA padrão
             F.lit(1)
         ).otherwise(F.lit(0)).cast("smallint"))
 
@@ -260,7 +255,7 @@ df_transformed = (
     .withColumn("hash_registro",
         F.md5(F.concat_ws("|",
             F.coalesce(F.col("id_ticket").cast("string"),            F.lit("")),
-            F.coalesce(F.col("id_ticket").cast("string"),                        F.lit("")),
+            F.coalesce(F.col("nr_protocolo"),                         F.lit("")),
             F.coalesce(F.col("id_cliente").cast("string"),           F.lit("")),
             F.coalesce(F.col("id_operador").cast("string"), F.lit("")),
             F.coalesce(F.col("dt_abertura").cast("string"),          F.lit("")),
@@ -327,25 +322,26 @@ if not df_quarantine.rdd.isEmpty():
 
 spark.sql(f"""
     CREATE TABLE IF NOT EXISTS glue_catalog.{SILVER_TABLE} (
-        id_ticket               BIGINT,
-        nr_protocolo            STRING,
-        id_cliente              BIGINT,
-        id_operador_abertura    BIGINT,
-        dt_abertura             TIMESTAMP,
-        dt_fechamento           TIMESTAMP,
-        ds_categoria            STRING,
-        ds_prioridade           STRING,
-        st_ticket               STRING,
-        nr_tempo_resolucao_min  DOUBLE,
-        fl_ticket_resolvido     SMALLINT,
-        fl_dentro_sla           SMALLINT,
-        dt_cdc_evento           TIMESTAMP,
-        op_cdc                  STRING,
-        hash_registro           STRING,
-        dt_ingestao_silver      TIMESTAMP,
-        ano                     INT,
-        mes                     INT,
-        dia                     INT
+        id_ticket                   BIGINT,
+        nr_protocolo                STRING,
+        id_cliente                  BIGINT,
+        id_operador                 BIGINT,
+        ds_titulo                   STRING,
+        ds_categoria                STRING,
+        ds_prioridade               STRING,
+        st_ticket                   STRING,
+        dt_abertura                 TIMESTAMP,
+        dt_resolucao                TIMESTAMP,
+        nr_tempo_resolucao_min      DOUBLE,
+        fl_ticket_resolvido         SMALLINT,
+        fl_dentro_sla               SMALLINT,
+        dt_cdc_evento               TIMESTAMP,
+        op_cdc                      STRING,
+        hash_registro               STRING,
+        dt_ingestao_silver          TIMESTAMP,
+        ano                         INT,
+        mes                         INT,
+        dia                         INT
     )
     USING iceberg
     LOCATION '{SILVER_PATH}'

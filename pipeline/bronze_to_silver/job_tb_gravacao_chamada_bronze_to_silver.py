@@ -56,6 +56,7 @@ spark.conf.set("spark.sql.catalog.glue_catalog.warehouse",
     f"s3://{BUCKET}/silver/")
 spark.conf.set("spark.sql.adaptive.enabled", "true")
 spark.conf.set("spark.sql.adaptive.coalescePartitions.enabled", "true")
+spark.conf.set("spark.sql.legacy.timeParserPolicy", "LEGACY")
 
 DEFAULT_WATERMARK = "1970-01-01T00:00:00Z"
 s3_client = boto3.client("s3")
@@ -90,14 +91,9 @@ def save_watermark(new_ts):
 
 last_watermark = get_watermark()
 
-dynamic_frame = glue_context.create_dynamic_frame.from_catalog(
-    database=BRONZE_DATABASE,
-    table_name=BRONZE_TABLE,
-    transformation_ctx="bronze_tb_gravacao_chamada",
-)
-
+BRONZE_S3_PATH = f"s3://{BUCKET}/bronze/operacao/gravacao/"
 df_bronze = (
-    dynamic_frame.toDF()
+    spark.read.parquet(BRONZE_S3_PATH)
     .filter(F.col("_timestamp") > F.lit(last_watermark))
 )
 
@@ -127,7 +123,7 @@ df_dedup = (
     df_cdc
     .withColumn("_row_num", F.row_number().over(window_dedup))
     .filter(F.col("_row_num") == 1)
-    .drop("_row_num", "Op", "_timestamp")
+    .drop("_row_num", "Op", "_timestamp", "fl_processada")
 )
 
 print(f"[INFO] Registros após deduplicação CDC: {df_dedup.count()}")

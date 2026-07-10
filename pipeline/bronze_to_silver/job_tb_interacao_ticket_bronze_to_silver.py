@@ -88,14 +88,11 @@ def save_watermark(new_ts):
 
 last_watermark = get_watermark()
 
-dynamic_frame = glue_context.create_dynamic_frame.from_catalog(
-    database=BRONZE_DATABASE,
-    table_name=BRONZE_TABLE,
-    transformation_ctx="bronze_tb_interacao_ticket",
-)
-
+# Leitura direta do S3 para contornar limitação do DynamicFrame
+# com colunas de nome iniciando em "_" (ex: _timestamp) no Glue 4.0
+BRONZE_S3_PATH = f"s3://{BUCKET}/bronze/qualidade/ticket-interacao/"
 df_bronze = (
-    dynamic_frame.toDF()
+    spark.read.parquet(BRONZE_S3_PATH)
     .filter(F.col("_timestamp") > F.lit(last_watermark))
 )
 
@@ -140,7 +137,7 @@ df_transformed = (
     .withColumn("id_ticket", F.col("id_ticket").cast(LongType()))
     .withColumn("id_operador", F.col("id_operador").cast(LongType()))
     .withColumn("dt_interacao",
-        F.to_timestamp(F.col("dt_interacao"), "yyyy-MM-dd'T'HH:mm:ss"))
+        F.to_timestamp(F.col("dt_interacao"), "yyyy-MM-dd HH:mm:ss"))
 
     .withColumn("ds_tipo_interacao",
         F.upper(F.trim(F.col("ds_tipo_interacao"))))

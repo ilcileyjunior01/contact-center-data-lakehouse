@@ -17,7 +17,6 @@ from awsglue.job import Job
 
 from pyspark.context import SparkContext
 from pyspark.sql import functions as F
-from pyspark.sql.window import Window
 from pyspark.sql.types import TimestampType
 
 args = getResolvedOptions(sys.argv, ["JOB_NAME", "BUCKET_NAME", "ENV"])
@@ -75,7 +74,7 @@ df_fato = (
         F.coalesce(F.col("_sk_data"), F.lit(-1).cast("int")))
 
     .withColumn("sk_metrica",
-        F.row_number().over(Window.orderBy("id_metrica")).cast("int"))
+        F.monotonically_increasing_id())
 
     .withColumn("dt_ingestao_gold", F.lit(now_ts).cast(TimestampType()))
 
@@ -84,7 +83,7 @@ df_fato = (
         F.col("id_metrica").alias("nk_metrica"),
         "sk_fila",
         "sk_data",
-        F.col("nr_chamadas_recebidas"),
+        (F.col("nr_chamadas_atendidas") + F.col("nr_chamadas_abandonadas")).alias("nr_chamadas_recebidas"),
         F.col("nr_chamadas_atendidas"),
         F.col("nr_chamadas_abandonadas"),
         F.col("nr_tma_segundos"),
@@ -104,7 +103,7 @@ print(f"[INFO] Registros fato_metricas_operacionais: {df_fato.count()}")
 
 spark.sql(f"""
     CREATE TABLE IF NOT EXISTS glue_catalog.{GOLD_TABLE} (
-        sk_metrica                  INT,
+        sk_metrica                  BIGINT,
         nk_metrica                  BIGINT,
         sk_fila                     INT,
         sk_data                     INT,

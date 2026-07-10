@@ -67,9 +67,9 @@ df_cdc = (
     df_bronze
     .withColumn("dt_cdc_evento", F.to_timestamp(F.col("_timestamp")))
     .withColumn("op_cdc",
-        F.when(F.col("op") == "I", F.lit("INSERT"))
-         .when(F.col("op") == "U", F.lit("UPDATE"))
-         .when(F.col("op") == "D", F.lit("DELETE"))
+        F.when(F.col("Op") == "I", F.lit("INSERT"))
+         .when(F.col("Op") == "U", F.lit("UPDATE"))
+         .when(F.col("Op") == "D", F.lit("DELETE"))
          .otherwise(F.lit("UNKNOWN")))
 )
 
@@ -78,7 +78,7 @@ df_dedup = (
     df_cdc
     .withColumn("_row_num", F.row_number().over(window_dedup))
     .filter(F.col("_row_num") == 1)
-    .drop("_row_num", "op", "_timestamp")
+    .drop("_row_num", "Op", "_timestamp")
 )
 
 print(f"[INFO] Registros apos dedup: {df_dedup.count()}")

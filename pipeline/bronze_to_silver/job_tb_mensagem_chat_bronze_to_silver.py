@@ -90,14 +90,9 @@ def save_watermark(new_ts):
 
 last_watermark = get_watermark()
 
-dynamic_frame = glue_context.create_dynamic_frame.from_catalog(
-    database=BRONZE_DATABASE,
-    table_name=BRONZE_TABLE,
-    transformation_ctx="bronze_tb_mensagem_chat",
-)
-
+BRONZE_S3_PATH = f"s3://{BUCKET}/bronze/suporte/mensagem-chat/"
 df_bronze = (
-    dynamic_frame.toDF()
+    spark.read.parquet(BRONZE_S3_PATH)
     .filter(F.col("_timestamp") > F.lit(last_watermark))
 )
 
@@ -141,7 +136,7 @@ df_transformed = (
     .withColumn("id_mensagem", F.col("id_mensagem").cast(LongType()))
     .withColumn("id_chat", F.col("id_chat").cast(LongType()))
     .withColumn("dt_mensagem",
-        F.to_timestamp(F.col("dt_mensagem"), "yyyy-MM-dd'T'HH:mm:ss"))
+        F.to_timestamp(F.col("dt_mensagem"), "yyyy-MM-dd HH:mm:ss"))
 
     .withColumn("ds_remetente",
         F.upper(F.trim(F.col("ds_remetente"))))
@@ -210,7 +205,7 @@ spark.sql(f"""
         id_mensagem             BIGINT,
         id_chat                 BIGINT,
         ds_remetente            STRING,
-        dt_envio                TIMESTAMP,
+        dt_mensagem             TIMESTAMP,
         nr_tamanho_chars        INT,
         fl_mensagem_cliente     SMALLINT,
         fl_mensagem_operador    SMALLINT,

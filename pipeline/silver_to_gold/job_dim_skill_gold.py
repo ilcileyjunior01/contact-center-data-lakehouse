@@ -92,7 +92,8 @@ df_final.createOrReplaceTempView("stg_dim_skill")
 spark.sql(f"""
     MERGE INTO glue_catalog.{GOLD_TABLE} AS target
     USING stg_dim_skill AS source
-    ON target.sk_skill = source.sk_skill
+    ON target.ds_skill = source.ds_skill
+    AND target.nr_nivel = source.nr_nivel
     WHEN MATCHED THEN UPDATE SET *
     WHEN NOT MATCHED THEN INSERT *
 """)

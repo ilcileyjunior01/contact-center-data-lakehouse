@@ -20,7 +20,6 @@ from awsglue.job import Job
 
 from pyspark.context import SparkContext
 from pyspark.sql import functions as F
-from pyspark.sql.window import Window
 from pyspark.sql.types import TimestampType
 
 args = getResolvedOptions(sys.argv, ["JOB_NAME", "BUCKET_NAME", "ENV"])
@@ -76,7 +75,7 @@ df_fato = (
 
     .join(df_dim_op.withColumnRenamed("sk_operador", "_sk_op")
                    .withColumnRenamed("nk_operador", "_nk_op"),
-          df_ticket["id_operador_abertura"] == F.col("_nk_op"), how="left")
+          df_ticket["id_operador"] == F.col("_nk_op"), how="left")
 
     .join(df_dim_status.withColumnRenamed("sk_status", "_sk_st")
                        .withColumnRenamed("ds_status", "_ds_st"),
@@ -96,7 +95,7 @@ df_fato = (
 
     .join(df_dim_data.withColumnRenamed("sk_data", "_sk_dt_fc")
                      .withColumnRenamed("dt_completa", "_dt_fc"),
-          F.to_date(df_ticket["dt_fechamento"]) == F.col("_dt_fc"), how="left")
+          F.to_date(df_ticket["dt_resolucao"]) == F.col("_dt_fc"), how="left")
 
     .withColumn("sk_cliente",
         F.coalesce(F.col("_sk_cli"), F.lit(-1).cast("int")))
@@ -114,7 +113,7 @@ df_fato = (
         F.coalesce(F.col("_sk_dt_fc"), F.lit(-1).cast("int")))
 
     .withColumn("sk_ticket",
-        F.row_number().over(Window.orderBy("id_ticket")).cast("int"))
+        F.monotonically_increasing_id())
 
     .withColumn("dt_ingestao_gold", F.lit(now_ts).cast(TimestampType()))
 
@@ -140,7 +139,7 @@ print(f"[INFO] Registros fato_ticket: {df_fato.count()}")
 
 spark.sql(f"""
     CREATE TABLE IF NOT EXISTS glue_catalog.{GOLD_TABLE} (
-        sk_ticket               INT,
+        sk_ticket               BIGINT,
         nk_ticket               BIGINT,
         nr_protocolo            STRING,
         sk_cliente              INT,

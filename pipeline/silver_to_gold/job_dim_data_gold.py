@@ -137,5 +137,96 @@ df_dim_data = (
          .when(F.month(F.col("dt_completa")) == 8,  F.lit("AGOSTO"))
          .when(F.month(F.col("dt_completa")) == 9,  F.lit("SETEMBRO"))
          .when(F.month(F.col("dt_completa")) == 10, F.lit("OUTUBRO"))
-         .
+         .when(F.month(F.col("dt_completa")) == 11, F.lit("NOVEMBRO"))
+         .when(F.month(F.col("dt_completa")) == 12, F.lit("DEZEMBRO"))
+         .otherwise(F.lit("DESCONHECIDO")))
+
+    .withColumn("ds_trimestre",
+        F.when(F.quarter(F.col("dt_completa")) == 1, F.lit("Q1"))
+         .when(F.quarter(F.col("dt_completa")) == 2, F.lit("Q2"))
+         .when(F.quarter(F.col("dt_completa")) == 3, F.lit("Q3"))
+         .when(F.quarter(F.col("dt_completa")) == 4, F.lit("Q4"))
+         .otherwise(F.lit("DESCONHECIDO")))
+
+    # --- Flags ---
+    .withColumn("fl_fim_de_semana",
+        F.when(F.dayofweek(F.col("dt_completa")).isin(1, 7), F.lit(1))
+         .otherwise(F.lit(0)).cast("smallint"))
+
+    .withColumn("fl_feriado",
+        F.when(F.expr(feriados_expr), F.lit(1))
+         .otherwise(F.lit(0)).cast("smallint"))
+
+    .withColumn("fl_dia_util",
+        F.when(
+            (F.dayofweek(F.col("dt_completa")).isin(1, 7)) |
+            F.expr(feriados_expr),
+            F.lit(0)
+        ).otherwise(F.lit(1)).cast("smallint"))
+
+    .withColumn("dt_ingestao_gold", F.lit(now_ts).cast("timestamp"))
+)
+
+# Registro padrão para datas desconhecidas
+df_desconhecido = spark.createDataFrame(
+    [(-1, None, -1, -1, -1, -1, -1, -1,
+      "DESCONHECIDO", "DESCONHECIDO", "DESCONHECIDO", 0, 0, 0, now_ts)],
+    ["sk_data", "dt_completa", "nr_ano", "nr_mes", "nr_dia", "nr_trimestre",
+     "nr_semana_ano", "nr_dia_semana", "ds_dia_semana", "ds_mes",
+     "ds_trimestre", "fl_fim_de_semana", "fl_feriado", "fl_dia_util",
+     "dt_ingestao_gold"]
+).withColumn("dt_ingestao_gold", F.col("dt_ingestao_gold").cast("timestamp")) \
+ .withColumn("fl_fim_de_semana", F.col("fl_fim_de_semana").cast("smallint")) \
+ .withColumn("fl_feriado",       F.col("fl_feriado").cast("smallint")) \
+ .withColumn("fl_dia_util",      F.col("fl_dia_util").cast("smallint"))
+
+df_final = df_dim_data.unionByName(df_desconhecido)
+
+print(f"[INFO] Datas geradas: {df_final.count()}")
+
+# =========================================================
+# CRIAÇÃO DA TABELA ICEBERG (idempotente)
+# =========================================================
+
+spark.sql(f"""
+    CREATE TABLE IF NOT EXISTS glue_catalog.{GOLD_TABLE} (
+        sk_data             INT,
+        dt_completa         DATE,
+        nr_ano              INT,
+        nr_mes              INT,
+        nr_dia              INT,
+        nr_trimestre        INT,
+        nr_semana_ano       INT,
+        nr_dia_semana       INT,
+        ds_dia_semana       STRING,
+        ds_mes              STRING,
+        ds_trimestre        STRING,
+        fl_fim_de_semana    SMALLINT,
+        fl_feriado          SMALLINT,
+        fl_dia_util         SMALLINT,
+        dt_ingestao_gold    TIMESTAMP
+    )
+    USING iceberg
+    LOCATION '{GOLD_PATH}'
+    TBLPROPERTIES (
+        'format-version'                  = '2',
+        'write.format.default'            = 'parquet',
+        'write.parquet.compression-codec' = 'snappy',
+        'write.target-file-size-bytes'    = '134217728'
+    )
+""")
+
+df_final.createOrReplaceTempView("stg_dim_data")
+
+spark.sql(f"""
+    MERGE INTO glue_catalog.{GOLD_TABLE} AS target
+    USING stg_dim_data AS source
+    ON target.sk_data = source.sk_data
+    WHEN MATCHED THEN UPDATE SET *
+    WHEN NOT MATCHED THEN INSERT *
+""")
+
+print(f"[INFO] MERGE concluído na Gold: {GOLD_TABLE}")
+job.commit()
+print("[INFO] Job finalizado com sucesso.")
 

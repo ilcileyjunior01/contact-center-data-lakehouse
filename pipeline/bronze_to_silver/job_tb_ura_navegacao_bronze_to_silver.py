@@ -84,14 +84,9 @@ def save_watermark(new_ts):
 
 last_watermark = get_watermark()
 
-dynamic_frame = glue_context.create_dynamic_frame.from_catalog(
-    database=BRONZE_DATABASE,
-    table_name=BRONZE_TABLE,
-    transformation_ctx="bronze_tb_ura_navegacao",
-)
-
+BRONZE_S3_PATH = f"s3://{BUCKET}/bronze/operacao/ura/"
 df_bronze = (
-    dynamic_frame.toDF()
+    spark.read.parquet(BRONZE_S3_PATH)
     .filter(F.col("_timestamp") > F.lit(last_watermark))
 )
 
@@ -136,7 +131,7 @@ df_transformed = (
     .withColumn("id_cliente", F.col("id_cliente").cast(LongType()))
     .withColumn("id_chamada", F.lit(None).cast(LongType()))  # nao existe no bronze
     .withColumn("dt_navegacao",
-        F.to_timestamp(F.col("dt_navegacao"), "yyyy-MM-dd'T'HH:mm:ss"))
+        F.to_timestamp(F.col("dt_navegacao"), "yyyy-MM-dd HH:mm:ss"))
 
     .withColumn("ds_opcao_selecionada",
         F.upper(F.trim(F.col("ds_opcao_selecionada"))))
@@ -202,20 +197,21 @@ if not df_quarantine.rdd.isEmpty():
 
 spark.sql(f"""
     CREATE TABLE IF NOT EXISTS glue_catalog.{SILVER_TABLE} (
-        id_ura              BIGINT,
-        id_chamada          BIGINT,
-        ds_opcao            STRING,
-        dt_evento           TIMESTAMP,
-        nr_tempo_espera     INT,
-        fl_abandonou_ura    SMALLINT,
-        ds_faixa_espera     STRING,
-        dt_cdc_evento       TIMESTAMP,
-        op_cdc              STRING,
-        hash_registro       STRING,
-        dt_ingestao_silver  TIMESTAMP,
-        ano                 INT,
-        mes                 INT,
-        dia                 INT
+        id_ura               BIGINT,
+        id_chamada           BIGINT,
+        id_cliente           BIGINT,
+        ds_opcao_selecionada STRING,
+        dt_navegacao         TIMESTAMP,
+        nr_duracao_segundos  INT,
+        fl_abandonou_ura     SMALLINT,
+        ds_faixa_espera      STRING,
+        dt_cdc_evento        TIMESTAMP,
+        op_cdc               STRING,
+        hash_registro        STRING,
+        dt_ingestao_silver   TIMESTAMP,
+        ano                  INT,
+        mes                  INT,
+        dia                  INT
     )
     USING iceberg
     LOCATION '{SILVER_PATH}'

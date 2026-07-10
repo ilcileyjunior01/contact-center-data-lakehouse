@@ -205,20 +205,6 @@ print(f"[INFO] MERGE concluído na Gold: {GOLD_TABLE}")
 
 print("[INFO] Construindo dim_supervisor a partir de dim_operador...")
 
-df_supervisores = (
-    spark.table(f"glue_catalog.{GOLD_TABLE}")
-    .filter(F.col("sk_operador") != -1)
-    .join(
-        spark.table(f"glue_catalog.{GOLD_TABLE}")
-             .select(F.col("sk_supervisor"))
-             .distinct()
-             .filter(F.col("sk_supervisor") != -1),
-        spark.table(f"glue_catalog.{GOLD_TABLE}")["sk_operador"] ==
-        spark.table(f"glue_catalog.{GOLD_TABLE}")["sk_supervisor"],
-        how="inner"
-    )
-)
-
 # Recarrega após MERGE para garantir dados atualizados
 df_op_gold = spark.table(f"glue_catalog.{GOLD_TABLE}")
 

@@ -140,7 +140,7 @@ df_transformed = (
     .withColumn("id_discagem", F.col("id_discagem").cast(LongType()))
     .withColumn("id_campanha", F.col("id_campanha").cast(LongType()))
     .withColumn("id_cliente", F.col("id_cliente").cast(LongType()))
-    .withColumn("id_operador", F.col("id_operador").cast(LongType()))
+    .drop("id_operador")
     .withColumn("dt_ultima_tentativa",
         F.to_timestamp(F.col("dt_ultima_tentativa"), "yyyy-MM-dd'T'HH:mm:ss"))
 
@@ -151,11 +151,11 @@ df_transformed = (
 
     # Mascara telefone (LGPD)
     .withColumn("nr_telefone",
-        F.regexp_replace(F.lit(""), r"[^\d+]", ""))
+        F.regexp_replace(F.col("nr_telefone"), r"[^\d+]", ""))
     .withColumn("nr_telefone_mascarado",
         F.when(
-            F.lit("").isNotNull() & (F.length(F.lit("")) > 0),
-            F.concat(F.lit("******"), F.substring(F.lit(""), -4, 4))
+            F.col("nr_telefone").isNotNull() & (F.length(F.col("nr_telefone")) > 0),
+            F.concat(F.lit("******"), F.substring(F.col("nr_telefone"), -4, 4))
         ).otherwise(F.lit("")))
     .drop("nr_telefone")
 
@@ -174,7 +174,7 @@ df_transformed = (
             F.coalesce(F.col("id_discagem").cast("string"),   F.lit("")),
             F.coalesce(F.col("id_campanha").cast("string"),   F.lit("")),
             F.coalesce(F.col("id_cliente").cast("string"),    F.lit("")),
-            F.coalesce(F.lit(""),        F.lit("")),
+            F.coalesce(F.col("nr_telefone_mascarado"), F.lit("")),
             F.coalesce(F.col("dt_ultima_tentativa").cast("string"),   F.lit("")),
             F.coalesce(F.col("st_discagem"),                  F.lit("")),
         )))

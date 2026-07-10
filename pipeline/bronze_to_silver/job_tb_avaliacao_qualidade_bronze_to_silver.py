@@ -58,6 +58,7 @@ spark.conf.set("spark.sql.catalog.glue_catalog.warehouse",
     f"s3://{BUCKET}/silver/")
 spark.conf.set("spark.sql.adaptive.enabled", "true")
 spark.conf.set("spark.sql.adaptive.coalescePartitions.enabled", "true")
+spark.conf.set("spark.sql.legacy.timeParserPolicy", "LEGACY")
 
 DEFAULT_WATERMARK = "1970-01-01T00:00:00Z"
 s3_client = boto3.client("s3")
@@ -92,14 +93,9 @@ def save_watermark(new_ts):
 
 last_watermark = get_watermark()
 
-dynamic_frame = glue_context.create_dynamic_frame.from_catalog(
-    database=BRONZE_DATABASE,
-    table_name=BRONZE_TABLE,
-    transformation_ctx="bronze_tb_avaliacao_qualidade",
-)
-
+BRONZE_S3_PATH = f"s3://{BUCKET}/bronze/qualidade/avaliacao/"
 df_bronze = (
-    dynamic_frame.toDF()
+    spark.read.parquet(BRONZE_S3_PATH)
     .filter(F.col("_timestamp") > F.lit(last_watermark))
 )
 
@@ -147,7 +143,7 @@ df_transformed = (
     .withColumn("id_chamada", F.col("id_chamada").cast(LongType()))
     .withColumn("id_operador", F.col("id_operador").cast(LongType()))
     .withColumn("dt_avaliacao",
-        F.to_timestamp(F.col("dt_avaliacao"), "yyyy-MM-dd'T'HH:mm:ss"))
+        F.to_timestamp(F.col("dt_avaliacao"), "yyyy-MM-dd HH:mm:ss"))
     .withColumn("nr_nota_geral",
         F.col("nr_nota_geral").cast("double"))
 
@@ -251,8 +247,9 @@ spark.sql(f"""
     CREATE TABLE IF NOT EXISTS glue_catalog.{SILVER_TABLE} (
         id_avaliacao                BIGINT,
         id_chamada                  BIGINT,
-        id_avaliador                BIGINT,
-        nr_nota                     DOUBLE,
+        id_operador                 BIGINT,
+        id_supervisor               BIGINT,
+        nr_nota_geral               DOUBLE,
         dt_avaliacao                TIMESTAMP,
         nr_tamanho_feedback_chars   INT,
         fl_tem_feedback             SMALLINT,

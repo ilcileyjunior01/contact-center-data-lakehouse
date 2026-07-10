@@ -234,7 +234,7 @@ df_transformed = (
     .withColumn("st_operador",
         F.coalesce(F.col("st_operador"), F.lit("A")))
     .withColumn("id_supervisor",
-        F.coalesce(F.col("id_supervisor"), F.lit(-1).cast(LongType())))
+        F.lit(None).cast(LongType()))  # nao existe no bronze
     .withColumn("ds_email",
         F.coalesce(F.col("ds_email"), F.lit("")))
     .withColumn("ds_login",
@@ -268,7 +268,7 @@ df_transformed = (
 
     .withColumn("fl_tem_supervisor",
         F.when(
-            F.col("id_supervisor") != F.lit(-1),
+            F.col("fl_supervisor").cast("boolean") == True,
             F.lit(1)
         ).otherwise(F.lit(0)).cast("smallint"))
 
@@ -295,7 +295,7 @@ df_transformed = (
             F.coalesce(F.col("ds_login_mascarado"),           F.lit("")),
             F.coalesce(F.col("dt_admissao").cast("string"),   F.lit("")),
             F.coalesce(F.col("st_operador"),                  F.lit("")),
-            F.coalesce(F.col("id_supervisor").cast("string"), F.lit("")),
+            F.lit("")  # id_supervisor nao existe no bronze,
         )))
 
     # --- Auditoria ---
