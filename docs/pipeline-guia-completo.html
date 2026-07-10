@@ -1,0 +1,1346 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Contact Center Data Lakehouse — Guia Completo do Pipeline</title>
+<style>
+  /* ── Fontes e Reset ─────────────────────────────────────────── */
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', 'Segoe UI', sans-serif;
+    font-size: 13px;
+    line-height: 1.65;
+    color: #1a202c;
+    background: #fff;
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 32px 40px;
+  }
+
+  /* ── Tipografia ──────────────────────────────────────────────── */
+  h1 { font-size: 26px; font-weight: 700; color: #1a202c; margin-bottom: 6px; }
+  h2 { font-size: 18px; font-weight: 700; color: #232f3e; margin: 36px 0 12px;
+       border-left: 4px solid #FF9900; padding-left: 12px; }
+  h3 { font-size: 14px; font-weight: 600; color: #2d3748; margin: 20px 0 8px; }
+  h4 { font-size: 13px; font-weight: 600; color: #4a5568; margin: 16px 0 6px; }
+  p  { margin-bottom: 10px; color: #2d3748; }
+
+  /* ── Cover ───────────────────────────────────────────────────── */
+  .cover {
+    background: linear-gradient(135deg, #232f3e 0%, #1a252f 100%);
+    color: #fff;
+    padding: 48px 48px 40px;
+    border-radius: 12px;
+    margin-bottom: 36px;
+    position: relative;
+    overflow: hidden;
+  }
+  .cover::before {
+    content: '';
+    position: absolute;
+    top: -40px; right: -40px;
+    width: 220px; height: 220px;
+    background: rgba(255,153,0,.12);
+    border-radius: 50%;
+  }
+  .cover-badge {
+    display: inline-block;
+    background: #FF9900;
+    color: #232f3e;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 20px;
+    letter-spacing: .5px;
+    margin-bottom: 14px;
+    text-transform: uppercase;
+  }
+  .cover h1 { color: #fff; font-size: 30px; margin-bottom: 10px; }
+  .cover .subtitle { color: #aab7c4; font-size: 14px; margin-bottom: 20px; }
+  .cover-tags { display: flex; gap: 8px; flex-wrap: wrap; }
+  .cover-tag {
+    background: rgba(255,255,255,.1);
+    border: 1px solid rgba(255,255,255,.2);
+    color: #e2e8f0;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 11px;
+  }
+
+  /* ── Sumário ─────────────────────────────────────────────────── */
+  .toc {
+    background: #f7fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin-bottom: 32px;
+  }
+  .toc h2 { font-size: 14px; margin: 0 0 12px; border: none; padding: 0; color: #232f3e; }
+  .toc ol { padding-left: 20px; }
+  .toc li { margin: 4px 0; color: #4a5568; font-size: 12px; }
+  .toc a { color: #0073bb; text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+
+  /* ── Callouts / Info Boxes ───────────────────────────────────── */
+  .callout {
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin: 14px 0;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+  }
+  .callout-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+  .callout.info    { background: #ebf8ff; border-left: 4px solid #3182ce; }
+  .callout.warning { background: #fffbeb; border-left: 4px solid #d69e2e; }
+  .callout.success { background: #f0fff4; border-left: 4px solid #38a169; }
+  .callout.orange  { background: #fff7ed; border-left: 4px solid #FF9900; }
+  .callout p { margin: 0; font-size: 12px; }
+  .callout strong { display: block; margin-bottom: 3px; }
+
+  /* ── Code Blocks ─────────────────────────────────────────────── */
+  pre {
+    background: #1e2533;
+    color: #e2e8f0;
+    border-radius: 8px;
+    padding: 16px 20px;
+    overflow-x: auto;
+    font-family: 'Fira Code', 'Courier New', monospace;
+    font-size: 11.5px;
+    line-height: 1.7;
+    margin: 12px 0;
+  }
+  code {
+    background: #edf2f7;
+    color: #c53030;
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-family: 'Fira Code', monospace;
+    font-size: 11.5px;
+  }
+  pre code { background: transparent; color: inherit; padding: 0; }
+  .kw  { color: #bb9af7; }
+  .fn  { color: #7dcfff; }
+  .str { color: #9ece6a; }
+  .cmt { color: #565f89; font-style: italic; }
+  .num { color: #ff9e64; }
+  .var { color: #e0af68; }
+
+  /* ── Tabelas ──────────────────────────────────────────────────── */
+  table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 12px; }
+  thead { background: #232f3e; color: #fff; }
+  thead th { padding: 9px 12px; text-align: left; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .4px; }
+  tbody tr:nth-child(even) { background: #f7fafc; }
+  tbody tr:hover { background: #ebf8ff; }
+  td { padding: 8px 12px; border-bottom: 1px solid #e2e8f0; color: #2d3748; }
+
+  /* ── SVG Diagramas ───────────────────────────────────────────── */
+  .diagram-wrap {
+    background: #f7fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 24px;
+    margin: 16px 0;
+    text-align: center;
+    overflow-x: auto;
+  }
+  svg text { font-family: 'Inter', sans-serif; }
+
+  /* ── Badges de serviço AWS ───────────────────────────────────── */
+  .aws-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 10px;
+    border-radius: 5px;
+    font-size: 11px;
+    font-weight: 600;
+    margin: 2px;
+  }
+  .badge-s3        { background:#e8f5e9; color:#2e7d32; border:1px solid #a5d6a7; }
+  .badge-glue      { background:#f3e5f5; color:#6a1b9a; border:1px solid #ce93d8; }
+  .badge-lambda    { background:#fff3e0; color:#e65100; border:1px solid #ffcc80; }
+  .badge-athena    { background:#fce4ec; color:#880e4f; border:1px solid #f48fb1; }
+  .badge-eb        { background:#fff8e1; color:#f57f17; border:1px solid #ffe082; }
+  .badge-iceberg   { background:#e3f2fd; color:#0d47a1; border:1px solid #90caf9; }
+  .badge-kinesis   { background:#fce4ec; color:#880e4f; border:1px solid #f48fb1; }
+  .badge-redshift  { background:#e8eaf6; color:#283593; border:1px solid #9fa8da; }
+
+  /* ── Step Markers ────────────────────────────────────────────── */
+  .step-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 28px 0 10px;
+  }
+  .step-number {
+    background: #FF9900;
+    color: #232f3e;
+    font-weight: 700;
+    font-size: 13px;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .step-title { font-size: 16px; font-weight: 700; color: #232f3e; }
+  .step-sub   { font-size: 12px; color: #718096; }
+
+  /* ── Data State Box ──────────────────────────────────────────── */
+  .data-box {
+    background: #1e2533;
+    color: #e2e8f0;
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin: 12px 0;
+    font-family: 'Fira Code', monospace;
+    font-size: 11.5px;
+    line-height: 1.8;
+  }
+  .data-box .label { color: #7dcfff; }
+  .data-box .value { color: #9ece6a; }
+  .data-box .new   { color: #FF9900; }
+  .data-box .title { color: #bb9af7; font-weight: 600; display: block; margin-bottom: 8px; border-bottom: 1px solid #2d3748; padding-bottom: 6px; }
+
+  /* ── Flow Arrow ──────────────────────────────────────────────── */
+  .flow-arrow {
+    text-align: center;
+    color: #a0aec0;
+    font-size: 20px;
+    margin: 4px 0;
+  }
+
+  /* ── Print ───────────────────────────────────────────────────── */
+  @media print {
+    body { max-width: 100%; padding: 20px; font-size: 12px; }
+    .cover { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .page-break { page-break-before: always; }
+    pre { border: 1px solid #ccc; }
+    h2 { page-break-after: avoid; }
+    table { page-break-inside: avoid; }
+  }
+
+  /* ── Misc ─────────────────────────────────────────────────────── */
+  hr { border: none; border-top: 1px solid #e2e8f0; margin: 28px 0; }
+  .tag { display:inline-block; background:#edf2f7; color:#4a5568; padding:2px 8px; border-radius:4px; font-size:11px; margin:2px; }
+  .highlight { background: #fffbeb; border-left: 3px solid #FF9900; padding: 8px 12px; border-radius: 0 6px 6px 0; margin: 10px 0; font-size: 12px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 12px 0; }
+  .card { background:#f7fafc; border:1px solid #e2e8f0; border-radius:8px; padding:14px; }
+  .card h4 { margin-top:0; color:#232f3e; }
+  ul li, ol li { margin: 4px 0; color: #2d3748; }
+  ul, ol { padding-left: 20px; margin-bottom: 10px; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════ CAPA -->
+<div class="cover">
+  <div class="cover-badge">Guia Técnico Completo</div>
+  <h1>Contact Center Data Lakehouse</h1>
+  <p class="subtitle">Passo a passo de cada ação do pipeline — do dado bruto ao KPI analítico</p>
+  <div class="cover-tags">
+    <span class="cover-tag">AWS Glue 4.0</span>
+    <span class="cover-tag">Apache Iceberg v2</span>
+    <span class="cover-tag">PySpark</span>
+    <span class="cover-tag">Medallion Architecture</span>
+    <span class="cover-tag">Star Schema</span>
+    <span class="cover-tag">CDC / LGPD</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ SUMÁRIO -->
+<div class="toc">
+  <h2>📋 Sumário</h2>
+  <ol>
+    <li><a href="#visao">Visão Geral da Arquitetura</a></li>
+    <li><a href="#etapa0">Etapa 0 — Geração dos Dados Sintéticos</a></li>
+    <li><a href="#etapa1">Etapa 1 — Carga no Bronze (S3)</a></li>
+    <li><a href="#etapa2">Etapa 2 — Glue Crawler cataloga o Bronze</a></li>
+    <li><a href="#etapa3">Etapa 3 — Job Bronze → Silver (passo a passo)</a>
+      <ol style="margin-top:4px">
+        <li><a href="#e3-1">3.1 Ler o Watermark</a></li>
+        <li><a href="#e3-2">3.2 Leitura Incremental</a></li>
+        <li><a href="#e3-3">3.3 Interpretação do CDC</a></li>
+        <li><a href="#e3-4">3.4 Deduplicação</a></li>
+        <li><a href="#e3-5">3.5 Transformações de Negócio</a></li>
+        <li><a href="#e3-6">3.6 Hash MD5</a></li>
+        <li><a href="#e3-7">3.7 Validação e Quarentena</a></li>
+        <li><a href="#e3-8">3.8 MERGE INTO Iceberg</a></li>
+        <li><a href="#e3-9">3.9 Atualizar Watermark</a></li>
+      </ol>
+    </li>
+    <li><a href="#etapa4">Etapa 4 — Job Silver → Gold (Dimensões)</a></li>
+    <li><a href="#etapa5">Etapa 5 — Job Silver → Gold (Fatos)</a></li>
+    <li><a href="#etapa6">Etapa 6 — Consulta Analítica (Athena)</a></li>
+    <li><a href="#resumo">Resumo do Caminho Percorrido</a></li>
+    <li><a href="#entrevista">Perguntas Frequentes em Entrevista</a></li>
+  </ol>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ VISÃO GERAL -->
+<div id="visao">
+<h2>1. Visão Geral da Arquitetura</h2>
+
+<p>Um <strong>Data Lakehouse</strong> combina o armazenamento barato do Data Lake (S3) com as capacidades analíticas do Data Warehouse (Iceberg com ACID e SQL). O dado percorre 3 camadas — chamadas de <strong>Medallion Architecture</strong>:</p>
+
+<div class="diagram-wrap">
+<svg width="860" height="520" viewBox="0 0 860 520">
+  <defs>
+    <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#718096"/>
+    </marker>
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.12"/>
+    </filter>
+  </defs>
+
+  <!-- Títulos das camadas -->
+  <text x="110" y="28" text-anchor="middle" font-size="12" font-weight="700" fill="#718096">ORIGEM</text>
+  <text x="310" y="28" text-anchor="middle" font-size="12" font-weight="700" fill="#cd7f32">BRONZE</text>
+  <text x="530" y="28" text-anchor="middle" font-size="12" font-weight="700" fill="#718096">SILVER</text>
+  <text x="730" y="28" text-anchor="middle" font-size="12" font-weight="700" fill="#DAA520">GOLD</text>
+
+  <!-- === ORIGEM === -->
+  <!-- PostgreSQL -->
+  <rect x="30" y="50" width="160" height="60" rx="8" fill="#e8f4fd" stroke="#3182ce" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="52" y="72" font-size="18">🗄️</text>
+  <text x="80" y="73" font-size="11" font-weight="600" fill="#2b6cb0">PostgreSQL</text>
+  <text x="80" y="88" font-size="10" fill="#4a5568">18 tabelas transac.</text>
+  <text x="80" y="100" font-size="10" fill="#4a5568">WAL replication</text>
+
+  <!-- DMS -->
+  <rect x="30" y="135" width="160" height="52" rx="8" fill="#fff0f3" stroke="#e53e3e" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="52" y="156" font-size="16">🔄</text>
+  <text x="78" y="157" font-size="11" font-weight="600" fill="#c53030">AWS DMS</text>
+  <text x="78" y="171" font-size="10" fill="#4a5568">CDC: Op=I/U/D</text>
+  <text x="78" y="183" font-size="10" fill="#4a5568">+ _timestamp</text>
+
+  <!-- Kinesis -->
+  <rect x="30" y="210" width="160" height="52" rx="8" fill="#fff0f3" stroke="#e53e3e" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="52" y="231" font-size="16">🌊</text>
+  <text x="78" y="232" font-size="11" font-weight="600" fill="#c53030">Kinesis Firehose</text>
+  <text x="78" y="246" font-size="10" fill="#4a5568">Parquet + Snappy</text>
+  <text x="78" y="258" font-size="10" fill="#4a5568">buffer → S3</text>
+
+  <!-- Setas origem -->
+  <line x1="110" y1="110" x2="110" y2="133" stroke="#718096" stroke-width="1.5" marker-end="url(#arr)"/>
+  <line x1="110" y1="187" x2="110" y2="208" stroke="#718096" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- === BRONZE === -->
+  <rect x="230" y="50" width="160" height="220" rx="8" fill="#fef3e2" stroke="#FF9900" stroke-width="2" filter="url(#shadow)"/>
+  <text x="310" y="75" text-anchor="middle" font-size="12" font-weight="700" fill="#dd6b20">S3 Bronze</text>
+  <text x="242" y="95" font-size="10" fill="#7b341e">📁 bronze/operacao/chamada/</text>
+  <text x="242" y="110" font-size="10" fill="#7b341e">📁 bronze/operacao/ticket/</text>
+  <text x="242" y="125" font-size="10" fill="#7b341e">📁 bronze/cadastro/cliente/</text>
+  <text x="242" y="140" font-size="10" fill="#a0aec0">... 15 mais ...</text>
+  <rect x="242" y="152" width="136" height="28" rx="5" fill="#fff7ed" stroke="#f6ad55" stroke-width="1"/>
+  <text x="310" y="168" text-anchor="middle" font-size="10" font-weight="600" fill="#dd6b20">Parquet + Snappy</text>
+  <rect x="242" y="186" width="136" height="28" rx="5" fill="#fff7ed" stroke="#f6ad55" stroke-width="1"/>
+  <text x="310" y="202" text-anchor="middle" font-size="10" font-weight="600" fill="#dd6b20">ano/mes/dia partições</text>
+  <rect x="242" y="220" width="136" height="38" rx="5" fill="#feebc8" stroke="#ed8936" stroke-width="1"/>
+  <text x="310" y="234" text-anchor="middle" font-size="9" fill="#7b341e">Op=I/U/D  _timestamp</text>
+  <text x="310" y="248" text-anchor="middle" font-size="9" fill="#7b341e">PII original preservado</text>
+
+  <!-- Seta Origem→Bronze -->
+  <line x1="192" y1="235" x2="228" y2="235" stroke="#718096" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- EventBridge + Lambda + Crawler (abaixo do Bronze) -->
+  <rect x="230" y="290" width="160" height="42" rx="8" fill="#fff9db" stroke="#d69e2e" stroke-width="1.5"/>
+  <text x="310" y="308" text-anchor="middle" font-size="9" font-weight="600" fill="#744210">EventBridge + Lambda</text>
+  <text x="310" y="322" text-anchor="middle" font-size="9" fill="#744210">dispara Glue Crawler</text>
+  <line x1="310" y1="272" x2="310" y2="288" stroke="#718096" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- Crawler -->
+  <rect x="230" y="345" width="160" height="42" rx="8" fill="#f3e5f5" stroke="#805ad5" stroke-width="1.5"/>
+  <text x="310" y="363" text-anchor="middle" font-size="9" font-weight="600" fill="#553c9a">Glue Crawler</text>
+  <text x="310" y="377" text-anchor="middle" font-size="9" fill="#553c9a">atualiza Data Catalog</text>
+  <line x1="310" y1="333" x2="310" y2="343" stroke="#718096" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- Seta Bronze→Silver -->
+  <line x1="392" y1="160" x2="448" y2="160" stroke="#718096" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="420" y="153" text-anchor="middle" font-size="9" fill="#718096">18 jobs</text>
+  <text x="420" y="163" text-anchor="middle" font-size="9" fill="#718096">Glue 4.0</text>
+
+  <!-- === SILVER === -->
+  <rect x="450" y="50" width="160" height="320" rx="8" fill="#e6fffa" stroke="#38b2ac" stroke-width="2" filter="url(#shadow)"/>
+  <text x="530" y="75" text-anchor="middle" font-size="12" font-weight="700" fill="#234e52">S3 Silver + Iceberg v2</text>
+  <text x="462" y="95" font-size="9" fill="#234e52">✅ Deduplicação CDC</text>
+  <text x="462" y="108" font-size="9" fill="#234e52">✅ Mascaramento PII/LGPD</text>
+  <text x="462" y="121" font-size="9" fill="#234e52">✅ Quarentena automática</text>
+  <text x="462" y="134" font-size="9" fill="#234e52">✅ MERGE ACID idempotente</text>
+  <text x="462" y="147" font-size="9" fill="#234e52">✅ Watermark incremental</text>
+  <rect x="462" y="158" width="136" height="22" rx="4" fill="#b2f5ea" stroke="#81e6d9"/>
+  <text x="530" y="173" text-anchor="middle" font-size="9" font-weight="600" fill="#234e52">db_silver (Glue Catalog)</text>
+  <!-- Tabelas Silver -->
+  <text x="462" y="196" font-size="9" fill="#2c7a7b">📋 chamada</text>
+  <text x="462" y="208" font-size="9" fill="#2c7a7b">📋 ticket / chat / whatsapp</text>
+  <text x="462" y="220" font-size="9" fill="#2c7a7b">📋 ura_navegacao</text>
+  <text x="462" y="232" font-size="9" fill="#2c7a7b">📋 cliente (CPF mascarado)</text>
+  <text x="462" y="244" font-size="9" fill="#2c7a7b">📋 operador (email masked)</text>
+  <text x="462" y="256" font-size="9" fill="#a0aec0">... 13 mais ...</text>
+
+  <!-- Checkpoint box -->
+  <rect x="462" y="265" width="136" height="38" rx="4" fill="#fefcbf" stroke="#f6e05e"/>
+  <text x="530" y="280" text-anchor="middle" font-size="9" font-weight="600" fill="#744210">Checkpoint / Watermark</text>
+  <text x="530" y="293" text-anchor="middle" font-size="8" fill="#744210">s3://bucket/checkpoints/</text>
+  <text x="530" y="305" text-anchor="middle" font-size="8" fill="#744210">watermark.json por tabela</text>
+
+  <!-- Quarentena -->
+  <rect x="462" y="310" width="136" height="48" rx="4" fill="#fed7d7" stroke="#fc8181"/>
+  <text x="530" y="326" text-anchor="middle" font-size="9" font-weight="600" fill="#742a2a">Quarentena</text>
+  <text x="530" y="339" text-anchor="middle" font-size="8" fill="#742a2a">registros inválidos</text>
+  <text x="530" y="351" text-anchor="middle" font-size="8" fill="#742a2a">com motivo_quarentena</text>
+
+  <!-- Seta Silver→Gold -->
+  <line x1="612" y1="160" x2="650" y2="160" stroke="#718096" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="631" y="148" text-anchor="middle" font-size="9" fill="#718096">11 dims</text>
+  <text x="631" y="158" text-anchor="middle" font-size="9" fill="#718096">+11 fatos</text>
+
+  <!-- === GOLD === -->
+  <rect x="652" y="50" width="180" height="320" rx="8" fill="#fffff0" stroke="#d4af37" stroke-width="2" filter="url(#shadow)"/>
+  <text x="742" y="75" text-anchor="middle" font-size="12" font-weight="700" fill="#744210">S3 Gold — Star Schema</text>
+  <text x="664" y="95" font-size="9" fill="#744210" font-weight="600">DIMENSÕES (11)</text>
+  <text x="664" y="108" font-size="9" fill="#5d4037">📐 dim_data</text>
+  <text x="664" y="120" font-size="9" fill="#5d4037">📐 dim_cliente</text>
+  <text x="664" y="132" font-size="9" fill="#5d4037">📐 dim_operador</text>
+  <text x="664" y="144" font-size="9" fill="#5d4037">📐 dim_fila / dim_campanha</text>
+  <text x="664" y="156" font-size="9" fill="#5d4037">📐 dim_canal / dim_skill</text>
+  <text x="664" y="168" font-size="9" fill="#5d4037">📐 dim_status_* / dim_cat_*</text>
+  <line x1="664" y1="178" x2="820" y2="178" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="664" y="194" font-size="9" fill="#744210" font-weight="600">FATOS (11)</text>
+  <text x="664" y="207" font-size="9" fill="#5d4037">⭐ fato_chamada</text>
+  <text x="664" y="219" font-size="9" fill="#5d4037">⭐ fato_ticket / fato_chat</text>
+  <text x="664" y="231" font-size="9" fill="#5d4037">⭐ fato_whatsapp</text>
+  <text x="664" y="243" font-size="9" fill="#5d4037">⭐ fato_discagem</text>
+  <text x="664" y="255" font-size="9" fill="#5d4037">⭐ fato_metricas_op.</text>
+  <text x="664" y="267" font-size="9" fill="#5d4037">⭐ fato_qualidade</text>
+  <text x="664" y="279" font-size="9" fill="#5d4037">⭐ fato_ura_navegacao</text>
+  <text x="664" y="291" font-size="9" fill="#5d4037">⭐ fato_interacao_ticket</text>
+  <text x="664" y="303" font-size="9" fill="#5d4037">⭐ fato_mensagem_chat</text>
+  <text x="664" y="315" font-size="9" fill="#5d4037">⭐ fato_jornada_operador</text>
+
+  <!-- === ANALYTICS === -->
+  <!-- Athena -->
+  <rect x="450" y="400" width="105" height="48" rx="8" fill="#fce4ec" stroke="#e91e63" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="503" y="419" text-anchor="middle" font-size="18">🔍</text>
+  <text x="503" y="435" text-anchor="middle" font-size="10" font-weight="600" fill="#880e4f">Amazon Athena</text>
+  <text x="503" y="447" text-anchor="middle" font-size="9" fill="#880e4f">SQL serverless</text>
+
+  <!-- Redshift -->
+  <rect x="570" y="400" width="105" height="48" rx="8" fill="#e8eaf6" stroke="#3949ab" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="623" y="419" text-anchor="middle" font-size="18">🏢</text>
+  <text x="623" y="435" text-anchor="middle" font-size="10" font-weight="600" fill="#1a237e">Redshift</text>
+  <text x="623" y="447" text-anchor="middle" font-size="9" fill="#1a237e">Serverless + Spectrum</text>
+
+  <!-- QuickSight -->
+  <rect x="690" y="400" width="105" height="48" rx="8" fill="#e8f5e9" stroke="#388e3c" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="743" y="419" text-anchor="middle" font-size="18">📊</text>
+  <text x="743" y="435" text-anchor="middle" font-size="10" font-weight="600" fill="#1b5e20">QuickSight</text>
+  <text x="743" y="447" text-anchor="middle" font-size="9" fill="#1b5e20">Dashboards BI</text>
+
+  <!-- Setas para analytics -->
+  <line x1="530" y1="372" x2="503" y2="398" stroke="#718096" stroke-width="1.5" marker-end="url(#arr)"/>
+  <line x1="690" y1="200" x2="742" y2="398" stroke="#718096" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arr)"/>
+  <line x1="742" y1="372" x2="742" y2="398" stroke="#718096" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- LEGENDA -->
+  <rect x="30" y="420" width="390" height="80" rx="8" fill="#f7fafc" stroke="#e2e8f0"/>
+  <text x="45" y="440" font-size="11" font-weight="700" fill="#2d3748">Legenda</text>
+  <rect x="45" y="448" width="12" height="10" rx="2" fill="#FF9900"/>
+  <text x="62" y="458" font-size="10" fill="#4a5568">Bronze (dado bruto + CDC)</text>
+  <rect x="45" y="463" width="12" height="10" rx="2" fill="#38b2ac"/>
+  <text x="62" y="473" font-size="10" fill="#4a5568">Silver (tratado + LGPD + Iceberg)</text>
+  <rect x="45" y="478" width="12" height="10" rx="2" fill="#d4af37"/>
+  <text x="62" y="488" font-size="10" fill="#4a5568">Gold (Star Schema + analytics)</text>
+  <rect x="200" y="448" width="12" height="10" rx="2" fill="#e53e3e"/>
+  <text x="217" y="458" font-size="10" fill="#4a5568">Serviços de Ingestão CDC</text>
+  <rect x="200" y="463" width="12" height="10" rx="2" fill="#805ad5"/>
+  <text x="217" y="473" font-size="10" fill="#4a5568">Orquestração (Crawler/Glue)</text>
+  <rect x="200" y="478" width="12" height="10" rx="2" fill="#e91e63"/>
+  <text x="217" y="488" font-size="10" fill="#4a5568">Camada Analítica</text>
+</svg>
+</div>
+
+<div class="callout orange">
+  <span class="callout-icon">💡</span>
+  <p><strong>Por que Lakehouse?</strong> Data Lake (S3) = armazenamento barato, qualquer formato, qualquer escala. Data Warehouse (Iceberg) = ACID, MERGE INTO, schema, queries SQL. O Lakehouse usa os dois juntos: grava no S3 mas trata como banco de dados.</p>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ ETAPA 0 -->
+<div class="page-break"></div>
+<div id="etapa0">
+<div class="step-header">
+  <div class="step-number">0</div>
+  <div>
+    <div class="step-title">Geração dos Dados Sintéticos</div>
+    <div class="step-sub">Script: <code>data/synthetic/generate_data.py</code></div>
+  </div>
+</div>
+
+<p>Como não temos um sistema de Contact Center real, usamos a biblioteca <strong>Faker</strong> para gerar dados realistas em português brasileiro. O script cria <strong>~5.000 registros por tabela</strong> (18 tabelas = ~90.000 registros no total).</p>
+
+<div class="diagram-wrap">
+<svg width="700" height="130" viewBox="0 0 700 130">
+  <defs>
+    <marker id="arr2" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#718096"/>
+    </marker>
+  </defs>
+  <!-- Faker -->
+  <rect x="20" y="35" width="130" height="60" rx="8" fill="#e8f4fd" stroke="#3182ce" stroke-width="1.5"/>
+  <text x="85" y="58" text-anchor="middle" font-size="20">🎲</text>
+  <text x="85" y="76" text-anchor="middle" font-size="11" font-weight="600" fill="#2b6cb0">Faker (pt_BR)</text>
+  <text x="85" y="90" text-anchor="middle" font-size="10" fill="#4a5568">seed=42 (reproduzível)</text>
+
+  <line x1="152" y1="65" x2="188" y2="65" stroke="#718096" stroke-width="1.5" marker-end="url(#arr2)"/>
+
+  <!-- CSV -->
+  <rect x="190" y="35" width="130" height="60" rx="8" fill="#fff7ed" stroke="#dd6b20" stroke-width="1.5"/>
+  <text x="255" y="58" text-anchor="middle" font-size="20">📄</text>
+  <text x="255" y="76" text-anchor="middle" font-size="11" font-weight="600" fill="#c05621">CSVs gerados</text>
+  <text x="255" y="90" text-anchor="middle" font-size="10" fill="#4a5568">data/synthetic/output/</text>
+
+  <line x1="322" y1="65" x2="358" y2="65" stroke="#718096" stroke-width="1.5" marker-end="url(#arr2)"/>
+  <text x="340" y="55" text-anchor="middle" font-size="9" fill="#718096">Op=I/U/D</text>
+
+  <!-- S3 Loader -->
+  <rect x="360" y="35" width="130" height="60" rx="8" fill="#f3e5f5" stroke="#6b46c1" stroke-width="1.5"/>
+  <text x="425" y="58" text-anchor="middle" font-size="20">🚀</text>
+  <text x="425" y="76" text-anchor="middle" font-size="11" font-weight="600" fill="#553c9a">s3_data_loader.py</text>
+  <text x="425" y="90" text-anchor="middle" font-size="10" fill="#4a5568">CSV → Parquet + Snappy</text>
+
+  <line x1="492" y1="65" x2="528" y2="65" stroke="#718096" stroke-width="1.5" marker-end="url(#arr2)"/>
+
+  <!-- S3 Bronze -->
+  <rect x="530" y="35" width="150" height="60" rx="8" fill="#fef3e2" stroke="#FF9900" stroke-width="2"/>
+  <text x="605" y="58" text-anchor="middle" font-size="20">🪣</text>
+  <text x="605" y="76" text-anchor="middle" font-size="11" font-weight="600" fill="#c05621">S3 Bronze</text>
+  <text x="605" y="90" text-anchor="middle" font-size="10" fill="#4a5568">bronze/operacao/chamada/</text>
+</svg>
+</div>
+
+<p>Cada registro CSV simula um evento CDC com as colunas extras que o DMS adicionaria em produção:</p>
+
+<div class="data-box">
+<span class="title">Exemplo de registro gerado para tb_chamada:</span>
+<span><span class="label">id_chamada</span>: <span class="value">1001</span></span><br>
+<span><span class="label">id_cliente</span>:  <span class="value">42</span></span><br>
+<span><span class="label">id_operador</span>: <span class="value">7</span></span><br>
+<span><span class="label">id_fila</span>:     <span class="value">3</span></span><br>
+<span><span class="label">tp_chamada</span>:  <span class="value">"INBOUND"</span></span><br>
+<span><span class="label">st_chamada</span>:  <span class="value">"ATENDIDO"</span></span><br>
+<span><span class="label">dt_inicio</span>:   <span class="value">"2024-01-10 09:15:00"</span></span><br>
+<span><span class="label">dt_fim</span>:      <span class="value">"2024-01-10 09:19:30"</span></span><br>
+<span><span class="label">nr_duracao_segundos</span>: <span class="value">270</span></span><br>
+<span><span class="label">Op</span>:          <span class="new">"I"</span>  <span class="cmt">← INSERT (evento CDC simulado)</span></span><br>
+<span><span class="label">_timestamp</span>: <span class="new">"2024-01-10T09:20:01Z"</span>  <span class="cmt">← momento da captura</span></span>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ ETAPA 1 -->
+<div id="etapa1">
+<div class="step-header">
+  <div class="step-number">1</div>
+  <div>
+    <div class="step-title">Carga no Bronze (S3)</div>
+    <div class="step-sub">Script: <code>pipeline/ingestion/s3_data_loader.py</code></div>
+  </div>
+</div>
+
+<p>O script lê os CSVs e grava como <strong>Parquet particionado</strong> no S3, simulando o que o Kinesis Firehose faria em produção.</p>
+
+<div class="grid2">
+  <div class="card">
+    <h4>Por que Parquet e não CSV?</h4>
+    <ul>
+      <li>CSV: texto puro, sem tipos, lento para ler</li>
+      <li>Parquet: <strong>formato colunar</strong> — lê só as colunas necessárias</li>
+      <li>Snappy: compressão de ~70% sem custo de CPU elevado</li>
+      <li>Glue/Athena leem Parquet 10× mais rápido</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h4>Por que particionar por ano/mes/dia?</h4>
+    <ul>
+      <li>Athena paga por TB lido — particionar reduz custo</li>
+      <li>Consulta de janeiro 2024 → vai direto a <code>ano=2024/mes=1/</code></li>
+      <li>Ignora todos os outros meses (partition pruning)</li>
+      <li>Glue Crawler descobre partições automaticamente</li>
+    </ul>
+  </div>
+</div>
+
+<p><strong>Estrutura resultante no S3:</strong></p>
+<pre><code>s3://act-cc-dev-lakehouse/
+└── bronze/
+    └── operacao/
+        └── chamada/
+            └── ano=2024/
+                └── mes=1/
+                    └── dia=10/
+                        └── chamada_20240110.parquet  ← nosso registro aqui</code></pre>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ ETAPA 2 -->
+<div id="etapa2">
+<div class="step-header">
+  <div class="step-number">2</div>
+  <div>
+    <div class="step-title">Glue Crawler Cataloga o Bronze</div>
+    <div class="step-sub">Serviço: <span class="aws-badge badge-glue">AWS Glue Crawler</span> + <span class="aws-badge badge-eb">EventBridge</span> + <span class="aws-badge badge-lambda">Lambda</span></div>
+  </div>
+</div>
+
+<div class="diagram-wrap">
+<svg width="700" height="100" viewBox="0 0 700 100">
+  <defs>
+    <marker id="arr3" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#718096"/>
+    </marker>
+  </defs>
+  <rect x="10"  y="25" width="110" height="50" rx="7" fill="#fef3e2" stroke="#FF9900" stroke-width="1.5"/>
+  <text x="65"  y="48" text-anchor="middle" font-size="18">🪣</text>
+  <text x="65"  y="65" text-anchor="middle" font-size="10" font-weight="600" fill="#c05621">S3 PutObject</text>
+
+  <line x1="122" y1="50" x2="148" y2="50" stroke="#718096" stroke-width="1.5" marker-end="url(#arr3)"/>
+
+  <rect x="150" y="25" width="110" height="50" rx="7" fill="#fff8e1" stroke="#f57f17" stroke-width="1.5"/>
+  <text x="205" y="48" text-anchor="middle" font-size="18">⚡</text>
+  <text x="205" y="65" text-anchor="middle" font-size="10" font-weight="600" fill="#e65100">EventBridge</text>
+
+  <line x1="262" y1="50" x2="288" y2="50" stroke="#718096" stroke-width="1.5" marker-end="url(#arr3)"/>
+
+  <rect x="290" y="25" width="110" height="50" rx="7" fill="#fff3e0" stroke="#e65100" stroke-width="1.5"/>
+  <text x="345" y="48" text-anchor="middle" font-size="18">λ</text>
+  <text x="345" y="65" text-anchor="middle" font-size="10" font-weight="600" fill="#bf360c">Lambda</text>
+
+  <line x1="402" y1="50" x2="428" y2="50" stroke="#718096" stroke-width="1.5" marker-end="url(#arr3)"/>
+
+  <rect x="430" y="25" width="110" height="50" rx="7" fill="#f3e5f5" stroke="#6b46c1" stroke-width="1.5"/>
+  <text x="485" y="48" text-anchor="middle" font-size="18">🕷️</text>
+  <text x="485" y="65" text-anchor="middle" font-size="10" font-weight="600" fill="#553c9a">Glue Crawler</text>
+
+  <line x1="542" y1="50" x2="568" y2="50" stroke="#718096" stroke-width="1.5" marker-end="url(#arr3)"/>
+
+  <rect x="570" y="25" width="120" height="50" rx="7" fill="#e8f4fd" stroke="#3182ce" stroke-width="1.5"/>
+  <text x="630" y="48" text-anchor="middle" font-size="18">📚</text>
+  <text x="630" y="65" text-anchor="middle" font-size="10" font-weight="600" fill="#2b6cb0">Glue Data Catalog</text>
+</svg>
+</div>
+
+<p>Quando um arquivo Parquet chega no S3, a cadeia event-driven dispara automaticamente:</p>
+<ol>
+  <li><strong>S3 PutObject</strong> — arquivo chegou em <code>bronze/operacao/chamada/</code></li>
+  <li><strong>EventBridge</strong> — detecta o evento S3 e aciona a Lambda</li>
+  <li><strong>Lambda <code>fn_start_glue_crawler</code></strong> — identifica qual tabela é pelo prefixo do path e inicia o crawler correspondente</li>
+  <li><strong>Glue Crawler</strong> — lê o Parquet, descobre o schema (colunas, tipos, partições)</li>
+  <li><strong>Glue Data Catalog</strong> — registra a tabela <code>db_bronze.chamada</code> com schema completo</li>
+</ol>
+
+<div class="callout info">
+  <span class="callout-icon">ℹ️</span>
+  <p><strong>Por que o Crawler é necessário?</strong> Os jobs PySpark usam <code>glue_context.create_dynamic_frame.from_catalog(database="db_bronze", table_name="chamada")</code> — sem o Catalog, o job não saberia onde está o dado nem qual é o schema. O Crawler é quem registra essa informação.</p>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ ETAPA 3 -->
+<div class="page-break"></div>
+<div id="etapa3">
+<div class="step-header">
+  <div class="step-number">3</div>
+  <div>
+    <div class="step-title">Job Bronze → Silver (passo a passo)</div>
+    <div class="step-sub">Script: <code>pipeline/bronze_to_silver/job_tb_chamada_bronze_to_silver.py</code> — <span class="aws-badge badge-glue">AWS Glue 4.0</span> G.1X · 2 workers</div>
+  </div>
+</div>
+
+<p>Este é o coração do pipeline. Vamos acompanhar nosso registro em cada sub-etapa:</p>
+
+<!-- 3.1 Watermark -->
+<div id="e3-1">
+<h3>3.1 — Ler o Watermark</h3>
+<p>Antes de ler qualquer dado, o job pergunta: <em>"Qual foi o último registro que já processei?"</em></p>
+
+<pre><code><span class="kw">def</span> <span class="fn">get_watermark</span>():
+    obj = s3_client.get_object(Bucket=BUCKET, Key=<span class="str">"checkpoints/tb_chamada/watermark.json"</span>)
+    content = json.loads(obj[<span class="str">"Body"</span>].read())
+    <span class="kw">return</span> content.get(<span class="str">"last_watermark"</span>, <span class="str">"1970-01-01T00:00:00Z"</span>)
+
+last_watermark = get_watermark()
+<span class="cmt"># Resultado: "2024-01-09T23:59:59Z"  (última execução foi ontem)</span></code></pre>
+
+<div class="data-box">
+<span class="title">Conteúdo do watermark.json no S3:</span>
+<span class="label">table_name</span>:     <span class="value">"tb_chamada"</span><br>
+<span class="label">last_watermark</span>: <span class="value">"2024-01-09T23:59:59Z"</span><br>
+<span class="label">updated_at</span>:     <span class="value">"2024-01-09T10:05:22Z"</span><br>
+<span class="label">job_name</span>:       <span class="value">"job-tb-chamada-bronze-to-silver"</span>
+</div>
+
+<div class="callout warning">
+  <span class="callout-icon">⚠️</span>
+  <p><strong>Primeira execução:</strong> se o arquivo JSON não existir, o job assume <code>"1970-01-01T00:00:00Z"</code> como watermark — isso faz o job processar <strong>todos</strong> os registros (full load inicial).</p>
+</div>
+</div>
+
+<!-- 3.2 Leitura Incremental -->
+<div id="e3-2">
+<h3>3.2 — Leitura Incremental do Bronze</h3>
+
+<pre><code>df_bronze = (
+    spark.read.parquet(f<span class="str">"s3://{BUCKET}/bronze/operacao/chamada/"</span>)
+    .filter(F.col(<span class="str">"_timestamp"</span>) > F.lit(last_watermark))
+)
+<span class="cmt"># Só lê registros com _timestamp > "2024-01-09T23:59:59Z"</span>
+<span class="cmt"># Nosso registro: _timestamp = "2024-01-10T09:20:01Z" → PASSA o filtro ✅</span></code></pre>
+
+<div class="highlight">
+  Resultado: <strong>1 registro lido</strong> (só os novos desde ontem — não relê tudo do zero)
+</div>
+</div>
+
+<!-- 3.3 CDC -->
+<div id="e3-3">
+<h3>3.3 — Interpretação do CDC</h3>
+<p>Transforma a coluna <code>Op</code> (letra bruta do DMS) em texto legível:</p>
+
+<pre><code>df_cdc = (
+    df_bronze
+    .withColumn(<span class="str">"dt_cdc_evento"</span>, F.to_timestamp(F.col(<span class="str">"_timestamp"</span>)))
+    .withColumn(<span class="str">"op_cdc"</span>,
+        F.when(F.col(<span class="str">"Op"</span>) == <span class="str">"I"</span>, F.lit(<span class="str">"INSERT"</span>))   <span class="cmt"># ← "Op" com O MAIÚSCULO</span>
+         .when(F.col(<span class="str">"Op"</span>) == <span class="str">"U"</span>, F.lit(<span class="str">"UPDATE"</span>))
+         .when(F.col(<span class="str">"Op"</span>) == <span class="str">"D"</span>, F.lit(<span class="str">"DELETE"</span>))
+         .otherwise(F.lit(<span class="str">"UNKNOWN"</span>)))
+)</code></pre>
+
+<div class="callout warning">
+  <span class="callout-icon">🐛</span>
+  <p><strong>Bug crítico corrigido:</strong> O DMS gera a coluna como <code>"Op"</code> (O maiúsculo). Um job usava <code>F.col("op")</code> (minúsculo) — o Spark não encontrava a coluna e todos os registros viravam <code>"UNKNOWN"</code>, quebrando silenciosamente o pipeline. Corrigido no <code>job_tb_jornada_operador_bronze_to_silver.py</code>.</p>
+</div>
+
+<table>
+  <thead><tr><th>Antes (Bronze)</th><th>Depois (Silver)</th></tr></thead>
+  <tbody>
+    <tr><td><code>Op = "I"</code></td><td><code>op_cdc = "INSERT"</code></td></tr>
+    <tr><td><code>Op = "U"</code></td><td><code>op_cdc = "UPDATE"</code></td></tr>
+    <tr><td><code>Op = "D"</code></td><td><code>op_cdc = "DELETE"</code></td></tr>
+    <tr><td><code>_timestamp = "2024-01-10T09:20:01Z"</code></td><td><code>dt_cdc_evento = 2024-01-10 09:20:01</code></td></tr>
+  </tbody>
+</table>
+</div>
+
+<!-- 3.4 Dedup -->
+<div id="e3-4">
+<h3>3.4 — Deduplicação CDC</h3>
+<p>Um mesmo registro pode ter múltiplos eventos CDC. Precisamos ficar com <strong>o mais recente</strong>.</p>
+
+<div class="diagram-wrap">
+<svg width="680" height="165" viewBox="0 0 680 165">
+  <defs>
+    <marker id="arr4" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#718096"/>
+    </marker>
+  </defs>
+  <!-- Eventos CDC -->
+  <text x="10" y="18" font-size="11" font-weight="700" fill="#2d3748">3 eventos CDC do mesmo registro (id_chamada=1001):</text>
+  <rect x="10"  y="28" width="190" height="52" rx="6" fill="#fed7d7" stroke="#fc8181"/>
+  <text x="105" y="47" text-anchor="middle" font-size="10" font-weight="600" fill="#742a2a">Evento 1 (mais antigo)</text>
+  <text x="105" y="61" text-anchor="middle" font-size="9" fill="#742a2a">Op="I" · _ts=09:19:35</text>
+  <text x="105" y="73" text-anchor="middle" font-size="9" fill="#742a2a">row_num = 3 → DESCARTA</text>
+
+  <rect x="215" y="28" width="190" height="52" rx="6" fill="#feebc8" stroke="#f6ad55"/>
+  <text x="310" y="47" text-anchor="middle" font-size="10" font-weight="600" fill="#744210">Evento 2</text>
+  <text x="310" y="61" text-anchor="middle" font-size="9" fill="#744210">Op="U" · _ts=09:20:01</text>
+  <text x="310" y="73" text-anchor="middle" font-size="9" fill="#744210">row_num = 2 → DESCARTA</text>
+
+  <rect x="420" y="28" width="190" height="52" rx="6" fill="#c6f6d5" stroke="#68d391"/>
+  <text x="515" y="47" text-anchor="middle" font-size="10" font-weight="600" fill="#22543d">Evento 3 (mais recente)</text>
+  <text x="515" y="61" text-anchor="middle" font-size="9" fill="#22543d">Op="U" · _ts=09:22:15</text>
+  <text x="515" y="73" text-anchor="middle" font-size="9" fill="#22543d">row_num = 1 → FICA ✅</text>
+
+  <text x="340" y="110" text-anchor="middle" font-size="11" fill="#718096">Window.partitionBy("id_chamada").orderBy(dt_cdc_evento DESC)</text>
+  <text x="340" y="128" text-anchor="middle" font-size="11" fill="#718096">filter(row_num == 1)  →  mantém só o mais recente</text>
+
+  <line x1="105" y1="82" x2="340" y2="148" stroke="#fc8181" stroke-width="1" stroke-dasharray="4"/>
+  <line x1="310" y1="82" x2="340" y2="148" stroke="#f6ad55" stroke-width="1" stroke-dasharray="4"/>
+  <line x1="515" y1="82" x2="340" y2="148" stroke="#68d391" stroke-width="2" marker-end="url(#arr4)"/>
+
+  <rect x="260" y="148" width="160" height="16" rx="4" fill="#c6f6d5" stroke="#68d391"/>
+  <text x="340" y="160" text-anchor="middle" font-size="10" font-weight="600" fill="#22543d">1 registro final (op="U", 09:22:15)</text>
+</svg>
+</div>
+
+<pre><code>window_dedup = Window.partitionBy(<span class="str">"id_chamada"</span>).orderBy(F.col(<span class="str">"dt_cdc_evento"</span>).desc())
+
+df_dedup = (
+    df_cdc
+    .withColumn(<span class="str">"_row_num"</span>, F.row_number().over(window_dedup))
+    .filter(F.col(<span class="str">"_row_num"</span>) == <span class="num">1</span>)           <span class="cmt"># só o mais recente por PK</span>
+    .drop(<span class="str">"_row_num"</span>, <span class="str">"Op"</span>, <span class="str">"_timestamp"</span>)    <span class="cmt"># remove colunas técnicas</span>
+)</code></pre>
+</div>
+
+<!-- 3.5 Transformações -->
+<div id="e3-5">
+<h3>3.5 — Transformações de Negócio</h3>
+
+<pre><code>df_transformed = (
+    df_dedup
+    <span class="cmt"># 1. Cast dos tipos: string → tipos corretos</span>
+    .withColumn(<span class="str">"id_chamada"</span>, F.col(<span class="str">"id_chamada"</span>).cast(LongType()))
+    .withColumn(<span class="str">"dt_inicio"</span>,  F.to_timestamp(F.col(<span class="str">"dt_inicio"</span>), <span class="str">"yyyy-MM-dd HH:mm:ss"</span>))
+    .withColumn(<span class="str">"dt_fim"</span>,     F.to_timestamp(F.col(<span class="str">"dt_fim"</span>),    <span class="str">"yyyy-MM-dd HH:mm:ss"</span>))
+
+    <span class="cmt"># 2. Normalização de texto</span>
+    .withColumn(<span class="str">"st_chamada"</span>, F.upper(F.trim(F.col(<span class="str">"st_chamada"</span>))))
+    .withColumn(<span class="str">"st_chamada"</span>, F.coalesce(F.col(<span class="str">"st_chamada"</span>), F.lit(<span class="str">"DESCONHECIDO"</span>)))
+
+    <span class="cmt"># 3. Métricas derivadas</span>
+    .withColumn(<span class="str">"nr_duracao_minutos"</span>, F.round(F.col(<span class="str">"nr_duracao_segundos"</span>) / <span class="num">60.0</span>, <span class="num">2</span>))
+
+    <span class="cmt"># 4. Flags de negócio (SMALLINT: 0 ou 1)</span>
+    .withColumn(<span class="str">"fl_duracao_valida"</span>,
+        F.when(F.col(<span class="str">"nr_duracao_segundos"</span>) > <span class="num">0</span>, F.lit(<span class="num">1</span>)).otherwise(F.lit(<span class="num">0</span>)).cast(<span class="str">"smallint"</span>))
+    .withColumn(<span class="str">"fl_chamada_completa"</span>,
+        F.when(F.col(<span class="str">"st_chamada"</span>).isin(<span class="str">"ATENDIDO"</span>, <span class="str">"FINALIZADO"</span>), F.lit(<span class="num">1</span>))
+         .otherwise(F.lit(<span class="num">0</span>)).cast(<span class="str">"smallint"</span>))
+)</code></pre>
+
+<table>
+  <thead><tr><th>Campo</th><th>Antes (Bronze)</th><th>Depois (Silver)</th><th>Operação</th></tr></thead>
+  <tbody>
+    <tr><td><code>id_chamada</code></td><td><code>"1001"</code> (STRING)</td><td><code>1001</code> (BIGINT)</td><td>cast</td></tr>
+    <tr><td><code>st_chamada</code></td><td><code>"ATENDIDO"</code></td><td><code>"ATENDIDO"</code></td><td>upper + trim</td></tr>
+    <tr><td><code>nr_duracao_minutos</code></td><td><em>não existia</em></td><td><code>4.50</code></td><td>derivado (÷60)</td></tr>
+    <tr><td><code>fl_duracao_valida</code></td><td><em>não existia</em></td><td><code>1</code> (270 &gt; 0)</td><td>flag negócio</td></tr>
+    <tr><td><code>fl_chamada_completa</code></td><td><em>não existia</em></td><td><code>1</code> ("ATENDIDO" na lista)</td><td>flag negócio</td></tr>
+  </tbody>
+</table>
+</div>
+
+<!-- 3.6 Hash -->
+<div id="e3-6">
+<h3>3.6 — Hash MD5 (Idempotência)</h3>
+<p>Gera uma "impressão digital" do registro para detectar mudanças:</p>
+
+<pre><code>.withColumn(<span class="str">"hash_registro"</span>,
+    F.md5(F.concat_ws(<span class="str">"|"</span>,
+        F.coalesce(F.col(<span class="str">"id_chamada"</span>).cast(<span class="str">"string"</span>), F.lit(<span class="str">""</span>)),
+        F.coalesce(F.col(<span class="str">"st_chamada"</span>),               F.lit(<span class="str">""</span>)),
+        F.coalesce(F.col(<span class="str">"nr_duracao_segundos"</span>).cast(<span class="str">"string"</span>), F.lit(<span class="str">""</span>)),
+        F.coalesce(F.col(<span class="str">"dt_inicio"</span>).cast(<span class="str">"string"</span>),  F.lit(<span class="str">""</span>)),
+    )))</code></pre>
+
+<div class="diagram-wrap">
+<svg width="580" height="80" viewBox="0 0 580 80">
+  <defs>
+    <marker id="arr5" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#718096"/>
+    </marker>
+  </defs>
+  <rect x="10" y="20" width="250" height="40" rx="6" fill="#e8f4fd" stroke="#3182ce"/>
+  <text x="135" y="37" text-anchor="middle" font-size="10" font-weight="600" fill="#2b6cb0">Campos concatenados com "|"</text>
+  <text x="135" y="53" text-anchor="middle" font-size="9" fill="#4a5568">"1001|ATENDIDO|270|2024-01-10 09:15:00"</text>
+  <line x1="262" y1="40" x2="298" y2="40" stroke="#718096" stroke-width="1.5" marker-end="url(#arr5)"/>
+  <text x="280" y="32" text-anchor="middle" font-size="9" fill="#718096">MD5</text>
+  <rect x="300" y="20" width="270" height="40" rx="6" fill="#c6f6d5" stroke="#38a169"/>
+  <text x="435" y="37" text-anchor="middle" font-size="10" font-weight="600" fill="#22543d">hash_registro</text>
+  <text x="435" y="53" text-anchor="middle" font-size="9" fill="#4a5568">"a3f2b1c9d4e5f6a7b8c9d0e1f2a3b4c5"</text>
+</svg>
+</div>
+
+<div class="callout success">
+  <span class="callout-icon">✅</span>
+  <p><strong>Para que serve:</strong> se esse mesmo registro for reprocessado amanhã sem mudança, o MD5 será idêntico. O MERGE vai comparar <code>target.hash != source.hash</code> e <strong>não vai fazer UPDATE desnecessário</strong>. O job pode rodar 10 vezes com os mesmos dados — o resultado é sempre o mesmo. Isso é <strong>idempotência</strong>.</p>
+</div>
+</div>
+
+<!-- 3.7 Quarentena -->
+<div id="e3-7">
+<h3>3.7 — Validação e Quarentena</h3>
+
+<pre><code>df_transformed = df_transformed.withColumn(
+    <span class="str">"_motivo_quarentena"</span>,
+    F.when(F.col(<span class="str">"id_chamada"</span>).isNull(), F.lit(<span class="str">"id_chamada_nulo"</span>))
+     .when(F.col(<span class="str">"dt_inicio"</span>).isNull(),  F.lit(<span class="str">"dt_inicio_nula"</span>))
+     .when(F.col(<span class="str">"dt_fim"</span>).isNull(),     F.lit(<span class="str">"dt_fim_nula"</span>))
+     .otherwise(F.lit(<span class="kw">None</span>))   <span class="cmt"># None = registro válido</span>
+)
+
+df_valid      = df_transformed.filter(F.col(<span class="str">"_motivo_quarentena"</span>).isNull())
+df_quarantine = df_transformed.filter(F.col(<span class="str">"_motivo_quarentena"</span>).isNotNull())</code></pre>
+
+<div class="diagram-wrap">
+<svg width="580" height="140" viewBox="0 0 580 140">
+  <defs>
+    <marker id="arr6" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#718096"/>
+    </marker>
+  </defs>
+  <rect x="190" y="10" width="140" height="40" rx="7" fill="#e8f4fd" stroke="#3182ce"/>
+  <text x="260" y="35" text-anchor="middle" font-size="11" font-weight="600" fill="#2b6cb0">DataFrame Bronze</text>
+
+  <line x1="260" y1="52" x2="260" y2="72" stroke="#718096" stroke-width="1.5" marker-end="url(#arr6)"/>
+  <rect x="190" y="74" width="140" height="30" rx="6" fill="#fefcbf" stroke="#d69e2e"/>
+  <text x="260" y="93" text-anchor="middle" font-size="10" font-weight="600" fill="#744210">Validação</text>
+
+  <line x1="190" y1="89" x2="110" y2="110" stroke="#fc8181" stroke-width="1.5" marker-end="url(#arr6)"/>
+  <line x1="330" y1="89" x2="410" y2="110" stroke="#68d391" stroke-width="1.5" marker-end="url(#arr6)"/>
+
+  <rect x="20" y="112" width="170" height="24" rx="6" fill="#fed7d7" stroke="#fc8181"/>
+  <text x="105" y="128" text-anchor="middle" font-size="10" fill="#742a2a">🚫 Quarentena (motivo gravado)</text>
+
+  <rect x="390" y="112" width="170" height="24" rx="6" fill="#c6f6d5" stroke="#68d391"/>
+  <text x="475" y="128" text-anchor="middle" font-size="10" fill="#22543d">✅ Válidos → MERGE Silver</text>
+</svg>
+</div>
+
+<p>Registros de quarentena são gravados <strong>sem parar o job</strong>:</p>
+<pre><code>df_quarantine.write.mode(<span class="str">"append"</span>)
+    .partitionBy(<span class="str">"ano_ingestao"</span>, <span class="str">"mes_ingestao"</span>, <span class="str">"dia_ingestao"</span>)
+    .parquet(<span class="str">"s3://bucket/quarantine/tb_chamada/"</span>)
+<span class="cmt"># Analistas podem investigar depois em: s3://bucket/quarantine/tb_chamada/</span></code></pre>
+
+<p>Nosso registro tem todos os campos preenchidos → <code>_motivo_quarentena = NULL</code> → vai para <code>df_valid</code>.</p>
+</div>
+
+<!-- 3.8 MERGE -->
+<div id="e3-8">
+<h3>3.8 — MERGE INTO Iceberg (Silver)</h3>
+
+<pre><code>spark.sql(<span class="str">"""
+    MERGE INTO glue_catalog.db_silver.chamada AS target
+    USING stg_chamada AS source
+    ON target.id_chamada = source.id_chamada
+    WHEN MATCHED AND target.hash_registro &lt;&gt; source.hash_registro
+        THEN UPDATE SET *
+    WHEN NOT MATCHED
+        THEN INSERT *
+"""</span>)</code></pre>
+
+<table>
+  <thead><tr><th>Situação</th><th>Condição do MERGE</th><th>Ação</th></tr></thead>
+  <tbody>
+    <tr><td>Registro novo (não existe no Silver)</td><td><code>NOT MATCHED</code></td><td><strong>INSERT</strong></td></tr>
+    <tr><td>Existe mas dados mudaram (hash diferente)</td><td><code>MATCHED AND hash &lt;&gt; hash</code></td><td><strong>UPDATE</strong></td></tr>
+    <tr><td>Existe e dados são iguais (mesmo hash)</td><td>nenhuma das condições</td><td><strong>Nada</strong> ← idempotente</td></tr>
+  </tbody>
+</table>
+
+<div class="data-box">
+<span class="title">Registro final na db_silver.chamada (após MERGE):</span>
+<span class="label">id_chamada</span>:            <span class="value">1001</span><br>
+<span class="label">st_chamada</span>:            <span class="value">"ATENDIDO"</span><br>
+<span class="label">nr_duracao_segundos</span>:   <span class="value">270</span><br>
+<span class="label">nr_duracao_minutos</span>:    <span class="new">4.50</span>   <span class="cmt">← campo derivado novo</span><br>
+<span class="label">fl_duracao_valida</span>:     <span class="new">1</span>      <span class="cmt">← flag novo</span><br>
+<span class="label">fl_chamada_completa</span>:   <span class="new">1</span>      <span class="cmt">← flag novo</span><br>
+<span class="label">op_cdc</span>:               <span class="new">"INSERT"</span><br>
+<span class="label">dt_cdc_evento</span>:        <span class="new">2024-01-10 09:20:01</span><br>
+<span class="label">hash_registro</span>:        <span class="new">"a3f2b1c9d4e5f6a7b8c9d0e1f2a3b4c5"</span><br>
+<span class="label">dt_ingestao_silver</span>:   <span class="new">2024-01-10 10:05:00</span><br>
+<span class="label">ano</span>: <span class="value">2024</span>  <span class="label">mes</span>: <span class="value">1</span>  <span class="label">dia</span>: <span class="value">10</span>
+</div>
+</div>
+
+<!-- 3.9 Watermark update -->
+<div id="e3-9">
+<h3>3.9 — Atualizar Watermark</h3>
+
+<pre><code>new_watermark = df_bronze.agg(F.max(<span class="str">"_timestamp"</span>).alias(<span class="str">"max_ts"</span>)).collect()[<span class="num">0</span>][<span class="str">"max_ts"</span>]
+save_watermark(new_watermark)
+<span class="cmt"># Salva "2024-01-10T09:20:01Z" no watermark.json</span>
+<span class="cmt"># Próxima execução começa daqui em diante</span></code></pre>
+
+<div class="callout success">
+  <span class="callout-icon">✅</span>
+  <p><strong>Ciclo completo:</strong> Bronze → Watermark → Filtro incremental → CDC → Dedup → Transformações → Hash → Validação → MERGE Iceberg → Novo Watermark. Tudo automatizado e idempotente.</p>
+</div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ ETAPA 4 -->
+<div class="page-break"></div>
+<div id="etapa4">
+<div class="step-header">
+  <div class="step-number">4</div>
+  <div>
+    <div class="step-title">Job Silver → Gold (Dimensões)</div>
+    <div class="step-sub">11 jobs de dimensões — todos independentes entre si, rodam em paralelo</div>
+  </div>
+</div>
+
+<p>Antes de gravar os fatos, as dimensões precisam existir. Elas são tabelas de <strong>"quem", "onde", "o quê"</strong> com surrogate keys.</p>
+
+<pre><code><span class="cmt"># Exemplo: job_dim_status_chamada_gold.py</span>
+df_silver = spark.table(<span class="str">"glue_catalog.db_silver.chamada"</span>)
+                 .filter(F.col(<span class="str">"op_cdc"</span>) != <span class="str">"DELETE"</span>)  <span class="cmt"># ignora deletados</span>
+
+df_dim = (
+    df_silver
+    .select(<span class="str">"st_chamada"</span>).distinct()   <span class="cmt"># valores únicos</span>
+
+    .withColumn(<span class="str">"sk_status_chamada"</span>,
+        F.row_number().over(Window.orderBy(<span class="str">"st_chamada"</span>)))  <span class="cmt"># surrogate key</span>
+
+    .withColumnRenamed(<span class="str">"st_chamada"</span>, <span class="str">"ds_status"</span>)
+
+    .withColumn(<span class="str">"fl_chamada_concluida"</span>,
+        F.when(F.col(<span class="str">"ds_status"</span>).isin(<span class="str">"ATENDIDO"</span>, <span class="str">"FINALIZADO"</span>), F.lit(<span class="num">1</span>))
+         .otherwise(F.lit(<span class="num">0</span>)).cast(<span class="str">"smallint"</span>))
+)
+
+<span class="cmt"># Registro padrão para JOINs que não encontram a dimensão</span>
+df_unknown = spark.createDataFrame([(<span class="num">-1</span>, <span class="str">"DESCONHECIDO"</span>, <span class="num">0</span>)],
+    [<span class="str">"sk_status_chamada"</span>, <span class="str">"ds_status"</span>, <span class="str">"fl_chamada_concluida"</span>])
+df_dim = df_unknown.union(df_dim)</code></pre>
+
+<div class="data-box">
+<span class="title">Resultado: db_gold.dim_status_chamada</span>
+<span class="label">sk_status_chamada</span>  <span class="label">ds_status</span>         <span class="label">fl_chamada_concluida</span><br>
+<span class="cmt">─────────────────────────────────────────────────────</span><br>
+<span class="value">-1</span>                  <span class="value">"DESCONHECIDO"</span>    <span class="value">0</span>   <span class="cmt">← registro padrão</span><br>
+<span class="value">1</span>                   <span class="value">"ATENDIDO"</span>        <span class="new">1</span><br>
+<span class="value">2</span>                   <span class="value">"ABANDONADO"</span>      <span class="value">0</span><br>
+<span class="value">3</span>                   <span class="value">"NAO_ATENDIDO"</span>    <span class="value">0</span><br>
+<span class="value">4</span>                   <span class="value">"TRANSFERIDO"</span>     <span class="value">0</span>
+</div>
+
+<div class="callout info">
+  <span class="callout-icon">ℹ️</span>
+  <p><strong>Por que sk = -1 "DESCONHECIDO"?</strong> Se um fato tiver um status que não existe na dimensão, o LEFT JOIN retornaria NULL. Com o registro padrão <code>sk = -1</code>, o JOIN retorna -1 em vez de NULL — mantendo integridade referencial sem causar erros de NOT NULL ou confusão na análise.</p>
+</div>
+
+<p>Nas dimensões, <code>row_number()</code> é seguro porque dimensões têm poucos registros (centenas/milhares). O Spark consegue ordenar tudo sem risco de OutOfMemory.</p>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ ETAPA 5 -->
+<div id="etapa5">
+<div class="step-header">
+  <div class="step-number">5</div>
+  <div>
+    <div class="step-title">Job Silver → Gold (Fatos)</div>
+    <div class="step-sub">Script: <code>pipeline/silver_to_gold/job_fato_chamada_gold.py</code></div>
+  </div>
+</div>
+
+<p>Os fatos são o "o que aconteceu" — cada linha é um evento (chamada, ticket, chat) com métricas e referências para as dimensões.</p>
+
+<h3>5.1 — Resolver Surrogate Keys via LEFT JOIN</h3>
+
+<pre><code>df_fato = (
+    df_chamada   <span class="cmt"># Silver</span>
+
+    <span class="cmt"># sk_cliente: busca pela natural key id_cliente</span>
+    .join(df_dim_cliente, df_chamada[<span class="str">"id_cliente"</span>] == df_dim_cliente[<span class="str">"nk_cliente"</span>], how=<span class="str">"left"</span>)
+
+    <span class="cmt"># sk_data: busca pela data de dt_inicio</span>
+    .join(df_dim_data, F.to_date(df_chamada[<span class="str">"dt_inicio"</span>]) == df_dim_data[<span class="str">"dt_completa"</span>], how=<span class="str">"left"</span>)
+
+    <span class="cmt"># sk_status: busca pelo valor do status</span>
+    .join(df_dim_status, df_chamada[<span class="str">"st_chamada"</span>] == df_dim_status[<span class="str">"ds_status"</span>], how=<span class="str">"left"</span>)
+
+    <span class="cmt"># Se JOIN não encontrou → usa -1 ("DESCONHECIDO")</span>
+    .withColumn(<span class="str">"sk_cliente"</span>,        F.coalesce(F.col(<span class="str">"sk_cliente"</span>),        F.lit(<span class="num">-1</span>)))
+    .withColumn(<span class="str">"sk_data_inicio"</span>,   F.coalesce(F.col(<span class="str">"sk_data"</span>),           F.lit(<span class="num">-1</span>)))
+    .withColumn(<span class="str">"sk_status_chamada"</span>, F.coalesce(F.col(<span class="str">"sk_status_chamada"</span>), F.lit(<span class="num">-1</span>)))
+)</code></pre>
+
+<h3>5.2 — Gerar Surrogate Key do Fato</h3>
+
+<pre><code>.withColumn(<span class="str">"sk_chamada"</span>, F.monotonically_increasing_id())  <span class="cmt"># BIGINT</span></code></pre>
+
+<div class="grid2">
+  <div class="card" style="border-left: 4px solid #e53e3e;">
+    <h4 style="color:#c53030;">❌ row_number() — PROBLEMA</h4>
+    <p><code>row_number().over(Window.orderBy("id"))</code> sem <code>partitionBy</code> força o Spark a <strong>coletar todos os dados em uma única partição</strong> para poder ordenar globalmente.</p>
+    <p>Com milhões de linhas → <strong>OutOfMemory</strong> no driver.</p>
+  </div>
+  <div class="card" style="border-left: 4px solid #38a169;">
+    <h4 style="color:#276749;">✅ monotonically_increasing_id() — SOLUÇÃO</h4>
+    <p>Gera IDs únicos <strong>distribuídos entre os executores</strong>. Não precisa de shuffle global.</p>
+    <p>Retorna <strong>BIGINT</strong>. Pode gerar valores como <code>8589934592</code> (não sequencial, mas único).</p>
+  </div>
+</div>
+
+<h3>5.3 — MERGE INTO no Fato</h3>
+
+<pre><code>spark.sql(<span class="str">"""
+    MERGE INTO glue_catalog.db_gold.fato_chamada AS target
+    USING stg_fato_chamada AS source
+    ON target.nk_chamada = source.nk_chamada  -- usa NATURAL KEY, não SK!
+    WHEN MATCHED THEN UPDATE SET *
+    WHEN NOT MATCHED THEN INSERT *
+"""</span>)</code></pre>
+
+<div class="callout warning">
+  <span class="callout-icon">⚠️</span>
+  <p><strong>Por que <code>nk_chamada</code> e não <code>sk_chamada</code>?</strong> O <code>sk_chamada</code> muda a cada execução (<code>monotonically_increasing_id()</code> gera um novo número). A <code>nk_chamada</code> (natural key = id original do sistema fonte) é estável — representa sempre a mesma chamada. Usar o SK no MERGE causaria duplicatas.</p>
+</div>
+
+<div class="data-box">
+<span class="title">Resultado final: db_gold.fato_chamada</span>
+<span class="label">sk_chamada</span>:          <span class="new">8589934592</span>   <span class="cmt">← gerado por monotonically_increasing_id()</span><br>
+<span class="label">nk_chamada</span>:          <span class="value">1001</span>          <span class="cmt">← natural key (rastreia ao sistema fonte)</span><br>
+<span class="label">sk_cliente</span>:          <span class="value">15</span>            <span class="cmt">← resolvido via JOIN com dim_cliente</span><br>
+<span class="label">sk_operador</span>:         <span class="value">8</span>             <span class="cmt">← resolvido via JOIN com dim_operador</span><br>
+<span class="label">sk_fila</span>:             <span class="value">3</span>             <span class="cmt">← resolvido via JOIN com dim_fila</span><br>
+<span class="label">sk_status_chamada</span>:   <span class="value">1</span>             <span class="cmt">← "ATENDIDO" = sk 1 na dim_status</span><br>
+<span class="label">sk_data_inicio</span>:      <span class="value">20240110</span>      <span class="cmt">← sk_data = yyyyMMdd (INT)</span><br>
+<span class="label">nr_duracao_segundos</span>: <span class="value">270</span><br>
+<span class="label">nr_duracao_minutos</span>:  <span class="value">4.50</span><br>
+<span class="label">fl_duracao_valida</span>:   <span class="value">1</span><br>
+<span class="label">fl_chamada_completa</span>: <span class="value">1</span>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ ETAPA 6 -->
+<div id="etapa6">
+<div class="step-header">
+  <div class="step-number">6</div>
+  <div>
+    <div class="step-title">Consulta Analítica (Athena)</div>
+    <div class="step-sub"><span class="aws-badge badge-athena">Amazon Athena</span> — SQL serverless sobre S3 + Iceberg</div>
+  </div>
+</div>
+
+<p>O dado está pronto. Um analista abre o Athena e consulta diretamente:</p>
+
+<pre><code><span class="cmt">-- Volume e TMA de chamadas por fila e data</span>
+<span class="kw">SELECT</span>
+    d.nr_ano,
+    d.nr_mes,
+    d.nr_dia,
+    f.nm_fila,
+    <span class="fn">COUNT</span>(*)                                      <span class="kw">AS</span> total_chamadas,
+    <span class="fn">ROUND</span>(<span class="fn">AVG</span>(c.nr_duracao_segundos) / <span class="num">60.0</span>, <span class="num">2</span>)  <span class="kw">AS</span> tma_minutos,
+    <span class="fn">SUM</span>(c.fl_chamada_completa)                    <span class="kw">AS</span> chamadas_completas
+<span class="kw">FROM</span>   db_gold.fato_chamada  c
+<span class="kw">JOIN</span>   db_gold.dim_data      d <span class="kw">ON</span> c.sk_data_inicio = d.sk_data
+<span class="kw">JOIN</span>   db_gold.dim_fila      f <span class="kw">ON</span> c.sk_fila        = f.sk_fila
+<span class="kw">WHERE</span>  d.nr_ano = <span class="num">2024</span> <span class="kw">AND</span> d.nr_mes = <span class="num">1</span>
+<span class="kw">GROUP BY</span> d.nr_ano, d.nr_mes, d.nr_dia, f.nm_fila
+<span class="kw">ORDER BY</span> d.nr_dia, total_chamadas <span class="kw">DESC</span>;</code></pre>
+
+<div class="callout info">
+  <span class="callout-icon">ℹ️</span>
+  <p><strong>Partition Pruning:</strong> o WHERE com <code>nr_ano=2024 AND nr_mes=1</code> faz o Athena ler <em>apenas</em> as partições <code>ano=2024/mes=1/</code> — ignora todos os outros meses. Isso reduz o custo (paga por TB lido) e o tempo de resposta.</p>
+</div>
+
+<p>Resultado para nosso registro:</p>
+<table>
+  <thead><tr><th>nr_ano</th><th>nr_mes</th><th>nr_dia</th><th>nm_fila</th><th>total_chamadas</th><th>tma_minutos</th><th>chamadas_completas</th></tr></thead>
+  <tbody>
+    <tr><td>2024</td><td>1</td><td>10</td><td>Suporte Técnico</td><td>1</td><td>4.50</td><td>1</td></tr>
+  </tbody>
+</table>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ RESUMO -->
+<div class="page-break"></div>
+<div id="resumo">
+<h2>9. Resumo: O Caminho Completo do Dado</h2>
+
+<div class="diagram-wrap">
+<svg width="820" height="620" viewBox="0 0 820 620">
+  <defs>
+    <marker id="arr7" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#4a5568"/>
+    </marker>
+  </defs>
+
+  <!-- === LINHA DO TEMPO VERTICAL === -->
+  <line x1="100" y1="30" x2="100" y2="590" stroke="#e2e8f0" stroke-width="2" stroke-dasharray="6,4"/>
+
+  <!-- Etapa 0 -->
+  <circle cx="100" cy="45" r="18" fill="#667eea"/>
+  <text x="100" y="50" text-anchor="middle" font-size="13" fill="white" font-weight="700">0</text>
+  <rect x="130" y="25" width="670" height="42" rx="7" fill="#ebf4ff" stroke="#667eea" stroke-width="1.5"/>
+  <text x="145" y="42" font-size="11" font-weight="700" fill="#2b4acb">PostgreSQL → DMS → Kinesis Firehose</text>
+  <text x="145" y="57" font-size="10" fill="#4a5568">Dado bruto capturado via WAL. Colunas Op="I" e _timestamp adicionadas pelo DMS.</text>
+
+  <!-- Etapa 1 -->
+  <circle cx="100" cy="110" r="18" fill="#FF9900"/>
+  <text x="100" y="115" text-anchor="middle" font-size="13" fill="white" font-weight="700">1</text>
+  <rect x="130" y="90" width="670" height="42" rx="7" fill="#fef3e2" stroke="#FF9900" stroke-width="1.5"/>
+  <text x="145" y="107" font-size="11" font-weight="700" fill="#c05621">S3 Bronze — Parquet + Snappy particionado</text>
+  <text x="145" y="122" font-size="10" fill="#4a5568">bronze/operacao/chamada/ano=2024/mes=1/dia=10/ · PII original · Op + _timestamp preservados</text>
+
+  <!-- Etapa 2 -->
+  <circle cx="100" cy="175" r="18" fill="#805ad5"/>
+  <text x="100" y="180" text-anchor="middle" font-size="13" fill="white" font-weight="700">2</text>
+  <rect x="130" y="155" width="670" height="42" rx="7" fill="#f3e5f5" stroke="#805ad5" stroke-width="1.5"/>
+  <text x="145" y="172" font-size="11" font-weight="700" fill="#553c9a">EventBridge → Lambda → Glue Crawler</text>
+  <text x="145" y="187" font-size="10" fill="#4a5568">Crawler descobre schema e registra db_bronze.chamada no Glue Data Catalog</text>
+
+  <!-- Etapa 3.1 -->
+  <circle cx="100" cy="240" r="18" fill="#38b2ac"/>
+  <text x="100" y="245" text-anchor="middle" font-size="11" fill="white" font-weight="700">3.1</text>
+  <rect x="130" y="220" width="670" height="34" rx="7" fill="#e6fffa" stroke="#38b2ac" stroke-width="1.5"/>
+  <text x="145" y="237" font-size="10" font-weight="700" fill="#234e52">Job B→S: Ler Watermark</text>
+  <text x="145" y="249" font-size="10" fill="#4a5568">s3://bucket/checkpoints/tb_chamada/watermark.json → last_watermark = "2024-01-09T23:59:59Z"</text>
+
+  <!-- Etapa 3.2 -->
+  <circle cx="100" cy="290" r="18" fill="#38b2ac"/>
+  <text x="100" y="295" text-anchor="middle" font-size="11" fill="white" font-weight="700">3.2</text>
+  <rect x="130" y="270" width="670" height="34" rx="7" fill="#e6fffa" stroke="#38b2ac" stroke-width="1.5"/>
+  <text x="145" y="287" font-size="10" font-weight="700" fill="#234e52">Job B→S: Leitura Incremental</text>
+  <text x="145" y="299" font-size="10" fill="#4a5568">filter(_timestamp > "2024-01-09T23:59:59Z") → 1 registro novo lido</text>
+
+  <!-- Etapa 3.3-3.4 -->
+  <circle cx="100" cy="340" r="18" fill="#38b2ac"/>
+  <text x="100" y="345" text-anchor="middle" font-size="11" fill="white" font-weight="700">3.3</text>
+  <rect x="130" y="320" width="670" height="34" rx="7" fill="#e6fffa" stroke="#38b2ac" stroke-width="1.5"/>
+  <text x="145" y="337" font-size="10" font-weight="700" fill="#234e52">Job B→S: CDC + Deduplicação</text>
+  <text x="145" y="349" font-size="10" fill="#4a5568">Op="I" → op_cdc="INSERT" · Window.partitionBy(pk).orderBy(dt_cdc_evento DESC) → row_num=1</text>
+
+  <!-- Etapa 3.5-3.7 -->
+  <circle cx="100" cy="390" r="18" fill="#38b2ac"/>
+  <text x="100" y="395" text-anchor="middle" font-size="11" fill="white" font-weight="700">3.5</text>
+  <rect x="130" y="370" width="670" height="34" rx="7" fill="#e6fffa" stroke="#38b2ac" stroke-width="1.5"/>
+  <text x="145" y="387" font-size="10" font-weight="700" fill="#234e52">Job B→S: Transformações + Hash + Quarentena</text>
+  <text x="145" y="399" font-size="10" fill="#4a5568">nr_duracao_minutos=4.50 · fl_chamada_completa=1 · hash MD5 · valida campos obrigatórios</text>
+
+  <!-- Etapa 3.8 MERGE Silver -->
+  <circle cx="100" cy="440" r="18" fill="#38b2ac"/>
+  <text x="100" y="445" text-anchor="middle" font-size="11" fill="white" font-weight="700">3.8</text>
+  <rect x="130" y="420" width="670" height="34" rx="7" fill="#b2f5ea" stroke="#38b2ac" stroke-width="2"/>
+  <text x="145" y="437" font-size="10" font-weight="700" fill="#234e52">MERGE INTO db_silver.chamada (Iceberg v2)</text>
+  <text x="145" y="449" font-size="10" fill="#4a5568">ON id_chamada · INSERT (novo) · id_cliente ainda é o número real · op_cdc="INSERT"</text>
+
+  <!-- Etapa 4 Dims -->
+  <circle cx="100" cy="497" r="18" fill="#d4af37"/>
+  <text x="100" y="502" text-anchor="middle" font-size="13" fill="white" font-weight="700">4</text>
+  <rect x="130" y="477" width="670" height="34" rx="7" fill="#fffff0" stroke="#d4af37" stroke-width="1.5"/>
+  <text x="145" y="494" font-size="10" font-weight="700" fill="#744210">Silver → Gold: 11 Dimensões (paralelo)</text>
+  <text x="145" y="506" font-size="10" fill="#4a5568">row_number() → sk_status_chamada=1 ("ATENDIDO") · sk=-1 para DESCONHECIDO</text>
+
+  <!-- Etapa 5 Fato -->
+  <circle cx="100" cy="547" r="18" fill="#d4af37"/>
+  <text x="100" y="552" text-anchor="middle" font-size="13" fill="white" font-weight="700">5</text>
+  <rect x="130" y="527" width="670" height="34" rx="7" fill="#fefcbf" stroke="#d4af37" stroke-width="2"/>
+  <text x="145" y="544" font-size="10" font-weight="700" fill="#744210">Silver → Gold: fato_chamada</text>
+  <text x="145" y="556" font-size="10" fill="#4a5568">JOINs resolvem sk_cliente=15, sk_data=20240110, sk_status=1 · sk_chamada=monotonically_increasing_id()</text>
+
+  <!-- Etapa 6 Athena -->
+  <circle cx="100" cy="594" r="18" fill="#e91e63"/>
+  <text x="100" y="599" text-anchor="middle" font-size="13" fill="white" font-weight="700">6</text>
+  <rect x="130" y="574" width="670" height="34" rx="7" fill="#fce4ec" stroke="#e91e63" stroke-width="1.5"/>
+  <text x="145" y="591" font-size="10" font-weight="700" fill="#880e4f">Amazon Athena — KPI</text>
+  <text x="145" y="603" font-size="10" fill="#4a5568">JOIN fato + dimensões → total_chamadas=1, tma_minutos=4.50 para 2024-01-10</text>
+
+  <!-- Setas entre etapas -->
+  <line x1="100" y1="65" x2="100" y2="90" stroke="#4a5568" stroke-width="1.5" marker-end="url(#arr7)"/>
+  <line x1="100" y1="133" x2="100" y2="153" stroke="#4a5568" stroke-width="1.5" marker-end="url(#arr7)"/>
+  <line x1="100" y1="195" x2="100" y2="218" stroke="#4a5568" stroke-width="1.5" marker-end="url(#arr7)"/>
+  <line x1="100" y1="260" x2="100" y2="268" stroke="#4a5568" stroke-width="1.5" marker-end="url(#arr7)"/>
+  <line x1="100" y1="306" x2="100" y2="318" stroke="#4a5568" stroke-width="1.5" marker-end="url(#arr7)"/>
+  <line x1="100" y1="356" x2="100" y2="368" stroke="#4a5568" stroke-width="1.5" marker-end="url(#arr7)"/>
+  <line x1="100" y1="406" x2="100" y2="418" stroke="#4a5568" stroke-width="1.5" marker-end="url(#arr7)"/>
+  <line x1="100" y1="460" x2="100" y2="475" stroke="#4a5568" stroke-width="1.5" marker-end="url(#arr7)"/>
+  <line x1="100" y1="515" x2="100" y2="525" stroke="#4a5568" stroke-width="1.5" marker-end="url(#arr7)"/>
+  <line x1="100" y1="563" x2="100" y2="572" stroke="#4a5568" stroke-width="1.5" marker-end="url(#arr7)"/>
+</svg>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ ENTREVISTA -->
+<div class="page-break"></div>
+<div id="entrevista">
+<h2>10. Perguntas Frequentes em Entrevista</h2>
+
+<div style="margin-top: 16px;">
+
+<div class="callout info" style="margin-bottom: 14px;">
+  <div>
+    <strong>❓ Por que Iceberg e não Delta Lake ou Hudi?</strong>
+    <p style="margin-top:6px">Iceberg tem integração nativa com AWS Glue e Athena. O Glue 4.0 suporta Iceberg com a flag <code>--datalake-formats iceberg</code> sem precisar instalar JARs externos. Delta Lake exige JARs proprietários da Databricks. Para stack 100% AWS, Iceberg é a escolha natural.</p>
+  </div>
+</div>
+
+<div class="callout success" style="margin-bottom: 14px;">
+  <div>
+    <strong>❓ Como você garante que um job pode rodar duas vezes sem duplicar dados?</strong>
+    <p style="margin-top:6px">Duas camadas de proteção: (1) o <strong>watermark</strong> filtra registros já processados antes mesmo de ler o dado. (2) o <strong>MERGE INTO com hash_registro</strong> garante que um registro não alterado não seja atualizado desnecessariamente. Mesmo que o job rode 10 vezes com os mesmos dados, o resultado é sempre idêntico — isso é <strong>idempotência</strong>.</p>
+  </div>
+</div>
+
+<div class="callout warning" style="margin-bottom: 14px;">
+  <div>
+    <strong>❓ O que acontece se um registro chegar com id_chamada nulo?</strong>
+    <p style="margin-top:6px">O job calcula <code>_motivo_quarentena = "id_chamada_nulo"</code> e grava o registro em <code>s3://bucket/quarantine/tb_chamada/</code> particionado por data de ingestão. O job <strong>não falha</strong> — os dados válidos continuam sendo processados normalmente. Analistas podem investigar os registros de quarentena depois.</p>
+  </div>
+</div>
+
+<div class="callout orange" style="margin-bottom: 14px;">
+  <div>
+    <strong>❓ Por que monotonically_increasing_id() nos fatos e não row_number()?</strong>
+    <p style="margin-top:6px"><code>row_number()</code> sem <code>partitionBy</code> em tabelas fato com milhões de linhas força o Spark a <strong>coletar todos os dados em uma única partição</strong> para ordenar globalmente — risco real de OutOfMemory em produção. <code>monotonically_increasing_id()</code> gera IDs únicos distribuídos entre os executores sem shuffle global, retorna BIGINT e funciona em qualquer escala. O MERGE usa a natural key (<code>nk_*</code>), então a estabilidade do SK não é necessária.</p>
+  </div>
+</div>
+
+<div class="callout info" style="margin-bottom: 14px;">
+  <div>
+    <strong>❓ Como você lida com DELETE no CDC?</strong>
+    <p style="margin-top:6px">Na Silver, o campo <code>op_cdc</code> recebe <code>"DELETE"</code>. Os dados continuam na Silver para auditoria e rastreabilidade. Na Gold, os jobs filtram <code>op_cdc != "DELETE"</code> antes de processar — registros deletados não entram no star schema.</p>
+  </div>
+</div>
+
+<div class="callout success" style="margin-bottom: 14px;">
+  <div>
+    <strong>❓ Qual o custo estimado do projeto?</strong>
+    <p style="margin-top:6px">Menos de $8/mês em escala de demonstração. Glue Jobs (~$3,20) e Redshift Serverless (~$3,00) são os maiores custos. A maior economia é substituir DMS + Kinesis (~$24/mês) pelo <code>s3_data_loader.py</code> em modo demo. Parquet + Snappy + particionamento reduz custo de Athena em ~70% vs CSV.</p>
+  </div>
+</div>
+
+<div class="callout warning" style="margin-bottom: 14px;">
+  <div>
+    <strong>❓ O que é o Glue Data Catalog e por que é necessário?</strong>
+    <p style="margin-top:6px">É o repositório central de metadados — sabe onde cada tabela está no S3, quais são as colunas, os tipos de dado e as partições. Sem ele, cada job precisaria saber o path físico do S3 e o schema explicitamente. Com o Catalog, qualquer serviço (Glue, Athena, Redshift Spectrum, EMR) consulta pela referência lógica <code>db_bronze.chamada</code> e encontra tudo automaticamente.</p>
+  </div>
+</div>
+
+<div class="callout orange">
+  <div>
+    <strong>❓ Por que usar Surrogate Key (sk_) em vez da chave original?</strong>
+    <p style="margin-top:6px">A chave original do sistema fonte (natural key) pode mudar, ser reutilizada ou não existir para registros de "DESCONHECIDO". O SK é gerado pelo DW, é estável, imutável e permite o registro padrão <code>sk = -1</code> para integridade referencial. Manter o <code>nk_*</code> na tabela fato garante rastreabilidade até o sistema fonte.</p>
+  </div>
+</div>
+
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ FOOTER -->
+<hr>
+<div style="text-align:center; color:#a0aec0; font-size:11px; margin-top:20px; padding-bottom:20px;">
+  <strong style="color:#232f3e;">Contact Center Data Lakehouse</strong> — Ilciley Junior<br>
+  AWS Glue 4.0 · Apache Iceberg v2 · PySpark · Medallion Architecture · Star Schema<br>
+  <span style="color:#FF9900;">github.com/ilcileyjunior01/contact-center-data-lakehouse</span>
+</div>
+
+<!-- Botão de impressão (some no PDF) -->
+<div style="position:fixed; bottom:20px; right:20px; display:flex; gap:10px;">
+  <button onclick="window.print()"
+    style="background:#FF9900; color:#232f3e; border:none; padding:10px 20px;
+           border-radius:8px; font-size:13px; font-weight:700; cursor:pointer;
+           box-shadow:0 4px 12px rgba(0,0,0,.2);">
+    🖨️ Salvar como PDF
+  </button>
+</div>
+
+<style>
+  @media print {
+    button { display: none !important; }
+  }
+</style>
+</body>
+</html>
