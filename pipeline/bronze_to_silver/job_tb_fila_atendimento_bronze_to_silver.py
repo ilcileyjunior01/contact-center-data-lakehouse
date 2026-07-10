@@ -141,25 +141,25 @@ df_transformed = (
 
     # --- Conversão e tratamento de nulos ---
     .withColumn("nr_sla_segundos",
-        F.lit(None).cast("int").cast(IntegerType()))
+        F.col("nr_sla_segundos").cast(IntegerType()))
     .withColumn("nm_fila",
         F.coalesce(F.col("nm_fila"), F.lit("DESCONHECIDO")))
     .withColumn("ds_tipo_fila",
         F.coalesce(F.col("ds_tipo_fila"), F.lit("DESCONHECIDO")))
     .withColumn("nr_sla_segundos",
-        F.coalesce(F.lit(None).cast("int"), F.lit(0)))
+        F.coalesce(F.col("nr_sla_segundos"), F.lit(0)))
 
     # --- Campo derivado ---
     .withColumn("nr_sla_minutos",
-        F.round(F.lit(None).cast("int") / 60.0, 2))
+        F.round(F.col("nr_sla_segundos") / 60.0, 2))
 
     # --- Hash de integridade ---
     .withColumn("hash_registro",
         F.md5(F.concat_ws("|",
-            F.coalesce(F.col("id_fila").cast("string"),         F.lit("")),
-            F.coalesce(F.col("nm_fila"),                        F.lit("")),
-            F.coalesce(F.col("ds_tipo_fila"),                  F.lit("")),
-            F.coalesce(F.lit(None).cast("int").cast("string"), F.lit("")),
+            F.coalesce(F.col("id_fila").cast("string"),             F.lit("")),
+            F.coalesce(F.col("nm_fila"),                            F.lit("")),
+            F.coalesce(F.col("ds_tipo_fila"),                       F.lit("")),
+            F.coalesce(F.col("nr_sla_segundos").cast("string"),     F.lit("")),
         )))
 
     # --- Auditoria ---

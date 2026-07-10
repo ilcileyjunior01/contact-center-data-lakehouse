@@ -114,7 +114,7 @@ df_cdc = (
 )
 
 window_dedup = (
-    Window.partitionBy("id_skill").orderBy(F.col("dt_cdc_evento").desc())
+    Window.partitionBy("id_skill", "id_operador").orderBy(F.col("dt_cdc_evento").desc())
 )
 
 df_dedup = (
@@ -223,6 +223,7 @@ spark.sql(f"""
     MERGE INTO glue_catalog.{SILVER_TABLE} AS target
     USING stg_skill_operador AS source
     ON target.id_skill = source.id_skill
+    AND target.id_operador = source.id_operador
     WHEN MATCHED AND target.hash_registro <> source.hash_registro
     THEN UPDATE SET *
     WHEN NOT MATCHED THEN INSERT *

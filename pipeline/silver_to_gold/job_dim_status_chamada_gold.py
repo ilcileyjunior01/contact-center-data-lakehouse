@@ -21,7 +21,7 @@ from awsglue.job import Job
 from pyspark.context import SparkContext
 from pyspark.sql import functions as F
 from pyspark.sql.window import Window
-from pyspark.sql.types import StringType, TimestampType, ShortType
+from pyspark.sql.types import TimestampType
 
 args = getResolvedOptions(sys.argv, ["JOB_NAME", "BUCKET_NAME", "ENV"])
 JOB_NAME = args["JOB_NAME"]
@@ -117,7 +117,7 @@ df_final.createOrReplaceTempView("stg_dim_status_chamada")
 spark.sql(f"""
     MERGE INTO glue_catalog.{GOLD_TABLE} AS target
     USING stg_dim_status_chamada AS source
-    ON target.sk_status = source.sk_status
+    ON target.ds_status = source.ds_status
     WHEN MATCHED THEN UPDATE SET *
     WHEN NOT MATCHED THEN INSERT *
 """)

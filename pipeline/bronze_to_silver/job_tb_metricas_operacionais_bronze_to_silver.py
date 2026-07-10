@@ -147,8 +147,6 @@ df_transformed = (
 
     .withColumn("nr_chamadas_atendidas",
         F.coalesce(F.col("nr_chamadas_atendidas").cast(IntegerType()),  F.lit(0)))
-    .withColumn("nr_chamadas_atendidas",
-        F.coalesce(F.col("nr_chamadas_atendidas").cast(IntegerType()),  F.lit(0)))
     .withColumn("nr_chamadas_abandonadas",
         F.coalesce(F.col("nr_chamadas_abandonadas").cast(IntegerType()), F.lit(0)))
     .withColumn("nr_tma_segundos",
@@ -156,17 +154,17 @@ df_transformed = (
     .withColumn("nr_tme_segundos",
         F.coalesce(F.col("nr_tme_segundos").cast(IntegerType()),        F.lit(0)))
     .withColumn("nr_nivel_servico",
-        F.coalesce(F.lit(None).cast("double").cast("double"),            F.lit(0.0)))
+        F.coalesce(F.col("nr_nivel_servico").cast("double"),             F.lit(0.0)))
     .withColumn("id_fila",
         F.coalesce(F.col("id_fila"), F.lit(-1).cast("long")))
 
     # --- Campos derivados ---
     .withColumn("nr_taxa_atendimento",
         F.when(
-            F.col("nr_chamadas_atendidas") > 0,
+            (F.col("nr_chamadas_atendidas") + F.col("nr_chamadas_abandonadas")) > 0,
             F.round(
                 F.col("nr_chamadas_atendidas") * 100.0 /
-                F.col("nr_chamadas_atendidas"), 2
+                (F.col("nr_chamadas_atendidas") + F.col("nr_chamadas_abandonadas")), 2
             )
         ).otherwise(F.lit(0.0)))
 
@@ -186,7 +184,7 @@ df_transformed = (
         F.round(F.col("nr_tme_segundos") / 60.0, 2))
 
     .withColumn("fl_meta_nivel_servico",
-        F.when(F.lit(None).cast("double") >= 80.0, F.lit(1))
+        F.when(F.col("nr_nivel_servico") >= 80.0, F.lit(1))
          .otherwise(F.lit(0)).cast("smallint"))
 
     .withColumn("fl_alto_abandono",
@@ -199,9 +197,8 @@ df_transformed = (
             F.coalesce(F.col("id_fila").cast("string"),                 F.lit("")),
             F.coalesce(F.col("dt_referencia").cast("string"),           F.lit("")),
             F.coalesce(F.col("nr_chamadas_atendidas").cast("string"),   F.lit("")),
-            F.coalesce(F.col("nr_chamadas_atendidas").cast("string"),   F.lit("")),
             F.coalesce(F.col("nr_chamadas_abandonadas").cast("string"), F.lit("")),
-            F.coalesce(F.lit(None).cast("double").cast("string"),        F.lit("")),
+            F.coalesce(F.col("nr_nivel_servico").cast("string"),          F.lit("")),
         )))
 
     .withColumn("dt_ingestao_silver", F.lit(now_ts).cast(TimestampType()))
@@ -215,8 +212,8 @@ df_transformed = df_transformed.withColumn(
     F.when(F.col("id_metrica").isNull(),    F.lit("id_metrica_nulo"))
      .when(F.col("dt_referencia").isNull(), F.lit("dt_referencia_nula"))
      .when(
-         F.lit(None).cast("double").isNotNull() &
-         ((F.lit(None).cast("double") < 0) | (F.lit(None).cast("double") > 100)),
+         F.col("nr_nivel_servico").isNotNull() &
+         ((F.col("nr_nivel_servico") < 0) | (F.col("nr_nivel_servico") > 100)),
          F.lit("nr_nivel_servico_fora_do_range")
      )
      .otherwise(F.lit(None).cast(StringType()))
@@ -245,7 +242,6 @@ spark.sql(f"""
         id_metrica                  BIGINT,
         dt_referencia               TIMESTAMP,
         id_fila                     BIGINT,
-        nr_chamadas_atendidas       INT,
         nr_chamadas_atendidas       INT,
         nr_chamadas_abandonadas     INT,
         nr_tma_segundos             INT,

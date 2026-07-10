@@ -410,7 +410,7 @@ def submit_spark_job(
     """
     log_uri = f"s3://{bucket_name}/logs/emr-serverless/{job_name}/"
 
-    # Configurações Spark padrão
+    # Configurações Spark padrão — Iceberg + Glue Data Catalog
     default_spark_conf = {
         "spark.executor.cores": "2",
         "spark.executor.memory": "4g",
@@ -420,14 +420,24 @@ def submit_spark_job(
         "spark.dynamicAllocation.enabled": "true",
         "spark.dynamicAllocation.minExecutors": "1",
         "spark.dynamicAllocation.maxExecutors": "4",
-        "spark.sql.extensions": "io.delta.sql.DeltaSparkSessionExtension",
-        "spark.sql.catalog.spark_catalog": "org.apache.spark.sql.delta.catalog.DeltaCatalog",
+        # Iceberg extensions
+        "spark.sql.extensions":
+            "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions",
+        # Glue catalog como catálogo Iceberg
+        "spark.sql.catalog.glue_catalog":
+            "org.apache.iceberg.spark.SparkCatalog",
+        "spark.sql.catalog.glue_catalog.catalog-impl":
+            "org.apache.iceberg.aws.glue.GlueCatalog",
+        "spark.sql.catalog.glue_catalog.io-impl":
+            "org.apache.iceberg.aws.s3.S3FileIO",
+        "spark.sql.catalog.glue_catalog.warehouse":
+            f"s3://{bucket_name}/",
+        # Adaptive Query Execution
         "spark.sql.adaptive.enabled": "true",
         "spark.sql.adaptive.coalescePartitions.enabled": "true",
+        # Glue Data Catalog como Hive metastore
         "spark.hadoop.hive.metastore.client.factory.class":
             "com.amazonaws.glue.catalog.metastore.AWSGlueDataCatalogHiveClientFactory",
-        # Checkpointing
-        "spark.sql.streaming.checkpointLocation": f"s3://{bucket_name}/checkpoints/{job_name}/",
     }
 
     if spark_conf:
@@ -664,12 +674,14 @@ def main():
     if args.submit_example:
         print("\n[ETAPA 5] Submetendo job de exemplo Bronze->Silver (chamada)...")
 
-        example_script = f"s3://{bucket_name}/scripts/bronze_to_silver_chamada.py"
+        example_script = (
+            f"s3://{bucket_name}/scripts/bronze_to_silver/"
+            "job_tb_chamada_bronze_to_silver.py"
+        )
         example_args = [
-            "--input-path", f"s3://{bucket_name}/bronze/operacao/chamada/",
-            "--output-path", f"s3://{bucket_name}/silver/operacao/chamada/",
-            "--database", "db_silver",
-            "--table", "chamada",
+            "--JOB_NAME",    "job-tb-chamada-bronze-to-silver",
+            "--BUCKET_NAME", bucket_name,
+            "--ENV",         "dev",
         ]
 
         try:
@@ -718,8 +730,8 @@ def main():
             f"\n        emr_client=emr,"
             f"\n        app_id='{app_id}',"
             f"\n        execution_role_arn='{execution_role_arn}',"
-            f"\n        job_name='bronze-to-silver-chamada',"
-            f"\n        script_s3_path='s3://{bucket_name}/scripts/bronze_to_silver_chamada.py',"
+            f"\n        job_name='job-tb-chamada-bronze-to-silver',"
+            f"\n        script_s3_path='s3://{bucket_name}/scripts/bronze_to_silver/job_tb_chamada_bronze_to_silver.py',"
             f"\n        bucket_name='{bucket_name}',"
             f"\n        region='{region}',"
             f"\n    )"

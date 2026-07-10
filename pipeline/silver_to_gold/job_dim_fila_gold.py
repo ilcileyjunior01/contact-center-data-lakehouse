@@ -56,7 +56,7 @@ df_dim = (
     .select(
         F.col("id_fila").alias("nk_fila"),
         F.col("nm_fila"),
-        F.col("ds_tipo_canal"),
+        F.col("ds_tipo_fila").alias("ds_tipo_canal"),
         F.col("nr_sla_segundos"),
         F.col("nr_sla_minutos"),
     )
@@ -116,7 +116,7 @@ df_final.createOrReplaceTempView("stg_dim_fila")
 spark.sql(f"""
     MERGE INTO glue_catalog.{GOLD_TABLE} AS target
     USING stg_dim_fila AS source
-    ON target.sk_fila = source.sk_fila
+    ON target.nk_fila = source.nk_fila
     WHEN MATCHED THEN UPDATE SET *
     WHEN NOT MATCHED THEN INSERT *
 """)

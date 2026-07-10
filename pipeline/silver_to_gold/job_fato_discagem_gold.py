@@ -17,7 +17,6 @@ from awsglue.job import Job
 
 from pyspark.context import SparkContext
 from pyspark.sql import functions as F
-from pyspark.sql.window import Window
 from pyspark.sql.types import TimestampType
 
 args = getResolvedOptions(sys.argv, ["JOB_NAME", "BUCKET_NAME", "ENV"])
@@ -74,7 +73,7 @@ df_fato = (
     # sk_data
     .join(df_dim_data.withColumnRenamed("sk_data",    "_sk_data")
                      .withColumnRenamed("dt_completa", "_dt"),
-          F.to_date(df_discagem["dt_discagem"]) == F.col("_dt"), how="left")
+          F.to_date(df_discagem["dt_ultima_tentativa"]) == F.col("_dt"), how="left")
 
     .withColumn("sk_campanha",
         F.coalesce(F.col("_sk_camp"), F.lit(-1).cast("int")))
@@ -84,7 +83,7 @@ df_fato = (
         F.coalesce(F.col("_sk_data"), F.lit(-1).cast("int")))
 
     .withColumn("sk_discagem",
-        F.row_number().over(Window.orderBy("id_discagem")).cast("int"))
+        F.monotonically_increasing_id())
 
     .withColumn("dt_ingestao_gold", F.lit(now_ts).cast(TimestampType()))
 
@@ -106,7 +105,7 @@ print(f"[INFO] Registros fato_discagem: {df_fato.count()}")
 
 spark.sql(f"""
     CREATE TABLE IF NOT EXISTS glue_catalog.{GOLD_TABLE} (
-        sk_discagem                 INT,
+        sk_discagem                 BIGINT,
         nk_discagem                 BIGINT,
         sk_campanha                 INT,
         sk_cliente                  INT,

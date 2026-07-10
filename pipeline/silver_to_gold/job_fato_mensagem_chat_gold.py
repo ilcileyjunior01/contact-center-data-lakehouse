@@ -17,7 +17,6 @@ from awsglue.job import Job
 
 from pyspark.context import SparkContext
 from pyspark.sql import functions as F
-from pyspark.sql.window import Window
 from pyspark.sql.types import TimestampType
 
 args = getResolvedOptions(sys.argv, ["JOB_NAME", "BUCKET_NAME", "ENV"])
@@ -65,7 +64,7 @@ df_fato = (
 
     .join(df_dim_data.withColumnRenamed("sk_data", "_sk_data")
                      .withColumnRenamed("dt_completa", "_dt"),
-          F.to_date(df_mensagem["dt_envio"]) == F.col("_dt"), how="left")
+          F.to_date(df_mensagem["dt_mensagem"]) == F.col("_dt"), how="left")
 
     .withColumn("sk_chat",
         F.coalesce(F.col("_sk_chat"),  F.lit(-1).cast("int")))
@@ -73,7 +72,7 @@ df_fato = (
         F.coalesce(F.col("_sk_data"),  F.lit(-1).cast("int")))
 
     .withColumn("sk_mensagem",
-        F.row_number().over(Window.orderBy("id_mensagem")).cast("int"))
+        F.monotonically_increasing_id())
 
     .withColumn("dt_ingestao_gold", F.lit(now_ts).cast(TimestampType()))
 
@@ -94,7 +93,7 @@ print(f"[INFO] Registros fato_mensagem_chat: {df_fato.count()}")
 
 spark.sql(f"""
     CREATE TABLE IF NOT EXISTS glue_catalog.{GOLD_TABLE} (
-        sk_mensagem             INT,
+        sk_mensagem             BIGINT,
         nk_mensagem             BIGINT,
         sk_chat                 INT,
         sk_data                 INT,

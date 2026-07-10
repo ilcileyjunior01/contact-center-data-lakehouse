@@ -17,7 +17,6 @@ from awsglue.job import Job
 
 from pyspark.context import SparkContext
 from pyspark.sql import functions as F
-from pyspark.sql.window import Window
 from pyspark.sql.types import TimestampType
 
 args = getResolvedOptions(sys.argv, ["JOB_NAME", "BUCKET_NAME", "ENV"])
@@ -67,5 +66,69 @@ df_fato = (
     # sk_data_inicio
     .join(df_dim_data.withColumnRenamed("sk_data",    "_sk_dt_ini")
                      .withColumnRenamed("dt_completa", "_dt_ini"),
-          F.to_date(df_jornada["dt_inicio_turno"]) == F.col("_dt_ini"), how
+          F.to_date(df_jornada["dt_jornada"]) == F.col("_dt_ini"), how="left")
+
+    .withColumn("sk_operador",
+        F.coalesce(F.col("_sk_op"),     F.lit(-1).cast("int")))
+    .withColumn("sk_data",
+        F.coalesce(F.col("_sk_dt_ini"), F.lit(-1).cast("int")))
+
+    .withColumn("sk_jornada",
+        F.monotonically_increasing_id())
+
+    .withColumn("dt_ingestao_gold", F.lit(now_ts).cast(TimestampType()))
+
+    .select(
+        "sk_jornada",
+        F.col("id_jornada").alias("nk_jornada"),
+        "sk_operador",
+        "sk_data",
+        F.col("nr_horas_trabalhadas"),
+        F.col("nr_chamadas_atendidas"),
+        F.col("nr_tickets_resolvidos"),
+        F.col("st_presenca"),
+        F.col("fl_presente"),
+        "dt_ingestao_gold",
+    )
+)
+
+print(f"[INFO] Registros fato_jornada_operador: {df_fato.count()}")
+
+spark.sql(f"""
+    CREATE TABLE IF NOT EXISTS glue_catalog.{GOLD_TABLE} (
+        sk_jornada              BIGINT,
+        nk_jornada              BIGINT,
+        sk_operador             INT,
+        sk_data                 INT,
+        nr_horas_trabalhadas    DOUBLE,
+        nr_chamadas_atendidas   INT,
+        nr_tickets_resolvidos   INT,
+        st_presenca             STRING,
+        fl_presente             SMALLINT,
+        dt_ingestao_gold        TIMESTAMP
+    )
+    USING iceberg
+    LOCATION '{GOLD_PATH}'
+    PARTITIONED BY (sk_data)
+    TBLPROPERTIES (
+        'format-version'                  = '2',
+        'write.format.default'            = 'parquet',
+        'write.parquet.compression-codec' = 'snappy',
+        'write.target-file-size-bytes'    = '134217728'
+    )
+""")
+
+df_fato.createOrReplaceTempView("stg_fato_jornada_operador")
+
+spark.sql(f"""
+    MERGE INTO glue_catalog.{GOLD_TABLE} AS target
+    USING stg_fato_jornada_operador AS source
+    ON target.nk_jornada = source.nk_jornada
+    WHEN MATCHED THEN UPDATE SET *
+    WHEN NOT MATCHED THEN INSERT *
+""")
+
+print(f"[INFO] MERGE concluído na Gold: {GOLD_TABLE}")
+job.commit()
+print("[INFO] Job finalizado com sucesso.")
 

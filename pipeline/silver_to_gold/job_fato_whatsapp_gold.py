@@ -18,7 +18,6 @@ from awsglue.job import Job
 
 from pyspark.context import SparkContext
 from pyspark.sql import functions as F
-from pyspark.sql.window import Window
 from pyspark.sql.types import TimestampType
 
 args = getResolvedOptions(sys.argv, ["JOB_NAME", "BUCKET_NAME", "ENV"])
@@ -93,14 +92,13 @@ df_fato = (
         F.coalesce(F.col("_sk_dt_fim"), F.lit(-1).cast("int")))
 
     .withColumn("sk_whatsapp",
-        F.row_number().over(
-            Window.orderBy("id_atendimento_whatsapp")).cast("int"))
+        F.monotonically_increasing_id())
 
     .withColumn("dt_ingestao_gold", F.lit(now_ts).cast(TimestampType()))
 
     .select(
         "sk_whatsapp",
-        F.col("id_atendimento_whatsapp").alias("nk_whatsapp"),
+        F.col("id_whatsapp").alias("nk_whatsapp"),
         "sk_cliente",
         "sk_operador",
         "sk_canal",
@@ -119,7 +117,7 @@ print(f"[INFO] Registros fato_whatsapp: {df_fato.count()}")
 
 spark.sql(f"""
     CREATE TABLE IF NOT EXISTS glue_catalog.{GOLD_TABLE} (
-        sk_whatsapp                 INT,
+        sk_whatsapp                 BIGINT,
         nk_whatsapp                 BIGINT,
         sk_cliente                  INT,
         sk_operador                 INT,

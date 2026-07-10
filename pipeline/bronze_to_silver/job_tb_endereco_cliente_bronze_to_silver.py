@@ -189,7 +189,7 @@ df_transformed = (
             F.coalesce(F.col("ds_bairro"),                  F.lit("")),
             F.coalesce(F.col("ds_cidade"),                  F.lit("")),
             F.coalesce(F.col("ds_estado"),                  F.lit("")),
-            F.coalesce(F.concat(F.substring(F.col("nr_cep"), 1, 5), F.lit("***")),           F.lit("")),
+            F.coalesce(F.col("nr_cep_mascarado"),                                              F.lit("")),
         )))
 
     # --- Auditoria ---
