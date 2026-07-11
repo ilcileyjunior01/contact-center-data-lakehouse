@@ -144,16 +144,24 @@ df_dim = (
 )
 
 # Registro padrão para clientes não identificados
-df_desconhecido = spark.createDataFrame(
-    [(-1, -1, "DESCONHECIDO", "", "", "", None, "D", 0,
-      "NAO_INFORMADO", "NAO_INFORMADO", "NAO_INFORMADO", "", now_ts)],
-    ["sk_cliente", "nk_cliente", "nm_cliente",
-     "nr_documento_mascarado", "ds_email_mascarado",
-     "nr_telefone_mascarado", "dt_cadastro", "st_cliente",
-     "fl_cliente_ativo", "ds_cidade", "ds_estado",
-     "ds_bairro", "nr_cep_mascarado", "dt_ingestao_gold"]
-).withColumn("dt_ingestao_gold", F.col("dt_ingestao_gold").cast(TimestampType())) \
- .withColumn("fl_cliente_ativo", F.col("fl_cliente_ativo").cast("smallint"))
+# spark.sql usado para evitar inferência de tipo com colunas NULL (dt_cadastro)
+df_desconhecido = spark.sql(f"""
+    SELECT
+        CAST(-1  AS INT)         AS sk_cliente,
+        CAST(-1  AS BIGINT)      AS nk_cliente,
+        'DESCONHECIDO'           AS nm_cliente,
+        ''                       AS nr_documento_mascarado,
+        ''                       AS ds_email_mascarado,
+        ''                       AS nr_telefone_mascarado,
+        CAST(NULL AS TIMESTAMP)  AS dt_cadastro,
+        'D'                      AS st_cliente,
+        CAST(0 AS SMALLINT)      AS fl_cliente_ativo,
+        'NAO_INFORMADO'          AS ds_cidade,
+        'NAO_INFORMADO'          AS ds_estado,
+        'NAO_INFORMADO'          AS ds_bairro,
+        ''                       AS nr_cep_mascarado,
+        CAST('{now_ts}' AS TIMESTAMP) AS dt_ingestao_gold
+""")
 
 df_final = df_dim.unionByName(df_desconhecido)
 

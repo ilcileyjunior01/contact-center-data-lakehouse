@@ -161,9 +161,9 @@ count_bronze = df_bronze.count()
 print(f"[INFO] Registros lidos do Bronze (incremental): {count_bronze}")
 
 if count_bronze == 0:
-    print("[INFO] Nenhum registro novo. Job encerrado.")
+    print("[INFO] Nenhum registro novo. Job encerrado sem processamento.")
     job.commit()
-    sys.exit(0)
+    import os as _os; _os._exit(0)  # exit limpo sem SystemExit
 
 # =========================================================
 # PROCESSAMENTO CDC
@@ -179,9 +179,9 @@ df_cdc = (
     .withColumn("dt_cdc_evento",
         F.to_timestamp(F.col("_timestamp")))
     .withColumn("op_cdc",
-        F.when(F.col("Op") == "I", F.lit("INSERT"))
-         .when(F.col("Op") == "U", F.lit("UPDATE"))
-         .when(F.col("Op") == "D", F.lit("DELETE"))
+        F.when(F.col("op") == "I", F.lit("INSERT"))
+         .when(F.col("op") == "U", F.lit("UPDATE"))
+         .when(F.col("op") == "D", F.lit("DELETE"))
          .otherwise(F.lit("UNKNOWN")))
 )
 
@@ -394,6 +394,16 @@ print(f"[INFO] Tabela Iceberg verificada: {SILVER_TABLE}")
 # Mudanças de supervisor, status ou dados cadastrais
 # são capturadas pelo hash_registro e atualizadas
 # corretamente via UPDATE SET *.
+
+# Seleciona apenas as colunas Silver (garante compatibilidade com INSERT *)
+SILVER_COLS = [
+    "id_operador", "nm_operador", "ds_email_mascarado", "ds_login_mascarado",
+    "dt_admissao", "st_operador", "id_supervisor", "fl_operador_ativo",
+    "fl_tem_supervisor", "nr_dias_casa", "ds_faixa_tempo_casa",
+    "dt_cdc_evento", "op_cdc", "hash_registro", "dt_ingestao_silver",
+    "ano_admissao", "mes_admissao",
+]
+df_valid = df_valid.select(*SILVER_COLS)
 
 df_valid.createOrReplaceTempView("stg_operador")
 

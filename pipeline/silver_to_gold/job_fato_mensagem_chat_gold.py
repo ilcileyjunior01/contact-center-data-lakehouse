@@ -67,7 +67,7 @@ df_fato = (
           F.to_date(df_mensagem["dt_mensagem"]) == F.col("_dt"), how="left")
 
     .withColumn("sk_chat",
-        F.coalesce(F.col("_sk_chat"),  F.lit(-1).cast("int")))
+        F.coalesce(F.col("_sk_chat"),  F.lit(-1).cast("long")))
     .withColumn("sk_data",
         F.coalesce(F.col("_sk_data"),  F.lit(-1).cast("int")))
 
@@ -95,7 +95,7 @@ spark.sql(f"""
     CREATE TABLE IF NOT EXISTS glue_catalog.{GOLD_TABLE} (
         sk_mensagem             BIGINT,
         nk_mensagem             BIGINT,
-        sk_chat                 INT,
+        sk_chat                 BIGINT,
         sk_data                 INT,
         ds_remetente            STRING,
         nr_tamanho_chars        INT,

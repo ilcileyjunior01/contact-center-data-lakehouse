@@ -101,17 +101,17 @@ count_bronze = df_bronze.count()
 print(f"[INFO] Registros lidos do Bronze (incremental): {count_bronze}")
 
 if count_bronze == 0:
-    print("[INFO] Nenhum registro novo. Job encerrado.")
+    print("[INFO] Nenhum registro novo. Job encerrado sem processamento.")
     job.commit()
-    sys.exit(0)
+    import os as _os; _os._exit(0)  # exit limpo sem SystemExit
 
 df_cdc = (
     df_bronze
     .withColumn("dt_cdc_evento", F.to_timestamp(F.col("_timestamp")))
     .withColumn("op_cdc",
-        F.when(F.col("Op") == "I", F.lit("INSERT"))
-         .when(F.col("Op") == "U", F.lit("UPDATE"))
-         .when(F.col("Op") == "D", F.lit("DELETE"))
+        F.when(F.col("op") == "I", F.lit("INSERT"))
+         .when(F.col("op") == "U", F.lit("UPDATE"))
+         .when(F.col("op") == "D", F.lit("DELETE"))
          .otherwise(F.lit("UNKNOWN")))
 )
 
@@ -231,6 +231,14 @@ spark.sql(f"""
 """)
 
 print(f"[INFO] Tabela Iceberg verificada: {SILVER_TABLE}")
+
+# Seleciona apenas as colunas Silver (garante compatibilidade com INSERT *)
+SILVER_COLS = [
+    "id_gravacao", "id_chamada", "nr_tamanho_mb", "dt_gravacao",
+    "fl_tem_gravacao", "fl_expirada", "nr_dias_para_expirar",
+    "dt_cdc_evento", "op_cdc", "hash_registro", "dt_ingestao_silver",
+]
+df_valid = df_valid.select(*SILVER_COLS)
 
 df_valid.createOrReplaceTempView("stg_gravacao_chamada")
 

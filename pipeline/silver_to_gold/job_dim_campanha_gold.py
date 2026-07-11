@@ -68,14 +68,20 @@ df_dim = (
     .withColumn("dt_ingestao_gold", F.lit(now_ts).cast(TimestampType()))
 )
 
-df_desconhecido = spark.createDataFrame(
-    [(-1, -1, "DESCONHECIDO", None, None, "DESCONHECIDO", None, 0, 0, now_ts)],
-    ["sk_campanha", "nk_campanha", "nm_campanha", "dt_inicio", "dt_fim",
-     "st_campanha", "nr_duracao_dias", "fl_campanha_ativa",
-     "fl_campanha_vigente", "dt_ingestao_gold"]
-).withColumn("dt_ingestao_gold",    F.col("dt_ingestao_gold").cast(TimestampType())) \
- .withColumn("fl_campanha_ativa",   F.col("fl_campanha_ativa").cast("smallint")) \
- .withColumn("fl_campanha_vigente", F.col("fl_campanha_vigente").cast("smallint"))
+# spark.sql usado para evitar inferência de tipo com colunas NULL (dt_inicio/fim, nr_duracao_dias)
+df_desconhecido = spark.sql(f"""
+    SELECT
+        CAST(-1 AS INT)          AS sk_campanha,
+        CAST(-1 AS BIGINT)       AS nk_campanha,
+        'DESCONHECIDO'           AS nm_campanha,
+        CAST(NULL AS TIMESTAMP)  AS dt_inicio,
+        CAST(NULL AS TIMESTAMP)  AS dt_fim,
+        'DESCONHECIDO'           AS st_campanha,
+        CAST(NULL AS INT)        AS nr_duracao_dias,
+        CAST(0 AS SMALLINT)      AS fl_campanha_ativa,
+        CAST(0 AS SMALLINT)      AS fl_campanha_vigente,
+        CAST('{now_ts}' AS TIMESTAMP) AS dt_ingestao_gold
+""")
 
 df_final = df_dim.unionByName(df_desconhecido)
 
