@@ -25,28 +25,28 @@ WITH
 -- CTE 1: Base de avaliacoes de qualidade com dados de operador e supervisor
 base_qualidade AS (
     SELECT
-        fq.sk_qualidade,
+        fq.sk_avaliacao AS sk_qualidade,
         fq.sk_chamada,
-        fq.sk_operador,
-        fq.sk_supervisor,
-        fq.nr_nota_geral,
-        fq.nr_nota_comunicacao,
-        fq.nr_nota_resolucao,
+        fq.sk_operador_avaliado AS sk_operador,
+        fq.sk_avaliador AS sk_supervisor,
+        fq.nr_nota AS nr_nota_geral,
+        CAST(NULL AS DOUBLE) AS nr_nota_comunicacao,
+        CAST(NULL AS DOUBLE) AS nr_nota_resolucao,
         -- Identifica a banda de qualidade para cada avaliacao
         CASE
-            WHEN fq.nr_nota_geral < 6         THEN 'RUIM'
-            WHEN fq.nr_nota_geral BETWEEN 6 AND 7.99 THEN 'REGULAR'
-            WHEN fq.nr_nota_geral BETWEEN 8 AND 9.99 THEN 'BOM'
-            WHEN fq.nr_nota_geral = 10        THEN 'EXCELENTE'
+            WHEN fq.nr_nota < 6         THEN 'RUIM'
+            WHEN fq.nr_nota BETWEEN 6 AND 7.99 THEN 'REGULAR'
+            WHEN fq.nr_nota BETWEEN 8 AND 9.99 THEN 'BOM'
+            WHEN fq.nr_nota = 10        THEN 'EXCELENTE'
             ELSE 'NAO_CLASSIFICADO'
         END AS ds_banda_qualidade,
         -- Indica se a avaliacao esta em conformidade (nota >= 7)
-        CASE WHEN fq.nr_nota_geral >= 7 THEN 1 ELSE 0 END AS fl_conforme,
+        CASE WHEN fq.nr_nota >= 7 THEN 1 ELSE 0 END AS fl_conforme,
         do2.nm_operador,
-        do2.ds_cargo,
-        do2.fl_supervisor AS fl_e_supervisor,
+        do2.ds_faixa_tempo_casa AS ds_cargo,
+        CAST(0 AS INT) AS fl_e_supervisor,
         -- Dados do supervisor responsavel
-        ds.nm_operador    AS nm_supervisor,
+        ds.nm_supervisor,
         dd.dt_completa,
         dd.nr_ano,
         dd.nr_mes,
@@ -54,14 +54,14 @@ base_qualidade AS (
         DATE_FORMAT(dd.dt_completa, '%Y-%m') AS ds_ano_mes
     FROM db_gold.fato_qualidade fq
     INNER JOIN db_gold.dim_operador do2
-        ON fq.sk_operador = do2.sk_operador
-    LEFT JOIN db_gold.dim_operador ds
-        ON fq.sk_supervisor = ds.sk_operador
+        ON fq.sk_operador_avaliado = do2.sk_operador
+    LEFT JOIN db_gold.dim_supervisor ds
+        ON fq.sk_avaliador = ds.sk_supervisor
     INNER JOIN db_gold.fato_chamada fc
         ON fq.sk_chamada = fc.sk_chamada
     INNER JOIN db_gold.dim_data dd
         ON fc.sk_data_inicio = dd.sk_data
-    WHERE do2.fl_supervisor = 0  -- Apenas agentes avaliados
+    WHERE do2.fl_operador_ativo = 1  -- Apenas agentes avaliados
 ),
 
 -- CTE 2: Metricas agregadas por operador

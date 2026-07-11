@@ -35,14 +35,14 @@ base_jornada AS (
         fjo.nr_tickets_resolvidos,
         fjo.st_presenca,
         do2.nm_operador,
-        do2.ds_cargo,
-        do2.fl_supervisor,
+        do2.ds_faixa_tempo_casa AS ds_cargo,
+        CAST(0 AS INT) AS fl_supervisor,
         dd.dt_completa,
         dd.nr_ano,
         dd.nr_mes,
         dd.nr_dia,
         dd.ds_dia_semana,
-        dd.fl_fim_semana,
+        dd.fl_fim_de_semana,
         DATE_FORMAT(dd.dt_completa, '%Y-%m')  AS ds_ano_mes,
         -- Classifica o tipo de ocorrencia de presenca
         CASE
@@ -54,13 +54,13 @@ base_jornada AS (
             ELSE 'OUTRO'
         END AS ds_tipo_ocorrencia,
         -- Flag de dia util (presenca esperada)
-        CASE WHEN dd.fl_fim_semana = 0 THEN 1 ELSE 0 END AS fl_dia_util
+        CASE WHEN dd.fl_fim_de_semana = 0 THEN 1 ELSE 0 END AS fl_dia_util
     FROM db_gold.fato_jornada_operador fjo
     INNER JOIN db_gold.dim_operador do2
         ON fjo.sk_operador = do2.sk_operador
     INNER JOIN db_gold.dim_data dd
         ON fjo.sk_data = dd.sk_data
-    WHERE do2.fl_supervisor = 0  -- Apenas agentes (exclui supervisores)
+    WHERE do2.fl_operador_ativo = 1  -- Apenas agentes (exclui supervisores)
 ),
 
 -- CTE 2: Resumo de presenca e produtividade por operador (geral)

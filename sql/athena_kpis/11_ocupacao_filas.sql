@@ -34,35 +34,35 @@ base_chamadas_fila AS (
         fc.nr_duracao_segundos,
         fc.fl_chamada_completa,
         fc.fl_duracao_valida,
-        df.ds_fila,
-        df.nr_capacidade_maxima,        -- Capacidade configurada da fila (ex: max agentes)
-        dc.ds_canal,
+        df.nm_fila AS ds_fila,
+        CAST(NULL AS INT) AS nr_capacidade_maxima,  -- Capacidade configurada da fila (ex: max agentes)
+        dc.nm_canal AS ds_canal,
         dd.dt_completa,
         dd.nr_ano,
         dd.nr_mes,
         dd.nr_dia,
         dd.ds_dia_semana,
-        dd.fl_fim_semana,
+        dd.fl_fim_de_semana,
         DATE_FORMAT(dd.dt_completa, '%Y-%m')  AS ds_ano_mes,
         -- Hora do dia (extraida da chamada via campo de horario ou aproximada via data)
         -- Athena: caso haja coluna de hora, use HOUR(dt_hora_inicio)
-        -- Aqui assumimos que fato_chamada tem coluna nr_hora_inicio
-        COALESCE(fc.nr_hora_inicio, 0)        AS nr_hora_inicio,
-        -- Classificacao do turno
+        -- nr_hora_inicio nao existe em fato_chamada, substituido por 0
+        CAST(NULL AS INT)                     AS nr_hora_inicio,
+        -- Classificacao do turno (nr_hora_inicio nao existe em fato_chamada; sempre MADRUGADA como placeholder)
         CASE
-            WHEN COALESCE(fc.nr_hora_inicio, 0) BETWEEN 6  AND 11 THEN 'MANHA'
-            WHEN COALESCE(fc.nr_hora_inicio, 0) BETWEEN 12 AND 17 THEN 'TARDE'
-            WHEN COALESCE(fc.nr_hora_inicio, 0) BETWEEN 18 AND 21 THEN 'NOITE'
+            WHEN COALESCE(CAST(NULL AS INT), 0) BETWEEN 6  AND 11 THEN 'MANHA'
+            WHEN COALESCE(CAST(NULL AS INT), 0) BETWEEN 12 AND 17 THEN 'TARDE'
+            WHEN COALESCE(CAST(NULL AS INT), 0) BETWEEN 18 AND 21 THEN 'NOITE'
             ELSE 'MADRUGADA'
         END AS ds_turno,
         -- Status da chamada
-        dsc.ds_status_chamada,
+        dsc.ds_status AS ds_status_chamada,
         CASE
-            WHEN dsc.ds_status_chamada IN ('ATENDIDA', 'COMPLETADA', 'TRANSFERIDA') THEN 1
+            WHEN dsc.ds_status IN ('ATENDIDA', 'COMPLETADA', 'TRANSFERIDA') THEN 1
             ELSE 0
         END AS fl_atendida,
         CASE
-            WHEN dsc.ds_status_chamada IN ('ABANDONADA', 'ABANDONADA_FILA') THEN 1
+            WHEN dsc.ds_status IN ('ABANDONADA', 'ABANDONADA_FILA') THEN 1
             ELSE 0
         END AS fl_abandonada
     FROM db_gold.fato_chamada fc
@@ -73,7 +73,7 @@ base_chamadas_fila AS (
     INNER JOIN db_gold.dim_data dd
         ON fc.sk_data_inicio = dd.sk_data
     LEFT JOIN db_gold.dim_status_chamada dsc
-        ON fc.sk_status_chamada = dsc.sk_status_chamada
+        ON fc.sk_status_chamada = dsc.sk_status
 ),
 
 -- CTE 2: Ocupacao diaria por fila
@@ -84,7 +84,7 @@ ocupacao_diaria_fila AS (
         nr_mes,
         nr_dia,
         ds_dia_semana,
-        fl_fim_semana,
+        fl_fim_de_semana,
         sk_fila,
         ds_fila,
         ds_canal,
@@ -109,7 +109,7 @@ ocupacao_diaria_fila AS (
     FROM base_chamadas_fila
     GROUP BY
         dt_completa, nr_ano, nr_mes, nr_dia,
-        ds_dia_semana, fl_fim_semana,
+        ds_dia_semana, fl_fim_de_semana,
         sk_fila, ds_fila, ds_canal
 ),
 
@@ -188,7 +188,7 @@ SELECT
     odf.nr_mes,
     odf.nr_dia,
     odf.ds_dia_semana,
-    odf.fl_fim_semana,
+    odf.fl_fim_de_semana,
     odf.ds_fila,
     odf.ds_canal,
     odf.nr_capacidade_maxima,

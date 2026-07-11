@@ -29,20 +29,19 @@ base_chat AS (
         fc.sk_chat,
         fc.sk_cliente,
         fc.sk_operador,
-        fc.sk_fila,
         fc.sk_canal,
-        dc.ds_canal,
+        dc.nm_canal AS ds_canal,
         dd.dt_completa,
         dd.nr_ano,
         dd.nr_mes,
         dd.nr_dia,
         dd.ds_dia_semana,
-        dd.fl_fim_semana,
+        dd.fl_fim_de_semana,
         DATE_FORMAT(dd.dt_completa, '%Y-%m') AS ds_ano_mes,
         -- Classifica o tipo de canal digital
         CASE
-            WHEN UPPER(dc.ds_canal) LIKE '%WHATSAPP%' THEN 'WHATSAPP'
-            WHEN UPPER(dc.ds_canal) LIKE '%CHAT%'     THEN 'CHAT'
+            WHEN UPPER(dc.nm_canal) LIKE '%WHATSAPP%' THEN 'WHATSAPP'
+            WHEN UPPER(dc.nm_canal) LIKE '%CHAT%'     THEN 'CHAT'
             ELSE 'OUTRO_DIGITAL'
         END AS ds_tipo_canal_digital,
         fc.nr_duracao_segundos,
@@ -52,9 +51,9 @@ base_chat AS (
         ON fc.sk_canal = dc.sk_canal
     INNER JOIN db_gold.dim_data dd
         ON fc.sk_data_inicio = dd.sk_data
-    WHERE UPPER(dc.ds_canal) IN ('CHAT', 'WHATSAPP')
-       OR UPPER(dc.ds_canal) LIKE '%CHAT%'
-       OR UPPER(dc.ds_canal) LIKE '%WHATSAPP%'
+    WHERE UPPER(dc.nm_canal) IN ('CHAT', 'WHATSAPP')
+       OR UPPER(dc.nm_canal) LIKE '%CHAT%'
+       OR UPPER(dc.nm_canal) LIKE '%WHATSAPP%'
 ),
 
 -- CTE 2: Base de sessoes de WhatsApp (tabela especifica)
@@ -64,13 +63,13 @@ base_whatsapp AS (
         fw.sk_cliente,
         fw.sk_operador,
         fw.sk_canal,
-        dc.ds_canal,
+        dc.nm_canal AS ds_canal,
         dd.dt_completa,
         dd.nr_ano,
         dd.nr_mes,
         dd.nr_dia,
         dd.ds_dia_semana,
-        dd.fl_fim_semana,
+        dd.fl_fim_de_semana,
         DATE_FORMAT(dd.dt_completa, '%Y-%m') AS ds_ano_mes,
         'WHATSAPP' AS ds_tipo_canal_digital,
         fw.nr_duracao_segundos,
@@ -88,11 +87,11 @@ mensagens_por_sessao AS (
         fmc.sk_chat,
         COUNT(fmc.sk_mensagem)                                                    AS nr_total_mensagens,
         -- Mensagens do cliente
-        COUNT(CASE WHEN fmc.ds_origem_mensagem = 'CLIENTE' THEN 1 END)           AS nr_mensagens_cliente,
+        COUNT(CASE WHEN fmc.ds_remetente = 'CLIENTE' THEN 1 END)                 AS nr_mensagens_cliente,
         -- Mensagens do agente
-        COUNT(CASE WHEN fmc.ds_origem_mensagem = 'AGENTE'  THEN 1 END)           AS nr_mensagens_agente,
+        COUNT(CASE WHEN fmc.ds_remetente = 'AGENTE'  THEN 1 END)                 AS nr_mensagens_agente,
         -- Tempo medio entre mensagens (responsividade)
-        ROUND(AVG(CAST(fmc.nr_tempo_resposta_segundos AS DOUBLE)), 2)             AS nr_tempo_medio_resposta_seg
+        CAST(NULL AS DOUBLE)                                                       AS nr_tempo_medio_resposta_seg
     FROM db_gold.fato_mensagem_chat fmc
     GROUP BY fmc.sk_chat
 ),
@@ -108,7 +107,7 @@ chat_com_mensagens AS (
         bc.nr_mes,
         bc.nr_dia,
         bc.ds_dia_semana,
-        bc.fl_fim_semana,
+        bc.fl_fim_de_semana,
         bc.ds_ano_mes,
         bc.nr_duracao_segundos,
         bc.nr_duracao_minutos,
@@ -132,7 +131,7 @@ whatsapp_sessoes AS (
         bw.nr_mes,
         bw.nr_dia,
         bw.ds_dia_semana,
-        bw.fl_fim_semana,
+        bw.fl_fim_de_semana,
         bw.ds_ano_mes,
         bw.nr_duracao_segundos,
         bw.nr_duracao_minutos,
@@ -158,7 +157,7 @@ volume_diario_canal AS (
         nr_mes,
         nr_dia,
         ds_dia_semana,
-        fl_fim_semana,
+        fl_fim_de_semana,
         ds_ano_mes,
         ds_tipo_canal_digital,
         -- Volume de sessoes
@@ -186,7 +185,7 @@ volume_diario_canal AS (
     FROM base_unificada
     GROUP BY
         dt_completa, nr_ano, nr_mes, nr_dia,
-        ds_dia_semana, fl_fim_semana, ds_ano_mes, ds_tipo_canal_digital
+        ds_dia_semana, fl_fim_de_semana, ds_ano_mes, ds_tipo_canal_digital
 ),
 
 -- CTE 8: Tendencia mensal por canal
@@ -210,7 +209,7 @@ SELECT
     vdc.nr_mes,
     vdc.nr_dia,
     vdc.ds_dia_semana,
-    vdc.fl_fim_semana,
+    vdc.fl_fim_de_semana,
     vdc.ds_tipo_canal_digital,
     vdc.nr_total_sessoes,
     vdc.nr_duracao_media_minutos,

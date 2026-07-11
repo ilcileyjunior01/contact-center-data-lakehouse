@@ -27,26 +27,23 @@ WITH
 -- CTE 1: Base de navegacoes na URA com todas as dimensoes
 base_ura AS (
     SELECT
-        fun.sk_ura_navegacao,
+        fun.sk_ura AS sk_ura_navegacao,
         fun.sk_chamada,
-        fun.sk_cliente,
-        fun.sk_canal,
-        fun.nr_opcao_selecionada,
+        fun.sk_data,
+        fun.ds_opcao_selecionada AS ds_fluxo_ura,
         fun.ds_opcao_selecionada,
-        fun.ds_fluxo_ura,
-        fun.nr_nivel_menu,
-        fun.nr_tempo_navegacao_segundos,
-        fun.fl_transferiu_humano,
-        fun.fl_autoatendimento_concluido,
-        fun.fl_abandono_ura,
+        CAST(NULL AS INT)        AS nr_opcao_selecionada,
+        CAST(NULL AS INT)        AS nr_nivel_menu,
+        fun.nr_duracao_segundos  AS nr_tempo_navegacao_segundos,
+        CAST(NULL AS INT)        AS fl_transferiu_humano,
+        CASE WHEN fun.fl_abandonou_ura = 0 THEN 1 ELSE 0 END AS fl_autoatendimento_concluido,
+        fun.fl_abandonou_ura     AS fl_abandono_ura,
         -- Classifica o resultado da sessao URA
         CASE
-            WHEN fun.fl_autoatendimento_concluido = 1 THEN 'AUTO_ATENDIDO'
-            WHEN fun.fl_transferiu_humano = 1         THEN 'TRANSFERIDO_HUMANO'
-            WHEN fun.fl_abandono_ura = 1              THEN 'ABANDONO_URA'
+            WHEN fun.fl_abandonou_ura = 0 THEN 'AUTO_ATENDIDO'
+            WHEN fun.fl_abandonou_ura = 1 THEN 'ABANDONO_URA'
             ELSE 'OUTRO'
         END AS ds_resultado_ura,
-        dc.ds_canal,
         dd.dt_completa,
         dd.nr_ano,
         dd.nr_mes,
@@ -54,10 +51,8 @@ base_ura AS (
         dd.ds_dia_semana,
         DATE_FORMAT(dd.dt_completa, '%Y-%m') AS ds_ano_mes
     FROM db_gold.fato_ura_navegacao fun
-    INNER JOIN db_gold.dim_canal dc
-        ON fun.sk_canal = dc.sk_canal
     INNER JOIN db_gold.dim_data dd
-        ON fun.sk_data_inicio = dd.sk_data
+        ON fun.sk_data = dd.sk_data
 ),
 
 -- CTE 2: Taxa de auto-atendimento geral e por periodo
@@ -66,6 +61,7 @@ taxa_autoatendimento AS (
         dt_completa,
         nr_ano,
         nr_mes,
+        nr_dia,
         ds_ano_mes,
         -- Volume total de sessoes na URA
         COUNT(sk_ura_navegacao)                                                   AS nr_total_sessoes_ura,
@@ -103,7 +99,7 @@ taxa_autoatendimento AS (
         -- Tempo maximo de navegacao
         MAX(nr_tempo_navegacao_segundos)                                          AS nr_tempo_max_navegacao_seg
     FROM base_ura
-    GROUP BY dt_completa, nr_ano, nr_mes, ds_ano_mes
+    GROUP BY dt_completa, nr_ano, nr_mes, nr_dia, ds_ano_mes
 ),
 
 -- CTE 3: Top 10 fluxos/opcoes mais selecionados

@@ -31,8 +31,8 @@ base_csat_chat AS (
         fc.sk_operador,
         fc.sk_canal,
         'CHAT' AS ds_tipo_canal,
-        dc.ds_canal,
-        fc.nr_nota_satisfacao,
+        dc.nm_canal AS ds_canal,
+        CAST(NULL AS DOUBLE) AS nr_nota_satisfacao,
         dd.dt_completa,
         dd.nr_ano,
         dd.nr_mes,
@@ -45,8 +45,7 @@ base_csat_chat AS (
         ON fc.sk_data_inicio = dd.sk_data
     INNER JOIN db_gold.dim_operador do2
         ON fc.sk_operador = do2.sk_operador
-    WHERE fc.nr_nota_satisfacao IS NOT NULL
-      AND fc.nr_nota_satisfacao BETWEEN 1 AND 5
+    WHERE fc.fl_chat_completo = 1
 ),
 
 -- CTE 2: Base de sessoes WhatsApp com nota de satisfacao
@@ -57,8 +56,8 @@ base_csat_whatsapp AS (
         fw.sk_operador,
         fw.sk_canal,
         'WHATSAPP' AS ds_tipo_canal,
-        dc.ds_canal,
-        fw.nr_nota_satisfacao,
+        dc.nm_canal AS ds_canal,
+        CAST(NULL AS DOUBLE) AS nr_nota_satisfacao,
         dd.dt_completa,
         dd.nr_ano,
         dd.nr_mes,
@@ -71,8 +70,7 @@ base_csat_whatsapp AS (
         ON fw.sk_data_inicio = dd.sk_data
     INNER JOIN db_gold.dim_operador do2
         ON fw.sk_operador = do2.sk_operador
-    WHERE fw.nr_nota_satisfacao IS NOT NULL
-      AND fw.nr_nota_satisfacao BETWEEN 1 AND 5
+    WHERE fw.fl_atendimento_completo = 1
 ),
 
 -- CTE 3: Base unificada de CSAT digital

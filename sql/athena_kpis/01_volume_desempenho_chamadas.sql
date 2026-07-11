@@ -38,18 +38,18 @@ base_chamadas AS (
         dd.nr_mes,
         dd.nr_dia,
         dd.ds_dia_semana,
-        dd.fl_fim_semana,
-        dc.ds_canal,
-        df.ds_fila,
-        dsc.ds_status_chamada,
+        dd.fl_fim_de_semana,
+        dc.nm_canal AS ds_canal,
+        df.nm_fila AS ds_fila,
+        dsc.ds_status AS ds_status_chamada,
         -- Classifica se a chamada foi atendida com base no status
         CASE
-            WHEN dsc.ds_status_chamada IN ('ATENDIDA', 'COMPLETADA', 'TRANSFERIDA') THEN 1
+            WHEN dsc.ds_status IN ('ATENDIDA', 'COMPLETADA', 'TRANSFERIDA') THEN 1
             ELSE 0
         END AS fl_atendida,
         -- Classifica se foi abandono
         CASE
-            WHEN dsc.ds_status_chamada IN ('ABANDONADA', 'ABANDONADA_FILA') THEN 1
+            WHEN dsc.ds_status IN ('ABANDONADA', 'ABANDONADA_FILA') THEN 1
             ELSE 0
         END AS fl_abandonada
     FROM db_gold.fato_chamada fc
@@ -60,7 +60,7 @@ base_chamadas AS (
     INNER JOIN db_gold.dim_fila df
         ON fc.sk_fila = df.sk_fila
     LEFT JOIN db_gold.dim_status_chamada dsc
-        ON fc.sk_status_chamada = dsc.sk_status_chamada
+        ON fc.sk_status_chamada = dsc.sk_status
     WHERE dd.nr_ano >= 2025
 ),
 
@@ -72,7 +72,7 @@ metricas_por_canal AS (
         nr_mes,
         nr_dia,
         ds_dia_semana,
-        fl_fim_semana,
+        fl_fim_de_semana,
         ds_canal,
         -- Volume total de chamadas
         COUNT(sk_chamada)                                                          AS nr_total_chamadas,
@@ -109,7 +109,7 @@ metricas_por_canal AS (
     FROM base_chamadas
     GROUP BY
         dt_completa, nr_ano, nr_mes, nr_dia,
-        ds_dia_semana, fl_fim_semana, ds_canal
+        ds_dia_semana, fl_fim_de_semana, ds_canal
 ),
 
 -- CTE 3: Metricas agregadas por data e fila
@@ -155,7 +155,7 @@ SELECT
     mpc.nr_mes,
     mpc.nr_dia,
     mpc.ds_dia_semana,
-    mpc.fl_fim_semana,
+    mpc.fl_fim_de_semana,
     mpc.ds_canal,
     mpc.nr_total_chamadas,
     mpc.nr_chamadas_atendidas,
