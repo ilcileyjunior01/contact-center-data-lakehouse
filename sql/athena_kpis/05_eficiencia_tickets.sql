@@ -26,44 +26,44 @@ WITH
 base_tickets_eficiencia AS (
     SELECT
         ft.sk_ticket,
-        ft.sk_operador,
+        ft.sk_operador_abertura AS sk_operador,
         ft.sk_categoria,
         ft.sk_prioridade,
         ft.sk_status_ticket,
         ft.sk_data_abertura,
-        ft.sk_data_resolucao,
-        ft.nr_tempo_resolucao_horas,
-        dc.ds_categoria_ticket,
-        dp.ds_prioridade_ticket,
-        ds.ds_status_ticket,
+        ft.sk_data_fechamento AS sk_data_resolucao,
+        ROUND(CAST(ft.nr_tempo_resolucao_min AS DOUBLE) / 60.0, 2) AS nr_tempo_resolucao_horas,
+        dc.nm_categoria AS ds_categoria_ticket,
+        dp.nm_prioridade AS ds_prioridade_ticket,
+        ds.ds_status AS ds_status_ticket,
         da.dt_completa       AS dt_abertura,
         da.nr_ano,
         da.nr_mes,
         DATE_FORMAT(da.dt_completa, '%Y-%m') AS ds_ano_mes,
         -- Flag: ticket resolvido
-        CASE WHEN ds.ds_status_ticket IN ('RESOLVIDO', 'FECHADO') THEN 1 ELSE 0 END AS fl_resolvido,
+        CASE WHEN ds.ds_status IN ('RESOLVIDO', 'FECHADO') THEN 1 ELSE 0 END AS fl_resolvido,
         -- Flag: ticket em aberto (backlog ativo)
-        CASE WHEN ds.ds_status_ticket IN ('ABERTO', 'EM_ATENDIMENTO', 'PENDENTE') THEN 1 ELSE 0 END AS fl_em_aberto,
+        CASE WHEN ds.ds_status IN ('ABERTO', 'EM_ATENDIMENTO', 'PENDENTE') THEN 1 ELSE 0 END AS fl_em_aberto,
         -- Flag: escalonado (baseado em mudanca de operador ou status de escalonamento)
-        CASE WHEN ds.ds_status_ticket = 'ESCALONADO' THEN 1 ELSE 0 END AS fl_escalonado,
+        CASE WHEN ds.ds_status = 'ESCALONADO' THEN 1 ELSE 0 END AS fl_escalonado,
         -- Flag: FCR (resolvido sem passar por escalonamento - sem flag de escalonado)
-        CASE WHEN ds.ds_status_ticket IN ('RESOLVIDO', 'FECHADO')
-             AND ds.ds_status_ticket <> 'ESCALONADO' THEN 1 ELSE 0 END AS fl_fcr_candidato,
+        CASE WHEN ds.ds_status IN ('RESOLVIDO', 'FECHADO')
+             AND ds.ds_status <> 'ESCALONADO' THEN 1 ELSE 0 END AS fl_fcr_candidato,
         -- SLA target em horas
         CASE
-            WHEN dp.ds_prioridade_ticket = 'ALTA'  THEN 4
-            WHEN dp.ds_prioridade_ticket = 'MEDIA' THEN 8
-            WHEN dp.ds_prioridade_ticket = 'BAIXA' THEN 24
+            WHEN dp.nm_prioridade = 'ALTA'  THEN 4
+            WHEN dp.nm_prioridade = 'MEDIA' THEN 8
+            WHEN dp.nm_prioridade = 'BAIXA' THEN 24
             ELSE NULL
         END AS nr_sla_target_horas,
-        -- Faixa de MTTR para distribuicao
+        -- Faixa de MTTR para distribuicao (usando nr_tempo_resolucao_min convertido para horas)
         CASE
-            WHEN ft.nr_tempo_resolucao_horas < 1     THEN 'MENOS_1H'
-            WHEN ft.nr_tempo_resolucao_horas < 4     THEN '1H_A_4H'
-            WHEN ft.nr_tempo_resolucao_horas < 8     THEN '4H_A_8H'
-            WHEN ft.nr_tempo_resolucao_horas < 24    THEN '8H_A_24H'
-            WHEN ft.nr_tempo_resolucao_horas < 72    THEN '24H_A_72H'
-            WHEN ft.nr_tempo_resolucao_horas IS NULL THEN 'NAO_RESOLVIDO'
+            WHEN ft.nr_tempo_resolucao_min < 60      THEN 'MENOS_1H'
+            WHEN ft.nr_tempo_resolucao_min < 240     THEN '1H_A_4H'
+            WHEN ft.nr_tempo_resolucao_min < 480     THEN '4H_A_8H'
+            WHEN ft.nr_tempo_resolucao_min < 1440    THEN '8H_A_24H'
+            WHEN ft.nr_tempo_resolucao_min < 4320    THEN '24H_A_72H'
+            WHEN ft.nr_tempo_resolucao_min IS NULL   THEN 'NAO_RESOLVIDO'
             ELSE 'MAIS_72H'
         END AS ds_faixa_resolucao
     FROM db_gold.fato_ticket ft
@@ -72,7 +72,7 @@ base_tickets_eficiencia AS (
     INNER JOIN db_gold.dim_prioridade_ticket dp
         ON ft.sk_prioridade = dp.sk_prioridade
     INNER JOIN db_gold.dim_status_ticket ds
-        ON ft.sk_status_ticket = ds.sk_status_ticket
+        ON ft.sk_status_ticket = ds.sk_status
     INNER JOIN db_gold.dim_data da
         ON ft.sk_data_abertura = da.sk_data
 ),

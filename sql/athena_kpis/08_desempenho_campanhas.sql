@@ -26,29 +26,23 @@
 -- =============================================================================
 
 WITH
--- CTE 1: Base de discagens enriquecida com dados de campanha e operador
+-- CTE 1: Base de discagens enriquecida com dados de campanha
 base_discagem AS (
     SELECT
         fd.sk_discagem,
         fd.sk_campanha,
         fd.sk_cliente,
-        fd.sk_operador,
-        fd.nr_tentativas,
-        fd.fl_contato_realizado,
-        fd.fl_convertido,
+        CAST(1 AS INT)                        AS nr_tentativas,
+        fd.fl_discagem_atendida                AS fl_contato_realizado,
+        CAST(0 AS INT)                        AS fl_convertido,
         dc.nm_campanha,
-        dc.ds_tipo_campanha,
-        dc.ds_status_campanha,
-        dc.dt_inicio_campanha,
-        dc.dt_fim_campanha,
-        dc.nr_meta_contatos,
-        do2.nm_operador,
-        do2.ds_cargo
+        dc.st_campanha                        AS ds_status_campanha,
+        dc.dt_inicio                          AS dt_inicio_campanha,
+        dc.dt_fim                             AS dt_fim_campanha,
+        CAST(NULL AS INT)                     AS nr_meta_contatos
     FROM db_gold.fato_discagem fd
     INNER JOIN db_gold.dim_campanha dc
         ON fd.sk_campanha = dc.sk_campanha
-    INNER JOIN db_gold.dim_operador do2
-        ON fd.sk_operador = do2.sk_operador
 ),
 
 -- CTE 2: Metricas agregadas por campanha
@@ -56,7 +50,7 @@ metricas_campanha AS (
     SELECT
         sk_campanha,
         nm_campanha,
-        ds_tipo_campanha,
+        CAST(NULL AS VARCHAR) AS ds_tipo_campanha,
         ds_status_campanha,
         dt_inicio_campanha,
         dt_fim_campanha,
@@ -97,17 +91,16 @@ metricas_campanha AS (
         SUM(fl_contato_realizado) - SUM(fl_convertido)                           AS nr_contatos_sem_conversao
     FROM base_discagem
     GROUP BY
-        sk_campanha, nm_campanha, ds_tipo_campanha,
+        sk_campanha, nm_campanha,
         ds_status_campanha, dt_inicio_campanha, dt_fim_campanha
 ),
 
--- CTE 3: Metricas por operador dentro de cada campanha
+-- CTE 3: Metricas por cliente dentro de cada campanha (operador removido — nao existe em fato_discagem)
 metricas_operador_campanha AS (
     SELECT
         sk_campanha,
         nm_campanha,
-        sk_operador,
-        nm_operador,
+        sk_cliente,
         COUNT(sk_discagem)                                                        AS nr_discagens_operador,
         SUM(fl_contato_realizado)                                                 AS nr_contatos_operador,
         SUM(fl_convertido)                                                        AS nr_conversoes_operador,
@@ -125,7 +118,7 @@ metricas_operador_campanha AS (
             ORDER BY SUM(fl_convertido) DESC
         )                                                                         AS rank_conversao_campanha
     FROM base_discagem
-    GROUP BY sk_campanha, nm_campanha, sk_operador, nm_operador
+    GROUP BY sk_campanha, nm_campanha, sk_cliente
 ),
 
 -- CTE 4: Distribuicao de tentativas (agrupamento por faixas)

@@ -28,10 +28,10 @@ operadores_agentes AS (
     SELECT
         do2.sk_operador,
         do2.nm_operador,
-        do2.ds_cargo,
-        do2.fl_supervisor
+        do2.ds_faixa_tempo_casa AS ds_cargo,
+        CAST(0 AS INT) AS fl_supervisor
     FROM db_gold.dim_operador do2
-    WHERE do2.fl_supervisor = 0  -- Apenas agentes, sem supervisores
+    WHERE do2.fl_operador_ativo = 1  -- Apenas agentes, sem supervisores
 ),
 
 -- CTE 2: Chamadas atendidas por operador com filtro de duracao valida
@@ -66,58 +66,26 @@ chamadas_operador AS (
     GROUP BY fc.sk_operador, dd.nr_ano, dd.nr_mes
 ),
 
--- CTE 3: Notas de qualidade por operador
-qualidade_operador AS (
-    SELECT
-        fq.sk_operador,
-        dd.nr_ano,
-        dd.nr_mes,
-        COUNT(fq.sk_qualidade)                                                     AS nr_avaliacoes,
-        ROUND(AVG(fq.nr_nota_geral), 2)                                            AS nr_nota_geral_media,
-        ROUND(AVG(fq.nr_nota_comunicacao), 2)                                      AS nr_nota_comunicacao_media,
-        ROUND(AVG(fq.nr_nota_resolucao), 2)                                        AS nr_nota_resolucao_media,
-        -- Percentual de avaliacoes excelentes (nota = 10)
-        ROUND(
-            100.0 * COUNT(CASE WHEN fq.nr_nota_geral = 10 THEN 1 END)
-            / NULLIF(COUNT(fq.sk_qualidade), 0), 2
-        )                                                                          AS pct_excelentes,
-        -- Percentual de avaliacoes criticas (nota < 6)
-        ROUND(
-            100.0 * COUNT(CASE WHEN fq.nr_nota_geral < 6 THEN 1 END)
-            / NULLIF(COUNT(fq.sk_qualidade), 0), 2
-        )                                                                          AS pct_criticas
-    FROM db_gold.fato_qualidade fq
-    INNER JOIN db_gold.dim_data dd
-        ON fq.sk_chamada IN (
-            SELECT fc2.sk_chamada
-            FROM db_gold.fato_chamada fc2
-            WHERE fc2.sk_data_inicio = dd.sk_data
-        )
-    INNER JOIN operadores_agentes oa
-        ON fq.sk_operador = oa.sk_operador
-    GROUP BY fq.sk_operador, dd.nr_ano, dd.nr_mes
-),
-
--- CTE 3b: Simplificada para qualidade sem subquery correlacionada
+-- CTE 3: Notas de qualidade por operador (simplificada, sem subquery correlacionada)
 qualidade_operador_simples AS (
     SELECT
-        fq.sk_operador,
-        COUNT(fq.sk_qualidade)                                                     AS nr_avaliacoes,
-        ROUND(AVG(fq.nr_nota_geral), 2)                                            AS nr_nota_geral_media,
-        ROUND(AVG(fq.nr_nota_comunicacao), 2)                                      AS nr_nota_comunicacao_media,
-        ROUND(AVG(fq.nr_nota_resolucao), 2)                                        AS nr_nota_resolucao_media,
+        fq.sk_operador_avaliado AS sk_operador,
+        COUNT(fq.sk_avaliacao)                                                     AS nr_avaliacoes,
+        ROUND(AVG(fq.nr_nota), 2)                                                  AS nr_nota_geral_media,
+        CAST(NULL AS DOUBLE)                                                       AS nr_nota_comunicacao_media,
+        CAST(NULL AS DOUBLE)                                                       AS nr_nota_resolucao_media,
         ROUND(
-            100.0 * COUNT(CASE WHEN fq.nr_nota_geral = 10 THEN 1 END)
-            / NULLIF(COUNT(fq.sk_qualidade), 0), 2
+            100.0 * COUNT(CASE WHEN fq.nr_nota = 10 THEN 1 END)
+            / NULLIF(COUNT(fq.sk_avaliacao), 0), 2
         )                                                                          AS pct_excelentes,
         ROUND(
-            100.0 * COUNT(CASE WHEN fq.nr_nota_geral < 6 THEN 1 END)
-            / NULLIF(COUNT(fq.sk_qualidade), 0), 2
+            100.0 * COUNT(CASE WHEN fq.nr_nota < 6 THEN 1 END)
+            / NULLIF(COUNT(fq.sk_avaliacao), 0), 2
         )                                                                          AS pct_criticas
     FROM db_gold.fato_qualidade fq
     INNER JOIN operadores_agentes oa
-        ON fq.sk_operador = oa.sk_operador
-    GROUP BY fq.sk_operador
+        ON fq.sk_operador_avaliado = oa.sk_operador
+    GROUP BY fq.sk_operador_avaliado
 ),
 
 -- CTE 4: Jornada e horas trabalhadas por operador

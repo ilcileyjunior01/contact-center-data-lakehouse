@@ -29,16 +29,16 @@ base_tickets AS (
     SELECT
         ft.sk_ticket,
         ft.sk_cliente,
-        ft.sk_operador,
+        ft.sk_operador_abertura AS sk_operador,
         ft.sk_categoria,
         ft.sk_prioridade,
         ft.sk_status_ticket,
         ft.sk_data_abertura,
-        ft.sk_data_resolucao,
-        ft.nr_tempo_resolucao_horas,
-        dc.ds_categoria_ticket,
-        dp.ds_prioridade_ticket,
-        ds.ds_status_ticket,
+        ft.sk_data_fechamento AS sk_data_resolucao,
+        ROUND(CAST(ft.nr_tempo_resolucao_min AS DOUBLE) / 60.0, 2) AS nr_tempo_resolucao_horas,
+        dc.nm_categoria AS ds_categoria_ticket,
+        dp.nm_prioridade AS ds_prioridade_ticket,
+        ds.ds_status AS ds_status_ticket,
         da.dt_completa         AS dt_abertura,
         da.nr_ano              AS nr_ano_abertura,
         da.nr_mes              AS nr_mes_abertura,
@@ -46,35 +46,35 @@ base_tickets AS (
         DATE_FORMAT(da.dt_completa, '%Y-%m') AS ds_ano_mes_abertura,
         -- SLA target em horas por prioridade
         CASE
-            WHEN dp.ds_prioridade_ticket = 'ALTA'  THEN 4
-            WHEN dp.ds_prioridade_ticket = 'MEDIA' THEN 8
-            WHEN dp.ds_prioridade_ticket = 'BAIXA' THEN 24
+            WHEN dp.nm_prioridade = 'ALTA'  THEN 4
+            WHEN dp.nm_prioridade = 'MEDIA' THEN 8
+            WHEN dp.nm_prioridade = 'BAIXA' THEN 24
             ELSE NULL
         END AS nr_sla_horas_target,
-        -- Flag de SLA cumprido
+        -- Flag de SLA cumprido (nr_tempo_resolucao_min convertido para horas)
         CASE
-            WHEN dp.ds_prioridade_ticket = 'ALTA'
-                 AND ft.nr_tempo_resolucao_horas IS NOT NULL
-                 AND ft.nr_tempo_resolucao_horas < 4   THEN 1
-            WHEN dp.ds_prioridade_ticket = 'MEDIA'
-                 AND ft.nr_tempo_resolucao_horas IS NOT NULL
-                 AND ft.nr_tempo_resolucao_horas < 8   THEN 1
-            WHEN dp.ds_prioridade_ticket = 'BAIXA'
-                 AND ft.nr_tempo_resolucao_horas IS NOT NULL
-                 AND ft.nr_tempo_resolucao_horas < 24  THEN 1
+            WHEN dp.nm_prioridade = 'ALTA'
+                 AND ft.nr_tempo_resolucao_min IS NOT NULL
+                 AND ft.nr_tempo_resolucao_min < 240   THEN 1
+            WHEN dp.nm_prioridade = 'MEDIA'
+                 AND ft.nr_tempo_resolucao_min IS NOT NULL
+                 AND ft.nr_tempo_resolucao_min < 480   THEN 1
+            WHEN dp.nm_prioridade = 'BAIXA'
+                 AND ft.nr_tempo_resolucao_min IS NOT NULL
+                 AND ft.nr_tempo_resolucao_min < 1440  THEN 1
             ELSE 0
         END AS fl_sla_cumprido,
         -- Flag de ticket resolvido
-        CASE WHEN ds.ds_status_ticket IN ('RESOLVIDO', 'FECHADO') THEN 1 ELSE 0 END AS fl_resolvido,
+        CASE WHEN ds.ds_status IN ('RESOLVIDO', 'FECHADO') THEN 1 ELSE 0 END AS fl_resolvido,
         -- Flag de ticket em aberto
-        CASE WHEN ds.ds_status_ticket IN ('ABERTO', 'EM_ATENDIMENTO', 'PENDENTE') THEN 1 ELSE 0 END AS fl_em_aberto
+        CASE WHEN ds.ds_status IN ('ABERTO', 'EM_ATENDIMENTO', 'PENDENTE') THEN 1 ELSE 0 END AS fl_em_aberto
     FROM db_gold.fato_ticket ft
     INNER JOIN db_gold.dim_categoria_ticket dc
         ON ft.sk_categoria = dc.sk_categoria
     INNER JOIN db_gold.dim_prioridade_ticket dp
         ON ft.sk_prioridade = dp.sk_prioridade
     INNER JOIN db_gold.dim_status_ticket ds
-        ON ft.sk_status_ticket = ds.sk_status_ticket
+        ON ft.sk_status_ticket = ds.sk_status
     INNER JOIN db_gold.dim_data da
         ON ft.sk_data_abertura = da.sk_data
 ),

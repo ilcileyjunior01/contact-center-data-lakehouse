@@ -30,20 +30,19 @@ base_discagem_roi AS (
         fd.sk_discagem,
         fd.sk_campanha,
         fd.sk_cliente,
-        fd.sk_operador,
-        fd.nr_tentativas,
-        fd.fl_contato_realizado,
-        fd.fl_convertido,
+        CAST(1 AS INT)                        AS nr_tentativas,
+        fd.fl_discagem_atendida                AS fl_contato_realizado,
+        CAST(0 AS INT)                        AS fl_convertido,
         dc.nm_campanha,
-        dc.ds_tipo_campanha,
-        dc.ds_status_campanha,
-        dc.dt_inicio_campanha,
-        dc.dt_fim_campanha,
-        dc.nr_meta_contatos,
+        CAST(NULL AS VARCHAR)                 AS ds_tipo_campanha,
+        dc.st_campanha                        AS ds_status_campanha,
+        dc.dt_inicio                          AS dt_inicio_campanha,
+        dc.dt_fim                             AS dt_fim_campanha,
+        CAST(NULL AS INT)                     AS nr_meta_contatos,
         -- Flag de campanha ativa vs encerrada
         CASE
-            WHEN UPPER(dc.ds_status_campanha) IN ('ATIVA', 'EM_ANDAMENTO', 'RUNNING') THEN 'ATIVA'
-            WHEN UPPER(dc.ds_status_campanha) IN ('ENCERRADA', 'FINALIZADA', 'CONCLUIDA') THEN 'ENCERRADA'
+            WHEN UPPER(dc.st_campanha) IN ('ATIVA', 'EM_ANDAMENTO', 'RUNNING') THEN 'ATIVA'
+            WHEN UPPER(dc.st_campanha) IN ('ENCERRADA', 'FINALIZADA', 'CONCLUIDA') THEN 'ENCERRADA'
             ELSE 'OUTRO'
         END AS ds_situacao_campanha
     FROM db_gold.fato_discagem fd
