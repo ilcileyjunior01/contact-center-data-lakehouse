@@ -160,9 +160,9 @@ count_bronze = df_bronze.count()
 print(f"[INFO] Registros lidos do Bronze (incremental): {count_bronze}")
 
 if count_bronze == 0:
-    print("[INFO] Nenhum registro novo. Job encerrado.")
+    print("[INFO] Nenhum registro novo. Job encerrado sem processamento.")
     job.commit()
-    sys.exit(0)
+    import os as _os; _os._exit(0)  # exit limpo sem SystemExit
 
 # =========================================================
 # PROCESSAMENTO CDC
@@ -177,9 +177,9 @@ df_cdc = (
     .withColumn("dt_cdc_evento",
         F.to_timestamp(F.col("_timestamp")))
     .withColumn("op_cdc",
-        F.when(F.col("Op") == "I", F.lit("INSERT"))
-         .when(F.col("Op") == "U", F.lit("UPDATE"))
-         .when(F.col("Op") == "D", F.lit("DELETE"))
+        F.when(F.col("op") == "I", F.lit("INSERT"))
+         .when(F.col("op") == "U", F.lit("UPDATE"))
+         .when(F.col("op") == "D", F.lit("DELETE"))
          .otherwise(F.lit("UNKNOWN")))
 )
 
@@ -215,7 +215,7 @@ df_transformed = (
     # IDs: cast explícito de STRING (bronze/CSV) para BIGINT
     .withColumn("id_cliente", F.col("id_cliente").cast(LongType()))
     .withColumn("dt_cadastro",
-        F.to_timestamp(F.col("dt_cadastro"), "yyyy-MM-dd'T'HH:mm:ss"))
+        F.to_timestamp(F.col("dt_cadastro"), "yyyy-MM-dd"))
 
     # --- Normalização de strings ---
     .withColumn("nm_cliente",
@@ -394,6 +394,16 @@ print(f"[INFO] Tabela Iceberg verificada: {SILVER_TABLE}")
 # =========================================================
 # MERGE IDEMPOTENTE NA SILVER
 # =========================================================
+
+# Seleciona apenas as colunas Silver (garante compatibilidade com INSERT *)
+SILVER_COLS = [
+    "id_cliente", "nm_cliente", "nr_documento_mascarado",
+    "ds_email_mascarado", "nr_telefone_mascarado", "dt_cadastro",
+    "st_cliente", "fl_cliente_ativo", "fl_tem_email", "fl_tem_telefone",
+    "fl_tem_documento", "dt_cdc_evento", "op_cdc", "hash_registro",
+    "dt_ingestao_silver", "ano", "mes",
+]
+df_valid = df_valid.select(*SILVER_COLS)
 
 df_valid.createOrReplaceTempView("stg_cliente")
 

@@ -120,9 +120,9 @@ count_bronze = df_bronze.count()
 print(f"[INFO] Registros lidos do Bronze (incremental via Bookmark): {count_bronze}")
 
 if count_bronze == 0:
-    print("[INFO] Nenhum registro novo. Job encerrado.")
+    print("[INFO] Nenhum registro novo. Job encerrado sem processamento.")
     job.commit()
-    sys.exit(0)
+    import os as _os; _os._exit(0)  # exit limpo sem SystemExit
 
 # =========================================================
 # PROCESSAMENTO CDC
@@ -136,9 +136,9 @@ df_cdc = (
     .withColumn("dt_cdc_evento",
         F.to_timestamp(F.col("_timestamp")))
     .withColumn("op_cdc",
-        F.when(F.col("Op") == "I", F.lit("INSERT"))
-         .when(F.col("Op") == "U", F.lit("UPDATE"))
-         .when(F.col("Op") == "D", F.lit("DELETE"))
+        F.when(F.col("op") == "I", F.lit("INSERT"))
+         .when(F.col("op") == "U", F.lit("UPDATE"))
+         .when(F.col("op") == "D", F.lit("DELETE"))
          .otherwise(F.lit("UNKNOWN")))
 )
 
@@ -173,9 +173,9 @@ df_transformed = (
     .withColumn("id_operador", F.col("id_operador").cast(LongType()))
     .withColumn("id_fila", F.col("id_fila").cast(LongType()))
     .withColumn("dt_inicio",
-        F.to_timestamp(F.col("dt_inicio"), "yyyy-MM-dd'T'HH:mm:ss"))
+        F.to_timestamp(F.col("dt_inicio"), "yyyy-MM-dd HH:mm:ss"))
     .withColumn("dt_fim",
-        F.to_timestamp(F.col("dt_fim"), "yyyy-MM-dd'T'HH:mm:ss"))
+        F.to_timestamp(F.col("dt_fim"), "yyyy-MM-dd HH:mm:ss"))
     .withColumn("nr_duracao_segundos",
         F.col("nr_duracao_segundos").cast(IntegerType()))
 
@@ -331,6 +331,17 @@ print(f"[INFO] Tabela Iceberg verificada: {SILVER_TABLE}")
 # INSERT: registro novo (id_chamada não existe na Silver)
 # UPDATE: registro existe mas hash mudou (dado alterado)
 # Registros com mesmo hash não são reescritos.
+
+# Seleciona apenas as colunas Silver (garante compatibilidade com INSERT *)
+SILVER_COLS = [
+    "id_chamada", "id_cliente", "id_operador", "id_fila",
+    "nr_telefone_origem", "nr_telefone_destino", "dt_inicio", "dt_fim",
+    "nr_duracao_segundos", "st_chamada", "tp_chamada",
+    "fl_duracao_valida", "fl_chamada_completa", "nr_duracao_minutos",
+    "dt_cdc_evento", "op_cdc", "hash_registro", "dt_ingestao_silver",
+    "ano", "mes", "dia",
+]
+df_valid = df_valid.select(*SILVER_COLS)
 
 df_valid.createOrReplaceTempView("stg_chamada")
 

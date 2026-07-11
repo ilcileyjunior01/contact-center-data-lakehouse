@@ -59,17 +59,17 @@ count_bronze = df_bronze.count()
 print(f"[INFO] Registros lidos do Bronze: {count_bronze}")
 
 if count_bronze == 0:
-    print("[INFO] Nenhum registro novo. Job encerrado.")
+    print("[INFO] Nenhum registro novo. Job encerrado sem processamento.")
     job.commit()
-    sys.exit(0)
+    import os as _os; _os._exit(0)  # exit limpo sem SystemExit
 
 df_cdc = (
     df_bronze
     .withColumn("dt_cdc_evento", F.to_timestamp(F.col("_timestamp")))
     .withColumn("op_cdc",
-        F.when(F.col("Op") == "I", F.lit("INSERT"))
-         .when(F.col("Op") == "U", F.lit("UPDATE"))
-         .when(F.col("Op") == "D", F.lit("DELETE"))
+        F.when(F.col("op") == "I", F.lit("INSERT"))
+         .when(F.col("op") == "U", F.lit("UPDATE"))
+         .when(F.col("op") == "D", F.lit("DELETE"))
          .otherwise(F.lit("UNKNOWN")))
 )
 
@@ -90,8 +90,8 @@ df_transformed = (
     .withColumn("id_jornada",  F.col("id_jornada").cast(LongType()))
     .withColumn("id_operador", F.col("id_operador").cast(LongType()))
     .withColumn("dt_jornada",  F.to_date(F.col("dt_jornada"),  "yyyy-MM-dd"))
-    .withColumn("dt_entrada",  F.to_timestamp(F.col("dt_entrada"),  "yyyy-MM-dd'T'HH:mm:ss"))
-    .withColumn("dt_saida",    F.to_timestamp(F.col("dt_saida"),    "yyyy-MM-dd'T'HH:mm:ss"))
+    .withColumn("dt_entrada",  F.to_timestamp(F.col("dt_entrada"),  "yyyy-MM-dd HH:mm:ss"))
+    .withColumn("dt_saida",    F.to_timestamp(F.col("dt_saida"),    "yyyy-MM-dd HH:mm:ss"))
     .withColumn("nr_horas_trabalhadas",  F.col("nr_horas_trabalhadas").cast("double"))
     .withColumn("nr_chamadas_atendidas", F.col("nr_chamadas_atendidas").cast(IntegerType()))
     .withColumn("nr_tickets_resolvidos", F.col("nr_tickets_resolvidos").cast(IntegerType()))
@@ -175,6 +175,15 @@ spark.sql(f"""
         'write.target-file-size-bytes'    = '134217728'
     )
 """)
+
+# Seleciona apenas as colunas Silver (garante compatibilidade com INSERT *)
+SILVER_COLS = [
+    "id_jornada", "id_operador", "dt_jornada", "dt_entrada", "dt_saida",
+    "nr_horas_trabalhadas", "nr_chamadas_atendidas", "nr_tickets_resolvidos",
+    "st_presenca", "fl_presente", "dt_cdc_evento", "op_cdc",
+    "hash_registro", "dt_ingestao_silver", "ano", "mes", "dia",
+]
+df_valid = df_valid.select(*SILVER_COLS)
 
 df_valid.createOrReplaceTempView("stg_jornada_operador")
 

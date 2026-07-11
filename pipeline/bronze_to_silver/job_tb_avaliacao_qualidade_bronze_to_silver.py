@@ -103,17 +103,17 @@ count_bronze = df_bronze.count()
 print(f"[INFO] Registros lidos do Bronze (incremental): {count_bronze}")
 
 if count_bronze == 0:
-    print("[INFO] Nenhum registro novo. Job encerrado.")
+    print("[INFO] Nenhum registro novo. Job encerrado sem processamento.")
     job.commit()
-    sys.exit(0)
+    import os as _os; _os._exit(0)  # exit limpo sem SystemExit
 
 df_cdc = (
     df_bronze
     .withColumn("dt_cdc_evento", F.to_timestamp(F.col("_timestamp")))
     .withColumn("op_cdc",
-        F.when(F.col("Op") == "I", F.lit("INSERT"))
-         .when(F.col("Op") == "U", F.lit("UPDATE"))
-         .when(F.col("Op") == "D", F.lit("DELETE"))
+        F.when(F.col("op") == "I", F.lit("INSERT"))
+         .when(F.col("op") == "U", F.lit("UPDATE"))
+         .when(F.col("op") == "D", F.lit("DELETE"))
          .otherwise(F.lit("UNKNOWN")))
 )
 
@@ -147,6 +147,7 @@ df_transformed = (
     .withColumn("nr_nota_geral",
         F.col("nr_nota_geral").cast("double"))
 
+    .withColumn("id_supervisor", F.col("id_supervisor").cast(LongType()))
     # --- Tratamento de nulos ---
     .withColumn("id_supervisor",
         F.coalesce(F.col("id_supervisor"), F.lit(-1).cast("long")))
@@ -276,6 +277,16 @@ spark.sql(f"""
 """)
 
 print(f"[INFO] Tabela Iceberg verificada: {SILVER_TABLE}")
+
+# Seleciona apenas as colunas Silver (garante compatibilidade com INSERT *)
+SILVER_COLS = [
+    "id_avaliacao", "id_chamada", "id_operador", "id_supervisor",
+    "nr_nota_geral", "dt_avaliacao", "nr_tamanho_feedback_chars",
+    "fl_tem_feedback", "ds_faixa_nota", "fl_aprovado", "fl_critico",
+    "dt_cdc_evento", "op_cdc", "hash_registro", "dt_ingestao_silver",
+    "ano", "mes", "dia",
+]
+df_valid = df_valid.select(*SILVER_COLS)
 
 df_valid.createOrReplaceTempView("stg_avaliacao_qualidade")
 

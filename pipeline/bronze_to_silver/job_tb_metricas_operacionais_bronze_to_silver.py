@@ -105,17 +105,17 @@ count_bronze = df_bronze.count()
 print(f"[INFO] Registros lidos do Bronze (incremental): {count_bronze}")
 
 if count_bronze == 0:
-    print("[INFO] Nenhum registro novo. Job encerrado.")
+    print("[INFO] Nenhum registro novo. Job encerrado sem processamento.")
     job.commit()
-    sys.exit(0)
+    import os as _os; _os._exit(0)  # exit limpo sem SystemExit
 
 df_cdc = (
     df_bronze
     .withColumn("dt_cdc_evento", F.to_timestamp(F.col("_timestamp")))
     .withColumn("op_cdc",
-        F.when(F.col("Op") == "I", F.lit("INSERT"))
-         .when(F.col("Op") == "U", F.lit("UPDATE"))
-         .when(F.col("Op") == "D", F.lit("DELETE"))
+        F.when(F.col("op") == "I", F.lit("INSERT"))
+         .when(F.col("op") == "U", F.lit("UPDATE"))
+         .when(F.col("op") == "D", F.lit("DELETE"))
          .otherwise(F.lit("UNKNOWN")))
 )
 
@@ -140,10 +140,11 @@ df_transformed = (
 
     # IDs: cast explícito de STRING (bronze/CSV) para BIGINT
     .withColumn("id_metrica", F.col("id_metrica").cast(LongType()))
-    .withColumn("id_operador", F.col("id_operador").cast(LongType()))
+    # id_operador e nr_nps não estão no Silver — dropados
+    .drop("id_operador", "nr_nps")
     .withColumn("id_fila", F.col("id_fila").cast(LongType()))
     .withColumn("dt_referencia",
-        F.to_timestamp(F.col("dt_referencia"), "yyyy-MM-dd'T'HH:mm:ss"))
+        F.to_timestamp(F.col("dt_referencia"), "yyyy-MM-dd"))
 
     .withColumn("nr_chamadas_atendidas",
         F.coalesce(F.col("nr_chamadas_atendidas").cast(IntegerType()),  F.lit(0)))
@@ -153,29 +154,27 @@ df_transformed = (
         F.coalesce(F.col("nr_tma_segundos").cast(IntegerType()),        F.lit(0)))
     .withColumn("nr_tme_segundos",
         F.coalesce(F.col("nr_tme_segundos").cast(IntegerType()),        F.lit(0)))
-    .withColumn("nr_nivel_servico",
-        F.coalesce(F.col("nr_nivel_servico").cast("double"),             F.lit(0.0)))
+    # nr_taxa_abandono já existe no Bronze — usar diretamente
+    .withColumn("nr_taxa_abandono",
+        F.coalesce(F.col("nr_taxa_abandono").cast("double"),            F.lit(0.0)))
     .withColumn("id_fila",
         F.coalesce(F.col("id_fila"), F.lit(-1).cast("long")))
 
     # --- Campos derivados ---
-    .withColumn("nr_taxa_atendimento",
+    # nr_nivel_servico: não existe no Bronze — calculado como
+    # (atendidas / (atendidas + abandonadas)) * 100, arredondado a 2 casas
+    .withColumn("nr_nivel_servico",
         F.when(
             (F.col("nr_chamadas_atendidas") + F.col("nr_chamadas_abandonadas")) > 0,
             F.round(
                 F.col("nr_chamadas_atendidas") * 100.0 /
                 (F.col("nr_chamadas_atendidas") + F.col("nr_chamadas_abandonadas")), 2
             )
-        ).otherwise(F.lit(0.0)))
+        ).otherwise(F.lit(None).cast("double")))
 
-    .withColumn("nr_taxa_abandono",
-        F.when(
-            F.col("nr_chamadas_atendidas") > 0,
-            F.round(
-                F.col("nr_chamadas_abandonadas") * 100.0 /
-                F.col("nr_chamadas_atendidas"), 2
-            )
-        ).otherwise(F.lit(0.0)))
+    # nr_taxa_atendimento: 100 - nr_taxa_abandono
+    .withColumn("nr_taxa_atendimento",
+        F.round(F.lit(100.0) - F.col("nr_taxa_abandono"), 2))
 
     .withColumn("nr_tma_minutos",
         F.round(F.col("nr_tma_segundos") / 60.0, 2))
@@ -271,6 +270,17 @@ spark.sql(f"""
         'write.target-file-size-bytes'    = '134217728'
     )
 """)
+
+# Seleciona apenas as colunas Silver (garante compatibilidade com INSERT *)
+SILVER_COLS = [
+    "id_metrica", "dt_referencia", "id_fila", "nr_chamadas_atendidas",
+    "nr_chamadas_abandonadas", "nr_tma_segundos", "nr_tma_minutos",
+    "nr_tme_segundos", "nr_tme_minutos", "nr_nivel_servico",
+    "nr_taxa_atendimento", "nr_taxa_abandono", "fl_meta_nivel_servico",
+    "fl_alto_abandono", "dt_cdc_evento", "op_cdc", "hash_registro",
+    "dt_ingestao_silver", "ano", "mes", "dia",
+]
+df_valid = df_valid.select(*SILVER_COLS)
 
 df_valid.createOrReplaceTempView("stg_metricas_operacionais")
 

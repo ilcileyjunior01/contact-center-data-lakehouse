@@ -104,17 +104,17 @@ count_bronze = df_bronze.count()
 print(f"[INFO] Registros lidos do Bronze (incremental): {count_bronze}")
 
 if count_bronze == 0:
-    print("[INFO] Nenhum registro novo. Job encerrado.")
+    print("[INFO] Nenhum registro novo. Job encerrado sem processamento.")
     job.commit()
-    sys.exit(0)
+    import os as _os; _os._exit(0)  # exit limpo sem SystemExit
 
 df_cdc = (
     df_bronze
     .withColumn("dt_cdc_evento", F.to_timestamp(F.col("_timestamp")))
     .withColumn("op_cdc",
-        F.when(F.col("Op") == "I", F.lit("INSERT"))
-         .when(F.col("Op") == "U", F.lit("UPDATE"))
-         .when(F.col("Op") == "D", F.lit("DELETE"))
+        F.when(F.col("op") == "I", F.lit("INSERT"))
+         .when(F.col("op") == "U", F.lit("UPDATE"))
+         .when(F.col("op") == "D", F.lit("DELETE"))
          .otherwise(F.lit("UNKNOWN")))
 )
 
@@ -140,34 +140,29 @@ df_transformed = (
     .withColumn("id_discagem", F.col("id_discagem").cast(LongType()))
     .withColumn("id_campanha", F.col("id_campanha").cast(LongType()))
     .withColumn("id_cliente", F.col("id_cliente").cast(LongType()))
-    .drop("id_operador")
+    # id_operador, nr_tentativas, fl_contato_realizado, fl_convertido
+    # não estão no Silver — dropados aqui
+    .drop("id_operador", "nr_tentativas", "fl_convertido")
     .withColumn("dt_ultima_tentativa",
-        F.to_timestamp(F.col("dt_ultima_tentativa"), "yyyy-MM-dd'T'HH:mm:ss"))
+        F.to_timestamp(F.col("dt_ultima_tentativa"), "yyyy-MM-dd HH:mm:ss"))
 
     .withColumn("st_discagem",
         F.upper(F.trim(F.col("st_discagem"))))
     .withColumn("st_discagem",
         F.coalesce(F.col("st_discagem"), F.lit("DESCONHECIDO")))
 
-    # Mascara telefone (LGPD)
-    .withColumn("nr_telefone",
-        F.regexp_replace(F.col("nr_telefone"), r"[^\d+]", ""))
-    .withColumn("nr_telefone_mascarado",
-        F.when(
-            F.col("nr_telefone").isNotNull() & (F.length(F.col("nr_telefone")) > 0),
-            F.concat(F.lit("******"), F.substring(F.col("nr_telefone"), -4, 4))
-        ).otherwise(F.lit("")))
-    .drop("nr_telefone")
+    # nr_telefone não existe no Bronze — criar como vazio (LGPD placeholder)
+    .withColumn("nr_telefone_mascarado", F.lit("").cast("string"))
 
+    # fl_discagem_atendida: derivado de fl_contato_realizado (1 se realizado, senão 0)
     .withColumn("fl_discagem_atendida",
-        F.when(F.col("st_discagem") == "ATENDIDO", F.lit(1))
+        F.when(F.col("fl_contato_realizado").cast("int") == 1, F.lit(1))
          .otherwise(F.lit(0)).cast("smallint"))
+    .drop("fl_contato_realizado")
 
+    # fl_discagem_nao_atendida: complemento de fl_discagem_atendida
     .withColumn("fl_discagem_nao_atendida",
-        F.when(
-            F.col("st_discagem").isin("NAO_ATENDIDO", "OCUPADO", "INVALIDO"),
-            F.lit(1)
-        ).otherwise(F.lit(0)).cast("smallint"))
+        (F.lit(1) - F.col("fl_discagem_atendida")).cast("smallint"))
 
     .withColumn("hash_registro",
         F.md5(F.concat_ws("|",
@@ -240,6 +235,15 @@ spark.sql(f"""
         'write.target-file-size-bytes'    = '134217728'
     )
 """)
+
+# Seleciona apenas as colunas Silver (garante compatibilidade com INSERT *)
+SILVER_COLS = [
+    "id_discagem", "id_campanha", "id_cliente", "nr_telefone_mascarado",
+    "dt_ultima_tentativa", "st_discagem", "fl_discagem_atendida",
+    "fl_discagem_nao_atendida", "dt_cdc_evento", "op_cdc",
+    "hash_registro", "dt_ingestao_silver", "ano", "mes", "dia",
+]
+df_valid = df_valid.select(*SILVER_COLS)
 
 df_valid.createOrReplaceTempView("stg_discagem")
 

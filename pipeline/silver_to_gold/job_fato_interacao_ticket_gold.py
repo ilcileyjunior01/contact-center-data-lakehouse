@@ -73,7 +73,7 @@ df_fato = (
           F.to_date(df_interacao["dt_interacao"]) == F.col("_dt"), how="left")
 
     .withColumn("sk_ticket",
-        F.coalesce(F.col("_sk_ticket"), F.lit(-1).cast("int")))
+        F.coalesce(F.col("_sk_ticket"), F.lit(-1).cast("long")))
     .withColumn("sk_operador",
         F.coalesce(F.col("_sk_op"),     F.lit(-1).cast("int")))
     .withColumn("sk_data",
@@ -103,7 +103,7 @@ spark.sql(f"""
     CREATE TABLE IF NOT EXISTS glue_catalog.{GOLD_TABLE} (
         sk_interacao                    BIGINT,
         nk_interacao                    BIGINT,
-        sk_ticket                       INT,
+        sk_ticket                       BIGINT,
         sk_operador                     INT,
         sk_data                         INT,
         ds_canal                        STRING,

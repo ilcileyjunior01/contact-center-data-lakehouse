@@ -75,13 +75,13 @@ Todos os 18 jobs seguem o mesmo padrão de execução:
 | # | Nome do Job | Tabela Bronze (Origem) | Tabela Silver (Destino) | Principais Transformações |
 |---|-------------|------------------------|-------------------------|---------------------------|
 | 9 | `job_tb_campanha_bronze_to_silver.py` | `db_bronze.tb_campanha` | `db_silver.campanha` | Cast de timestamps dt_inicio/dt_fim; normalização upper/trim de nm_campanha e st_campanha; coalesce de st_campanha para "INATIVO"; campo `nr_duracao_dias` (datediff entre dt_inicio e dt_fim); flags `fl_campanha_ativa` e `fl_campanha_vigente` (baseada na data atual) |
-| 10 | `job_tb_discagem_bronze_to_silver.py` | `db_bronze.tb_discagem` | `db_silver.discagem` | Cast de dt_discagem; normalização upper de st_discagem; mascaramento PII de `nr_telefone` → `nr_telefone_mascarado` (4 últimos dígitos); remoção de `nr_telefone` original; flags `fl_discagem_atendida` e `fl_discagem_nao_atendida`; partição por ano/mes/dia de dt_discagem |
+| 10 | `job_tb_discagem_bronze_to_silver.py` | `db_bronze.tb_discagem` | `db_silver.discagem` | Cast de dt_discagem; normalização upper de st_discagem; `nr_telefone` **não existe no Bronze** → `nr_telefone_mascarado` definido como string vazia `''`; `fl_discagem_atendida` derivado de `fl_contato_realizado` (campo Bronze renomeado); remoção de `id_operador`, `nr_tentativas`, `fl_contato_realizado`, `fl_convertido` (colunas Bronze-only não mapeadas para Silver); flag `fl_discagem_nao_atendida`; partição por ano/mes/dia de dt_discagem |
 
 ### Domínio: Cadastro de Clientes
 
 | # | Nome do Job | Tabela Bronze (Origem) | Tabela Silver (Destino) | Principais Transformações |
 |---|-------------|------------------------|-------------------------|---------------------------|
-| 11 | `job_tb_cliente_bronze_to_silver.py` | `db_bronze.tb_cliente` | `db_silver.cliente` | Cast de dt_cadastro; normalização upper/trim de nm_cliente e st_cliente; lower de ds_email; limpeza de nr_documento (apenas dígitos) e nr_telefone; mascaramento PII completo: `nr_documento_mascarado` (3 primeiros + "*****" + 2 últimos dígitos), `ds_email_mascarado` (somente domínio), `nr_telefone_mascarado` (4 últimos dígitos); remoção das colunas PII originais; flags `fl_cliente_ativo`, `fl_tem_email`, `fl_tem_telefone`, `fl_tem_documento`; partição por ano/mes de dt_cadastro |
+| 11 | `job_tb_cliente_bronze_to_silver.py` | `db_bronze.tb_cliente` | `db_silver.cliente` | Cast de `dt_cadastro` como DATE (`yyyy-MM-dd`, somente data — não datetime); normalização upper/trim de nm_cliente e st_cliente; lower de ds_email; limpeza de nr_documento (apenas dígitos) e nr_telefone; mascaramento PII completo: `nr_documento_mascarado` (3 primeiros + "*****" + 2 últimos dígitos), `ds_email_mascarado` (somente domínio), `nr_telefone_mascarado` (4 últimos dígitos); remoção das colunas PII originais; flags `fl_cliente_ativo`, `fl_tem_email`, `fl_tem_telefone`, `fl_tem_documento`; partição por ano/mes de dt_cadastro |
 | 12 | `job_tb_endereco_cliente_bronze_to_silver.py` | `db_bronze.tb_endereco_cliente` | `db_silver.endereco_cliente` | Normalização upper/trim de ds_logradouro, ds_bairro, ds_cidade, ds_estado; cast de nr_numero; limpeza de nr_cep (apenas dígitos); mascaramento PII de `nr_cep` → `nr_cep_mascarado` (mantém apenas os 5 primeiros dígitos); remoção de `nr_cep` original |
 
 ### Domínio: Cadastro de Operadores
@@ -96,14 +96,14 @@ Todos os 18 jobs seguem o mesmo padrão de execução:
 
 | # | Nome do Job | Tabela Bronze (Origem) | Tabela Silver (Destino) | Principais Transformações |
 |---|-------------|------------------------|-------------------------|---------------------------|
-| 16 | `job_tb_fila_atendimento_bronze_to_silver.py` | `db_bronze.tb_fila_atendimento` | `db_silver.fila_atendimento` | Normalização upper/trim de nm_fila e ds_tipo_canal; cast e coalesce de nr_sla_segundos para 0; campo `nr_sla_minutos` (conversão de segundos para minutos) |
+| 16 | `job_tb_fila_atendimento_bronze_to_silver.py` | `db_bronze.tb_fila_atendimento` | `db_silver.fila_atendimento` | Normalização upper/trim de nm_fila e ds_tipo_canal; `nr_sla_segundos` e `nr_sla_minutos` **não existem no Bronze** — criados como `NULL` na Silver (campos reservados para enriquecimento futuro); remoção de `nr_capacidade_max` e `fl_ativa` (colunas Bronze-only não mapeadas para Silver) |
 
 ### Domínio: Qualidade
 
 | # | Nome do Job | Tabela Bronze (Origem) | Tabela Silver (Destino) | Principais Transformações |
 |---|-------------|------------------------|-------------------------|---------------------------|
-| 17 | `job_tb_avaliacao_qualidade_bronze_to_silver.py` | `db_bronze.tb_avaliacao_qualidade` | `db_silver.avaliacao_qualidade` | Cast de dt_avaliacao; cast e coalesce de nr_nota (0-10); coalesce de id_avaliador para -1; campo `nr_tamanho_feedback_chars`; remoção de `ds_feedback` (conteúdo textual removido na Silver); campo `ds_faixa_nota` (CRITICO/INSATISFATORIO/REGULAR/BOM/EXCELENTE); flags `fl_tem_feedback`, `fl_aprovado` (nota >= 7) e `fl_critico` (nota <= 4); partição por ano/mes/dia de dt_avaliacao |
-| 18 | `job_tb_metricas_operacionais_bronze_to_silver.py` | `db_bronze.tb_metricas_operacionais` | `db_silver.metricas_operacionais` | Cast de dt_referencia; cast e coalesce de contadores (nr_chamadas_recebidas, nr_chamadas_atendidas, nr_chamadas_abandonadas) para 0; cast de tempos em segundos (nr_tma_segundos, nr_tme_segundos); coalesce de id_fila para -1; campos calculados `nr_taxa_atendimento` e `nr_taxa_abandono` (percentuais derivados); campos `nr_tma_minutos` e `nr_tme_minutos`; flags `fl_meta_nivel_servico` e `fl_alto_abandono` |
+| 17 | `job_tb_avaliacao_qualidade_bronze_to_silver.py` | `db_bronze.tb_avaliacao_qualidade` | `db_silver.avaliacao_qualidade` | Cast de dt_avaliacao; cast e coalesce de nr_nota (0-10); coalesce de id_avaliador para -1; campo `nr_tamanho_feedback_chars`; remoção de `ds_feedback` (conteúdo textual removido na Silver); campo `ds_faixa_nota` com faixas: EXCELENTE (>=9.0), BOM (>=7.0), REGULAR (>=5.0), RUIM (>=3.0), CRITICO (<3.0); flags `fl_tem_feedback`, `fl_aprovado` (nota >= 7) e `fl_critico` (`nr_nota_geral < 5.0`); partição por ano/mes/dia de dt_avaliacao |
+| 18 | `job_tb_metricas_operacionais_bronze_to_silver.py` | `db_bronze.tb_metricas_operacionais` | `db_silver.metricas_operacionais` | Cast de `dt_referencia` como DATE (`yyyy-MM-dd`, somente data — não datetime); cast e coalesce de contadores (nr_chamadas_recebidas, nr_chamadas_atendidas, nr_chamadas_abandonadas) para 0; cast de tempos em segundos (nr_tma_segundos, nr_tme_segundos); coalesce de id_fila para -1; `nr_nivel_servico` **não existe no Bronze** — calculado como `(nr_chamadas_atendidas * 100.0) / (nr_chamadas_atendidas + nr_chamadas_abandonadas)`; `nr_taxa_atendimento = 100 - nr_taxa_abandono`; campos `nr_tma_minutos` e `nr_tme_minutos`; flags `fl_meta_nivel_servico` e `fl_alto_abandono` |
 
 ---
 
@@ -133,3 +133,24 @@ Todos os 18 jobs seguem o mesmo padrão de execução:
 - **Amazon S3** — armazenamento dos dados Silver e quarentena
 - **Amazon CloudWatch Logs** — monitoramento via `print()` no Glue
 - **AWS Lake Formation** — controle de acesso aos dados PII no Bronze
+
+---
+
+## Notas de Implementação
+
+### 1. Coluna CDC: normalização de case pelo Glue Data Catalog
+
+O campo CDC de operação chega como `Op` (maiúsculo) nos arquivos Parquet gerados pelo DMS/Firehose. O Glue Data Catalog normaliza o nome da coluna para `op` (minúsculo) ao catalogar via Crawler. Todos os jobs usam `F.col("op")` (minúsculo) para garantir compatibilidade com o catálogo.
+
+### 2. Bookmark vazio: `ColumnNotFoundException` em `_timestamp`
+
+Quando o Glue Job Bookmark indica que todos os arquivos já foram processados (estado "sem novos dados"), o DynamicFrame retorna um schema vazio (zero colunas). Qualquer acesso subsequente a `F.col("_timestamp")` lança `ColumnNotFoundException`.
+
+**Solução:** antes de reexecutar um job que já consumiu todos os dados, resetar o bookmark com:
+```bash
+aws glue reset-job-bookmark --job-name <nome-do-job>
+```
+
+### 3. Watermark: formato ISO 8601
+
+O valor padrão de watermark para full load (primeira execução) é `"1970-01-01T00:00:00Z"` — formato ISO 8601 com timezone UTC explícito. Isso garante que o filtro `_timestamp > last_watermark` capture todos os registros históricos na primeira carga.

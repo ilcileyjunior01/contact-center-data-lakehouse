@@ -168,17 +168,25 @@ df_dim_data = (
 )
 
 # Registro padrão para datas desconhecidas
-df_desconhecido = spark.createDataFrame(
-    [(-1, None, -1, -1, -1, -1, -1, -1,
-      "DESCONHECIDO", "DESCONHECIDO", "DESCONHECIDO", 0, 0, 0, now_ts)],
-    ["sk_data", "dt_completa", "nr_ano", "nr_mes", "nr_dia", "nr_trimestre",
-     "nr_semana_ano", "nr_dia_semana", "ds_dia_semana", "ds_mes",
-     "ds_trimestre", "fl_fim_de_semana", "fl_feriado", "fl_dia_util",
-     "dt_ingestao_gold"]
-).withColumn("dt_ingestao_gold", F.col("dt_ingestao_gold").cast("timestamp")) \
- .withColumn("fl_fim_de_semana", F.col("fl_fim_de_semana").cast("smallint")) \
- .withColumn("fl_feriado",       F.col("fl_feriado").cast("smallint")) \
- .withColumn("fl_dia_util",      F.col("fl_dia_util").cast("smallint"))
+# spark.sql usado para evitar inferência de tipo com dt_completa NULL (DateType)
+df_desconhecido = spark.sql(f"""
+    SELECT
+        CAST(-1 AS INT)        AS sk_data,
+        CAST(NULL AS DATE)     AS dt_completa,
+        CAST(-1 AS INT)        AS nr_ano,
+        CAST(-1 AS INT)        AS nr_mes,
+        CAST(-1 AS INT)        AS nr_dia,
+        CAST(-1 AS INT)        AS nr_trimestre,
+        CAST(-1 AS INT)        AS nr_semana_ano,
+        CAST(-1 AS INT)        AS nr_dia_semana,
+        'DESCONHECIDO'         AS ds_dia_semana,
+        'DESCONHECIDO'         AS ds_mes,
+        'DESCONHECIDO'         AS ds_trimestre,
+        CAST(0 AS SMALLINT)    AS fl_fim_de_semana,
+        CAST(0 AS SMALLINT)    AS fl_feriado,
+        CAST(0 AS SMALLINT)    AS fl_dia_util,
+        CAST('{now_ts}' AS TIMESTAMP) AS dt_ingestao_gold
+""")
 
 df_final = df_dim_data.unionByName(df_desconhecido)
 

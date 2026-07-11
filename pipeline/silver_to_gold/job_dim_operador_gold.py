@@ -138,16 +138,23 @@ df_dim = (
 )
 
 # Registro padrão para operadores não identificados
-df_desconhecido = spark.createDataFrame(
-    [(-1, -1, "DESCONHECIDO", "", "", None, "D", 0, 0,
-      "DESCONHECIDO", -1, -1, now_ts)],
-    ["sk_operador", "nk_operador", "nm_operador",
-     "ds_login_mascarado", "ds_email_mascarado",
-     "dt_admissao", "st_operador", "fl_operador_ativo",
-     "nr_dias_casa", "ds_faixa_tempo_casa",
-     "sk_supervisor", "nk_supervisor", "dt_ingestao_gold"]
-).withColumn("dt_ingestao_gold",  F.col("dt_ingestao_gold").cast(TimestampType())) \
- .withColumn("fl_operador_ativo", F.col("fl_operador_ativo").cast("smallint"))
+# spark.sql usado para evitar inferência de tipo com colunas NULL (dt_admissao)
+df_desconhecido = spark.sql(f"""
+    SELECT
+        CAST(-1 AS INT)       AS sk_operador,
+        CAST(-1 AS BIGINT)    AS nk_operador,
+        'DESCONHECIDO'        AS nm_operador,
+        ''                    AS ds_login_mascarado,
+        ''                    AS ds_email_mascarado,
+        CAST(NULL AS DATE)    AS dt_admissao,
+        'D'                   AS st_operador,
+        CAST(0 AS SMALLINT)   AS fl_operador_ativo,
+        CAST(0 AS INT)        AS nr_dias_casa,
+        'DESCONHECIDO'        AS ds_faixa_tempo_casa,
+        CAST(-1 AS INT)       AS sk_supervisor,
+        CAST(-1 AS BIGINT)    AS nk_supervisor,
+        CAST('{now_ts}' AS TIMESTAMP) AS dt_ingestao_gold
+""")
 
 df_final = df_dim.unionByName(df_desconhecido)
 
@@ -235,14 +242,19 @@ df_dim_supervisor = (
     .distinct()
 )
 
-df_sup_desconhecido = spark.createDataFrame(
-    [(-1, -1, "DESCONHECIDO", "", None, "D", 0, 0, "DESCONHECIDO", now_ts)],
-    ["sk_supervisor", "nk_supervisor", "nm_supervisor",
-     "ds_email_mascarado", "dt_admissao", "st_operador",
-     "fl_operador_ativo", "nr_dias_casa", "ds_faixa_tempo_casa",
-     "dt_ingestao_gold"]
-).withColumn("dt_ingestao_gold",  F.col("dt_ingestao_gold").cast(TimestampType())) \
- .withColumn("fl_operador_ativo", F.col("fl_operador_ativo").cast("smallint"))
+df_sup_desconhecido = spark.sql(f"""
+    SELECT
+        CAST(-1 AS INT)       AS sk_supervisor,
+        CAST(-1 AS BIGINT)    AS nk_supervisor,
+        'DESCONHECIDO'        AS nm_supervisor,
+        ''                    AS ds_email_mascarado,
+        CAST(NULL AS DATE)    AS dt_admissao,
+        'D'                   AS st_operador,
+        CAST(0 AS SMALLINT)   AS fl_operador_ativo,
+        CAST(0 AS INT)        AS nr_dias_casa,
+        'DESCONHECIDO'        AS ds_faixa_tempo_casa,
+        CAST('{now_ts}' AS TIMESTAMP) AS dt_ingestao_gold
+""")
 
 df_dim_supervisor_final = df_dim_supervisor.unionByName(df_sup_desconhecido)
 

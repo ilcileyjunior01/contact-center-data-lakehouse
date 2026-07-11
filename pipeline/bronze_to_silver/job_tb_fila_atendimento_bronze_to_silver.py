@@ -99,17 +99,17 @@ count_bronze = df_bronze.count()
 print(f"[INFO] Registros lidos do Bronze (incremental): {count_bronze}")
 
 if count_bronze == 0:
-    print("[INFO] Nenhum registro novo. Job encerrado.")
+    print("[INFO] Nenhum registro novo. Job encerrado sem processamento.")
     job.commit()
-    sys.exit(0)
+    import os as _os; _os._exit(0)  # exit limpo sem SystemExit
 
 df_cdc = (
     df_bronze
     .withColumn("dt_cdc_evento", F.to_timestamp(F.col("_timestamp")))
     .withColumn("op_cdc",
-        F.when(F.col("Op") == "I", F.lit("INSERT"))
-         .when(F.col("Op") == "U", F.lit("UPDATE"))
-         .when(F.col("Op") == "D", F.lit("DELETE"))
+        F.when(F.col("op") == "I", F.lit("INSERT"))
+         .when(F.col("op") == "U", F.lit("UPDATE"))
+         .when(F.col("op") == "D", F.lit("DELETE"))
          .otherwise(F.lit("UNKNOWN")))
 )
 
@@ -140,18 +140,18 @@ df_transformed = (
         F.upper(F.trim(F.col("ds_tipo_fila"))))
 
     # --- Conversão e tratamento de nulos ---
-    .withColumn("nr_sla_segundos",
-        F.col("nr_sla_segundos").cast(IntegerType()))
+    # nr_sla_segundos não existe no Bronze — criado como NULL
+    .withColumn("nr_sla_segundos", F.lit(None).cast(IntegerType()))
     .withColumn("nm_fila",
         F.coalesce(F.col("nm_fila"), F.lit("DESCONHECIDO")))
     .withColumn("ds_tipo_fila",
         F.coalesce(F.col("ds_tipo_fila"), F.lit("DESCONHECIDO")))
-    .withColumn("nr_sla_segundos",
-        F.coalesce(F.col("nr_sla_segundos"), F.lit(0)))
+    # nr_capacidade_max e fl_ativa não estão no Silver — dropados
+    .drop("nr_capacidade_max", "fl_ativa")
 
     # --- Campo derivado ---
-    .withColumn("nr_sla_minutos",
-        F.round(F.col("nr_sla_segundos") / 60.0, 2))
+    # nr_sla_minutos derivado de nr_sla_segundos (NULL pois base é NULL)
+    .withColumn("nr_sla_minutos", F.lit(None).cast("double"))
 
     # --- Hash de integridade ---
     .withColumn("hash_registro",
@@ -214,6 +214,14 @@ spark.sql(f"""
 """)
 
 print(f"[INFO] Tabela Iceberg verificada: {SILVER_TABLE}")
+
+# Seleciona apenas as colunas Silver (garante compatibilidade com INSERT *)
+SILVER_COLS = [
+    "id_fila", "nm_fila", "ds_tipo_fila", "nr_sla_segundos",
+    "nr_sla_minutos", "dt_cdc_evento", "op_cdc", "hash_registro",
+    "dt_ingestao_silver",
+]
+df_valid = df_valid.select(*SILVER_COLS)
 
 df_valid.createOrReplaceTempView("stg_fila_atendimento")
 

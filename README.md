@@ -596,7 +596,9 @@ python infrastructure/06_run_pipeline.py --dry-run
 
 # Executa apenas uma etapa
 python infrastructure/06_run_pipeline.py --only bronze   # Bronze→Silver
-python infrastructure/06_run_pipeline.py --only gold     # Dims + Fatos
+python infrastructure/06_run_pipeline.py --only gold     # Dims + Fatos (dims primeiro, depois fatos)
+python infrastructure/06_run_pipeline.py --only dims     # Apenas as 11 dimensões Gold
+python infrastructure/06_run_pipeline.py --only fatos    # Apenas as 11 tabelas fato Gold
 
 # Executa um job específico
 python infrastructure/06_run_pipeline.py --job job-tb-chamada-bronze-to-silver
@@ -607,9 +609,13 @@ python infrastructure/06_run_pipeline.py --max-parallel 3 --fail-fast
 
 O script respeita a ordem de dependências entre as etapas:
 1. Bronze → Silver (18 jobs, lotes de 5 em paralelo)
-2. Silver → Gold Dimensões (11 jobs, paralelo total)
-3. Silver → Gold Fatos Wave 1 (8 fatos base, paralelo total)
-4. Silver → Gold Fatos Wave 2 (3 fatos dependentes, paralelo total)
+2. Silver → Gold Dimensões (11 jobs, paralelo total) — sempre antes dos fatos
+3. Silver → Gold Fatos Wave 1 — fatos base sem dependência cruzada (fato_chamada, fato_chat, fato_ticket, fato_whatsapp, fato_discagem, fato_jornada_operador, fato_metricas_operacionais), paralelo total
+4. Silver → Gold Fatos Wave 2 — fatos com dependência cruzada, executados após seus fatos pai:
+   - `fato_qualidade` → depende de `fato_chamada`
+   - `fato_interacao_ticket` → depende de `fato_ticket`
+   - `fato_mensagem_chat` → depende de `fato_chat`
+   - `fato_ura_navegacao` → depende de `fato_chamada`
 
 ### Passo 4 — Consultar KPIs com Athena
 
@@ -684,6 +690,66 @@ Execute os 12 arquivos em `sql/athena_kpis/` no **Amazon Athena** (workgroup: `w
 - Substituir DMS + Kinesis por `s3_data_loader.py` em modo demo: economia de ~$24/mês
 - Redshift Serverless com auto-pause de 30 min: paga apenas quando ativo
 - Parquet + Snappy + particionamento: reduz custo de Athena em ~70% vs CSV
+
+---
+
+## Validação dos Dados (Execução de Referência)
+
+Resultados reais obtidos via Amazon Athena após execução completa do pipeline em 2026-07-10/11.
+
+### Contagens Gold — Dimensões
+
+| Tabela | Linhas |
+|--------|-------:|
+| dim_data | 5.845 (range: 2015-01-01 → 2030-12-31) |
+| dim_cliente | 4.159 |
+| dim_operador | 208 |
+| dim_skill | 26 |
+| dim_campanha | 25 |
+| dim_fila | 17 |
+| dim_canal | 6 |
+| dim_status_chamada | 5 |
+| dim_status_ticket | 5 |
+| dim_categoria_ticket | 5 |
+| dim_prioridade_ticket | 5 |
+| dim_supervisor | 1 |
+
+### Contagens Gold — Fatos
+
+| Tabela | Linhas |
+|--------|-------:|
+| fato_jornada_operador | 5.985 |
+| fato_metricas_operacionais | 4.187 |
+| fato_discagem | 4.189 |
+| fato_mensagem_chat | 4.905 |
+| fato_chamada | 4.168 |
+| fato_ura_navegacao | 4.126 |
+| fato_qualidade | 2.504 |
+| fato_interacao_ticket | 2.494 |
+| fato_chat | 2.113 |
+| fato_ticket | 2.059 |
+| fato_whatsapp | 1.386 |
+
+### Integridade Referencial (0 orphans)
+
+- `fato_chamada → dim_canal`: 0 registros sem correspondência
+- `fato_chamada → dim_operador`: 0 registros sem correspondência
+- `fato_ticket → dim_cliente`: 0 registros sem correspondência
+- `fato_qualidade → fato_chamada`: 0 registros sem correspondência
+
+### Distribuição por Canal
+
+100% das chamadas classificadas como **TELEFONE** — correto, pois `fato_chamada` é exclusivamente canal de voz. A distinção ENTRADA/SAÍDA (tp_chamada) é preservada como atributo, não como dimensão de canal.
+
+### Distribuição de Qualidade
+
+| Faixa | Total | Nota Média |
+|-------|------:|-----------:|
+| EXCELENTE | 492 | 9,49 |
+| BOM | 501 | 7,47 |
+| REGULAR | 522 | 5,49 |
+| RUIM | 496 | 3,52 |
+| CRITICO | 493 | 1,49 |
 
 ---
 

@@ -10,17 +10,33 @@ Todos os 22 jobs seguem o mesmo padrão arquitetural de Data Warehouse:
 
 ### 1. Surrogate Key (SK)
 
-Cada dimensão gera uma **chave substituta inteira** independente da chave natural da origem:
+A geração de SK difere entre dimensões e fatos:
+
+**Dimensões** — `row_number()` sobre uma Window ordenada pela natural key, produz INT determinístico:
 
 ```python
-# Padrão de geração de surrogate key sequencial
+# Dimensões: SK sequencial e determinística
 window_sk = Window.orderBy("nk_<entidade>")
-df = df.withColumn("sk_<entidade>", F.dense_rank().over(window_sk))
+df = df.withColumn("sk_<entidade>", F.row_number().over(window_sk))
 ```
 
-- A SK é um inteiro incremental determinístico (dense_rank ordenado pela natural key)
+- Tipo: **INT**, sequencial e determinístico
+- Ordenado pela natural key → mesmo dataset produz mesmo SK
+- Adequado para dimensões de baixo volume (sem risco de OOM)
+
+**Fatos** — `monotonically_increasing_id()` distribuído, produz BIGINT sem shuffle global:
+
+```python
+# Fatos: SK distribuída sem shuffle global
+df = df.withColumn("sk_<fato>", F.monotonically_increasing_id())
+```
+
+- Tipo: **BIGINT**, gerado por executor sem coleta em driver
+- Não determinístico entre execuções, mas único e crescente dentro do batch
+- O MERGE usa `nk_*` (natural key) como chave de join, tornando o SK estável
+
 - A **natural key (nk_)** preserva o ID original da fonte para rastreabilidade
-- O MERGE Iceberg é feito pela SK (ou pela nk_ quando a SK é derivada do batch)
+- O MERGE Iceberg é feito pela nk_ nos fatos (não pela SK)
 
 ### 2. Registro Default (sk = -1)
 
@@ -237,7 +253,8 @@ O `hash_registro` (MD5 dos atributos de negócio) evita re-escrita de dimensões
 | **Tabelas Silver de Entrada** | `db_silver.chamada` |
 | **Dimensões Consultadas** | `dim_cliente`, `dim_operador`, `dim_fila`, `dim_canal`, `dim_status_chamada`, `dim_data` (2x: data_inicio e data_fim) |
 | **Tabela Gold de Saída** | `db_gold.fato_chamada` |
-| **SKs Geradas** | `sk_chamada` (PK da fato, dense_rank sobre nk_chamada), `sk_cliente`, `sk_operador`, `sk_fila`, `sk_canal`, `sk_status`, `sk_data_inicio`, `sk_data_fim` |
+| **SKs Geradas** | `sk_chamada` (PK da fato, `monotonically_increasing_id()`, BIGINT), `sk_cliente`, `sk_operador`, `sk_fila`, `sk_canal`, `sk_status`, `sk_data_inicio`, `sk_data_fim` |
+| **Nota sk_canal** | `sk_canal` resolvido via lookup pontual `SELECT sk_canal FROM dim_canal WHERE nm_canal='TELEFONE'` — não via JOIN em `tp_chamada` (os valores ENTRADA/SAIDA do Bronze não casam com os valores do dim_canal) |
 | **Natural Key** | `nk_chamada` = id_chamada |
 | **Métricas** | nr_duracao_segundos, nr_duracao_minutos, fl_duracao_valida, fl_chamada_completa |
 | **Partição** | sk_data_inicio |
@@ -312,7 +329,7 @@ O `hash_registro` (MD5 dos atributos de negócio) evita re-escrita de dimensões
 | **Tabelas Silver de Entrada** | `db_silver.mensagem_chat` |
 | **Dimensões Consultadas** | `fato_chat` (para resolução de sk_chat via nk_chat), `dim_data` |
 | **Tabela Gold de Saída** | `db_gold.fato_mensagem_chat` |
-| **SKs Geradas** | `sk_mensagem` (PK da fato), `sk_chat` (FK para fato_chat), `sk_data` |
+| **SKs Geradas** | `sk_mensagem` (PK da fato), `sk_chat` (FK para fato_chat, BIGINT — herdado de fato_chat.sk_chat), `sk_data` |
 | **Natural Key** | `nk_mensagem` = id_mensagem |
 | **Métricas** | nr_tamanho_chars, fl_mensagem_cliente, fl_mensagem_operador, ds_remetente |
 | **Partição** | sk_data |
@@ -327,7 +344,7 @@ O `hash_registro` (MD5 dos atributos de negócio) evita re-escrita de dimensões
 | **Tabelas Silver de Entrada** | `db_silver.interacao_ticket` |
 | **Dimensões Consultadas** | `fato_ticket` (para resolução de sk_ticket via nk_ticket), `dim_operador`, `dim_data` |
 | **Tabela Gold de Saída** | `db_gold.fato_interacao_ticket` |
-| **SKs Geradas** | `sk_interacao` (PK da fato), `sk_ticket` (FK para fato_ticket), `sk_operador`, `sk_data` |
+| **SKs Geradas** | `sk_interacao` (PK da fato), `sk_ticket` (FK para fato_ticket, BIGINT — herdado de fato_ticket.sk_ticket), `sk_operador`, `sk_data` |
 | **Natural Key** | `nk_interacao` = id_interacao |
 | **Métricas** | nr_tamanho_observacao_chars, fl_tem_observacao, ds_canal |
 | **Partição** | sk_data |
@@ -357,7 +374,7 @@ O `hash_registro` (MD5 dos atributos de negócio) evita re-escrita de dimensões
 | **Tabelas Silver de Entrada** | `db_silver.avaliacao_qualidade` |
 | **Dimensões Consultadas** | `fato_chamada` (para resolução de sk_chamada e sk_operador_avaliado), `dim_operador` (para sk_avaliador), `dim_data` |
 | **Tabela Gold de Saída** | `db_gold.fato_qualidade` |
-| **SKs Geradas** | `sk_avaliacao` (PK da fato), `sk_chamada` (FK para fato_chamada), `sk_operador_avaliado`, `sk_avaliador`, `sk_data` |
+| **SKs Geradas** | `sk_avaliacao` (PK da fato), `sk_chamada` (FK para fato_chamada, BIGINT — herdado de fato_chamada.sk_chamada), `sk_operador_avaliado`, `sk_avaliador`, `sk_data` |
 | **Natural Key** | `nk_avaliacao` = id_avaliacao |
 | **Métricas** | nr_nota, ds_faixa_nota, nr_tamanho_feedback_chars, fl_tem_feedback, fl_aprovado, fl_critico |
 | **Partição** | sk_data |
@@ -453,3 +470,43 @@ dim_cliente ─ fato_whatsapp ──────────────── d
 - **Amazon S3** — armazenamento das tabelas Gold em `s3://{bucket}/gold/`
 - **Amazon Athena** — consulta analítica sobre as tabelas Gold via Iceberg
 - **Amazon CloudWatch Logs** — monitoramento via `print()` no Glue
+
+---
+
+## Bugs Corrigidos em Execução
+
+Problemas encontrados e corrigidos durante a execução de referência (2026-07-10/11):
+
+### 1. `createDataFrame` com colunas de data `None`
+
+Jobs afetados: `dim_cliente`, `dim_operador`, `dim_campanha`, `dim_data`
+
+Colunas como `dt_cadastro`, `dt_admissao`, `dt_completa`, `dt_inicio`/`dt_fim` retornavam `None` quando passadas via `createDataFrame` sem schema explícito — o Spark inferia o tipo como `StringType` ou `NullType`, quebrando o MERGE Iceberg.
+
+**Correção:** substituído `spark.createDataFrame(rows, schema)` por `spark.sql()` com tipos explícitos no DDL e literal `CAST(NULL AS DATE)` para os campos ausentes.
+
+### 2. `sk_chamada`/`sk_ticket`/`sk_chat` definidos como INT nos fatos dependentes
+
+Fatos dependentes (`fato_qualidade`, `fato_interacao_ticket`, `fato_mensagem_chat`, `fato_ura_navegacao`) tinham `sk_chamada`/`sk_ticket`/`sk_chat` definidos como `INT` no `CREATE TABLE` e no `coalesce(..., -1)`, mas os valores herdados dos fatos pai são `BIGINT` (gerados por `monotonically_increasing_id()`).
+
+**Correção:** tipo alterado para `BIGINT` no `CREATE TABLE IF NOT EXISTS` e o literal de fallback atualizado para `F.lit(-1).cast("bigint")` no coalesce.
+
+### 3. `fato_chamada`: JOIN `tp_chamada == nm_canal` nunca casava
+
+O campo `tp_chamada` na Silver contém valores `ENTRADA`/`SAIDA` (tipo de direção da chamada), mas `dim_canal.nm_canal` contém `TELEFONE`/`CHAT`/`WHATSAPP`/`EMAIL`. O JOIN `ON tp_chamada = nm_canal` nunca produzia match, resultando em `sk_canal = -1` para todos os registros.
+
+**Correção:** substituído por lookup pontual fixo — `sk_canal` obtido via `SELECT sk_canal FROM dim_canal WHERE nm_canal='TELEFONE'` e aplicado como literal, já que `fato_chamada` é exclusivamente canal de voz.
+
+### 4. `job-fato-metricas-operacionais-gold` sem extensões Iceberg
+
+O job foi criado sem a propriedade `--conf spark.sql.extensions=IcebergSparkSessionExtensions`, fazendo com que o `spark.sql("MERGE INTO ...")` falhasse com `ParseException`.
+
+**Correção:** atualizado via `aws glue update-job` adicionando o conf Iceberg nas propriedades do job.
+
+### 5. `dim_data` sem parâmetros `--DT_INICIO`/`--DT_FIM`
+
+O job `job_dim_data_gold.py` requer os argumentos `--DT_INICIO` e `--DT_FIM` para definir o intervalo de geração de datas. Sem os defaults configurados no Glue, o job falhava com `KeyError`.
+
+**Correção:** adicionados como default args via `aws glue update-job`:
+- `--DT_INICIO`: `2015-01-01`
+- `--DT_FIM`: `2030-12-31`

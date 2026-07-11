@@ -153,9 +153,9 @@ count_bronze = df_bronze.count()
 print(f"[INFO] Registros lidos do Bronze (incremental): {count_bronze}")
 
 if count_bronze == 0:
-    print("[INFO] Nenhum registro novo. Job encerrado.")
+    print("[INFO] Nenhum registro novo. Job encerrado sem processamento.")
     job.commit()
-    sys.exit(0)
+    import os as _os; _os._exit(0)  # exit limpo sem SystemExit
 
 # =========================================================
 # PROCESSAMENTO CDC
@@ -168,9 +168,9 @@ df_cdc = (
     .withColumn("dt_cdc_evento",
         F.to_timestamp(F.col("_timestamp")))
     .withColumn("op_cdc",
-        F.when(F.col("Op") == "I", F.lit("INSERT"))
-         .when(F.col("Op") == "U", F.lit("UPDATE"))
-         .when(F.col("Op") == "D", F.lit("DELETE"))
+        F.when(F.col("op") == "I", F.lit("INSERT"))
+         .when(F.col("op") == "U", F.lit("UPDATE"))
+         .when(F.col("op") == "D", F.lit("DELETE"))
          .otherwise(F.lit("UNKNOWN")))
 )
 
@@ -363,6 +363,16 @@ print(f"[INFO] Tabela Iceberg verificada: {SILVER_TABLE}")
 # nr_protocolo é único no PostgreSQL mas pode chegar
 # com variações de capitalização — por isso normalizamos
 # antes e usamos id_ticket como chave principal do MERGE.
+
+# Seleciona apenas as colunas Silver (garante compatibilidade com INSERT *)
+SILVER_COLS = [
+    "id_ticket", "nr_protocolo", "id_cliente", "id_operador",
+    "ds_titulo", "ds_categoria", "ds_prioridade", "st_ticket",
+    "dt_abertura", "dt_resolucao", "nr_tempo_resolucao_min",
+    "fl_ticket_resolvido", "fl_dentro_sla", "dt_cdc_evento", "op_cdc",
+    "hash_registro", "dt_ingestao_silver", "ano", "mes", "dia",
+]
+df_valid = df_valid.select(*SILVER_COLS)
 
 df_valid.createOrReplaceTempView("stg_ticket")
 

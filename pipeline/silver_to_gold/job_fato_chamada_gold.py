@@ -74,6 +74,16 @@ df_dim_fila     = spark.table(f"glue_catalog.{DIM_FILA}") \
     .select("sk_fila", "nk_fila")
 df_dim_canal    = spark.table(f"glue_catalog.{DIM_CANAL}") \
     .select("sk_canal", "nm_canal")
+
+# Chamadas são sempre via TELEFONE — resolve sk_canal uma única vez
+_row_telefone = (
+    df_dim_canal
+    .filter(F.upper(F.col("nm_canal")) == "TELEFONE")
+    .select("sk_canal")
+    .collect()
+)
+SK_CANAL_TELEFONE = int(_row_telefone[0]["sk_canal"]) if _row_telefone else 1
+print(f"[INFO] sk_canal TELEFONE resolvido: {SK_CANAL_TELEFONE}")
 df_dim_status   = spark.table(f"glue_catalog.{DIM_STATUS}") \
     .select("sk_status", "ds_status")
 df_dim_data     = spark.table(f"glue_catalog.{DIM_DATA}") \
@@ -82,10 +92,6 @@ df_dim_data     = spark.table(f"glue_catalog.{DIM_DATA}") \
 # =========================================================
 # RESOLUÇÃO DAS SURROGATE KEYS
 # =========================================================
-
-# Mapeia canal pelo tipo de chamada
-df_canal_map = df_dim_canal.withColumnRenamed("nm_canal", "_nm_canal") \
-                            .withColumnRenamed("sk_canal", "_sk_canal")
 
 df_fato = (
     df_chamada
@@ -110,11 +116,6 @@ df_fato = (
                        .withColumnRenamed("ds_status", "_ds_status"),
           F.upper(df_chamada["st_chamada"]) == F.col("_ds_status"), how="left")
 
-    # sk_canal via tp_chamada (ENTRADA/SAIDA → TELEFONE)
-    .join(df_dim_canal.withColumnRenamed("sk_canal", "_sk_canal")
-                      .withColumnRenamed("nm_canal", "_nm_canal"),
-          F.upper(df_chamada["tp_chamada"]) == F.col("_nm_canal"), how="left")
-
     # sk_data_inicio
     .join(df_dim_data.withColumnRenamed("sk_data", "_sk_data_inicio")
                      .withColumnRenamed("dt_completa", "_dt_inicio"),
@@ -133,8 +134,8 @@ df_fato = (
         F.coalesce(F.col("_sk_fila"),      F.lit(-1).cast("int")))
     .withColumn("sk_status_chamada",
         F.coalesce(F.col("_sk_status"),    F.lit(-1).cast("int")))
-    .withColumn("sk_canal",
-        F.coalesce(F.col("_sk_canal"),     F.lit(1).cast("int")))  # default TELEFONE
+    # Chamadas são sempre TELEFONE — sk resolvido acima via lookup
+    .withColumn("sk_canal", F.lit(SK_CANAL_TELEFONE).cast("int"))
     .withColumn("sk_data_inicio",
         F.coalesce(F.col("_sk_data_inicio"), F.lit(-1).cast("int")))
     .withColumn("sk_data_fim",
