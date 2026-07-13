@@ -51,7 +51,7 @@ Este projeto implementa um **Data Lakehouse completo** para operações de Conta
 - 18 tabelas Silver Iceberg v2 com CDC, deduplicação, PII mascarado e quarentena
 - Star Schema com 11 dimensões + 11 tabelas fato, particionadas e otimizadas para Athena
 - 12 arquivos SQL com KPIs prontos para execução no Amazon Athena
-- 4 notebooks Jupyter com EDA, KPIs operacionais, performance de operadores e campanhas
+- 5 notebooks Jupyter com EDA, KPIs operacionais, performance de operadores, campanhas e canais digitais
 - Custo operacional < $10/mês em escala de demonstração
 
 ---
@@ -664,8 +664,9 @@ Execute os 12 arquivos em `sql/athena_kpis/` no **Amazon Athena** (workgroup: `w
 |---|---|
 | `01_exploratory_data_analysis.ipynb` | Distribuições, volumes, qualidade dos dados nas 18 entidades |
 | `02_kpi_operacional.ipynb` | TMA, TME, taxa de abandono, SLA, FCR, volume por canal |
-| `03_performance_operadores.ipynb` | Ranking, qualidade, produtividade, ausências, distribuição de skills |
-| `04_analise_campanhas.ipynb` | ROI de campanhas, taxa de conversão, desempenho por skill/fila |
+| `03_performance_operadores.ipynb` | Ranking, qualidade, produtividade, ausências, matriz de quadrantes |
+| `04_analise_campanhas.ipynb` | ROI de campanhas, taxa de conversão, curva de diminishing returns |
+| `05_canais_digitais.ipynb` | Chat, WhatsApp e URA: volume, satisfação CSAT, taxa de autoatendimento |
 
 ---
 
@@ -680,15 +681,15 @@ Execute os 12 arquivos em `sql/athena_kpis/` no **Amazon Athena** (workgroup: `w
 | Athena (queries KPI sobre Parquet) | ~50 queries | ~$0.05 |
 | Glue Jobs (pipeline completo, 2×/mês) | 40 jobs × G.1X × 2 workers | ~$3.20 |
 | Glue Crawlers (18 crawlers × 2 min) | 2 rodadas completas | ~$1.00 |
-| Redshift Serverless (auto-pause 30 min) | 2h ativas/semana | ~$3.00 |
 | EMR Serverless (jobs pontuais) | 5 jobs/mês | ~$0.10 |
-| CloudWatch Logs | Logs de jobs | ~$0.05 |
-| **Total** | | **< $8/mês** |
+| CloudWatch Logs | Logs de jobs (retenção 14 dias) | ~$0.02 |
+| **Total** | | **< $5/mês** |
 
 **Principais economias:**
 
 - Substituir DMS + Kinesis por `s3_data_loader.py` em modo demo: economia de ~$24/mês
-- Redshift Serverless com auto-pause de 30 min: paga apenas quando ativo
+- Redshift Serverless removido do ambiente de demonstração (deletado — sem uso real)
+- CloudWatch Logs com retenção de 14 dias: economia de ~$0,30/mês vs NEVER_EXPIRE
 - Parquet + Snappy + particionamento: reduz custo de Athena em ~70% vs CSV
 
 ---
