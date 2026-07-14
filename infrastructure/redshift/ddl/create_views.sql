@@ -76,12 +76,14 @@ JOIN gold.dim_prioridade_ticket pri ON t.sk_prioridade    = pri.sk_prioridade
 GROUP BY d.nr_ano, d.nr_mes, st.ds_status, cat.nm_categoria, pri.nm_prioridade;
 
 -- ─── KPI 05 — Eficiência de Tickets (SLA) ─────────────────────────────────
+-- nr_tempo_resolucao_min está armazenado em segundos no Gold; dividido por 60
 CREATE OR REPLACE VIEW gold.vw_kpi_05_eficiencia_tickets AS
 SELECT
     d.nr_ano,
     d.nr_mes,
     pri.nm_prioridade,
-    ROUND(AVG(t.nr_tempo_resolucao_min), 2)         AS nr_trt_medio_minutos,
+    ROUND(AVG(t.nr_tempo_resolucao_min / 60.0), 2)  AS nr_trt_medio_minutos,
+    ROUND(AVG(t.nr_tempo_resolucao_min / 3600.0), 2) AS nr_trt_medio_horas,
     ROUND(
         100.0 * SUM(t.fl_dentro_sla) / NULLIF(COUNT(t.sk_ticket), 0),
         2
