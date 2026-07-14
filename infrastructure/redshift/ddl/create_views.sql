@@ -8,7 +8,7 @@ CREATE OR REPLACE VIEW gold.vw_kpi_01_volume_chamadas AS
 SELECT
     d.nr_ano,
     d.nr_mes,
-    d.ds_nome_mes,
+    d.ds_mes,
     sc.ds_status,
     COUNT(c.sk_chamada)                             AS nr_total_chamadas,
     SUM(c.fl_chamada_completa)                      AS nr_chamadas_completas,
@@ -18,9 +18,9 @@ SELECT
         2
     )                                               AS pct_taxa_atendimento
 FROM gold.fato_chamada c
-JOIN gold.dim_data            d  ON c.sk_data_inicio   = d.sk_data
+JOIN gold.dim_data            d  ON c.sk_data_inicio    = d.sk_data
 JOIN gold.dim_status_chamada  sc ON c.sk_status_chamada = sc.sk_status
-GROUP BY d.nr_ano, d.nr_mes, d.ds_nome_mes, sc.ds_status;
+GROUP BY d.nr_ano, d.nr_mes, d.ds_mes, sc.ds_status;
 
 -- ─── KPI 02 — Performance de Operadores ───────────────────────────────────
 CREATE OR REPLACE VIEW gold.vw_kpi_02_performance_operadores AS
@@ -75,7 +75,7 @@ JOIN gold.dim_categoria_ticket  cat ON t.sk_categoria     = cat.sk_categoria
 JOIN gold.dim_prioridade_ticket pri ON t.sk_prioridade    = pri.sk_prioridade
 GROUP BY d.nr_ano, d.nr_mes, st.ds_status, cat.nm_categoria, pri.nm_prioridade;
 
--- ─── KPI 05 — Eficiência de Tickets (SLA) ────────────────────────────────
+-- ─── KPI 05 — Eficiência de Tickets (SLA) ─────────────────────────────────
 CREATE OR REPLACE VIEW gold.vw_kpi_05_eficiencia_tickets AS
 SELECT
     d.nr_ano,
@@ -92,7 +92,7 @@ JOIN gold.dim_prioridade_ticket pri ON t.sk_prioridade    = pri.sk_prioridade
 WHERE t.fl_ticket_resolvido = 1
 GROUP BY d.nr_ano, d.nr_mes, pri.nm_prioridade;
 
--- ─── KPI 06 — Volume Chat e WhatsApp ─────────────────────────────────────
+-- ─── KPI 06 — Volume Chat e WhatsApp ──────────────────────────────────────
 CREATE OR REPLACE VIEW gold.vw_kpi_06_volume_digital AS
 SELECT
     d.nr_ano,
@@ -118,7 +118,7 @@ FROM gold.fato_whatsapp w
 JOIN gold.dim_data d ON w.sk_data_inicio = d.sk_data
 GROUP BY d.nr_ano, d.nr_mes;
 
--- ─── KPI 08 — Desempenho de Campanhas ────────────────────────────────────
+-- ─── KPI 08 — Desempenho de Campanhas ─────────────────────────────────────
 CREATE OR REPLACE VIEW gold.vw_kpi_08_campanhas AS
 SELECT
     camp.nm_campanha,
@@ -135,7 +135,7 @@ FROM gold.fato_discagem disc
 JOIN gold.dim_campanha camp ON disc.sk_campanha = camp.sk_campanha
 GROUP BY camp.nm_campanha, camp.dt_inicio, camp.dt_fim, camp.fl_campanha_ativa;
 
--- ─── KPI 09 — Métricas Operacionais de Fila ──────────────────────────────
+-- ─── KPI 09 — Métricas Operacionais de Fila ───────────────────────────────
 CREATE OR REPLACE VIEW gold.vw_kpi_09_metricas_fila AS
 SELECT
     f.nm_fila,
@@ -153,7 +153,7 @@ JOIN gold.dim_fila f ON m.sk_fila = f.sk_fila
 JOIN gold.dim_data d ON m.sk_data = d.sk_data
 GROUP BY f.nm_fila, f.ds_tipo_canal, d.nr_ano, d.nr_mes;
 
--- ─── KPI 12 — Efetividade da URA ─────────────────────────────────────────
+-- ─── KPI 12 — Efetividade da URA ──────────────────────────────────────────
 CREATE OR REPLACE VIEW gold.vw_kpi_12_ura AS
 SELECT
     d.nr_ano,
