@@ -1,0 +1,76 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AthenaAccess",
+      "Effect": "Allow",
+      "Action": [
+        "athena:BatchGetQueryExecution",
+        "athena:GetQueryExecution",
+        "athena:GetQueryResults",
+        "athena:GetQueryResultsStream",
+        "athena:ListQueryExecutions",
+        "athena:StartQueryExecution",
+        "athena:StopQueryExecution",
+        "athena:ListWorkGroups",
+        "athena:GetWorkGroup",
+        "athena:GetDataCatalog",
+        "athena:ListDataCatalogs",
+        "athena:ListDatabases",
+        "athena:GetDatabase",
+        "athena:ListTableMetadata",
+        "athena:GetTableMetadata"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "GlueCatalogAccess",
+      "Effect": "Allow",
+      "Action": [
+        "glue:GetDatabases",
+        "glue:GetDatabase",
+        "glue:GetTables",
+        "glue:GetTable",
+        "glue:GetPartitions",
+        "glue:GetPartition"
+      ],
+      "Resource": [
+        "arn:aws:glue:us-east-1:*:catalog",
+        "arn:aws:glue:us-east-1:*:database/db_gold",
+        "arn:aws:glue:us-east-1:*:table/db_gold/*"
+      ]
+    },
+    {
+      "Sid": "S3DataAccess",
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetBucketLocation",
+        "s3:GetObject",
+        "s3:ListBucket",
+        "s3:ListBucketMultipartUploads",
+        "s3:ListMultipartUploadParts",
+        "s3:AbortMultipartUpload",
+        "s3:PutObject"
+      ],
+      "Resource": [
+        "arn:aws:s3:::act-cc-dev-lakehouse",
+        "arn:aws:s3:::act-cc-dev-lakehouse/*"
+      ]
+    },
+    {
+      "Sid": "AthenaResultsBucket",
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetBucketLocation",
+        "s3:GetObject",
+        "s3:ListBucket",
+        "s3:PutObject",
+        "s3:DeleteObject"
+      ],
+      "Resource": [
+        "arn:aws:s3:::act-cc-dev-lakehouse",
+        "arn:aws:s3:::act-cc-dev-lakehouse/athena-results/*"
+      ]
+    }
+  ]
+}

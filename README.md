@@ -52,6 +52,12 @@ Este projeto implementa um **Data Lakehouse completo** para operações de Conta
 - Star Schema com 11 dimensões + 11 tabelas fato, particionadas e otimizadas para Athena
 - 12 arquivos SQL com KPIs prontos para execução no Amazon Athena
 - 5 notebooks Jupyter com EDA, KPIs operacionais, performance de operadores, campanhas e canais digitais
+- Script boto3 de setup do Amazon QuickSight com 5 datasets SPICE e 5 páginas de dashboard
+- **Apache Airflow** (Docker Compose): 2 DAGs orquestrando os 40 Glue jobs + carga Redshift
+- **Redshift Serverless**: DDL completo (22 tabelas Gold + 8 views analíticas de KPI)
+- GitHub Actions CI/CD: 7 jobs (syntax check, lint, SQL validation, unit tests, JSON validation, DAG validation)
+- Terraform IaC: S3, IAM, Glue, Lambda, EventBridge, CloudWatch, Redshift Serverless
+- Suite de 240 testes pytest (sintaxe, SQL, transformações, infraestrutura, DAGs)
 - Custo operacional < $10/mês em escala de demonstração
 
 ---
@@ -140,7 +146,8 @@ Este projeto implementa um **Data Lakehouse completo** para operações de Conta
 |---|---|---|---|
 | Linguagem | Python | 3.9+ | Jobs, Lambda, scripts de infraestrutura |
 | Processamento | PySpark | 3.3 | Transformações ETL distribuídas |
-| Orquestração | AWS Glue Workflow | 4.0 | Pipeline event-driven com triggers encadeados |
+| Orquestração | Apache Airflow | 2.9.3 | DAGs com GlueJobOperator + TriggerDagRunOperator |
+| Orquestração (alt.) | AWS Glue Workflow | 4.0 | Pipeline event-driven com triggers encadeados |
 | Formato de tabela | Apache Iceberg | v2 | ACID, MERGE INTO, time travel, schema evolution |
 | Formato de arquivo | Parquet + Snappy | — | Compressão e leitura colunar eficiente |
 | Ingestão CDC | AWS DMS + Kinesis | — | Captura de mudanças via WAL PostgreSQL |
@@ -450,15 +457,43 @@ contact-center-data-lakehouse/
 ├── docs/
 │   ├── architecture.md               ← Decisões técnicas e trade-offs
 │   ├── cost-guide.md                 ← Estratégia de custo mínimo AWS
-│   └── manual-provisionamento-aws.md ← Passo a passo de setup (11 etapas)
+│   ├── manual-provisionamento-aws.md ← Passo a passo de setup (11 etapas)
+│   └── quicksight_guide.md           ← Setup QuickSight: datasource, datasets, 5 páginas BI
+│
+├── dags/                             ← Airflow DAGs
+│   ├── dag_pipeline_diario.py        ← Orquestração completa: 40 Glue jobs em 4 waves
+│   └── dag_carga_redshift.py         ← TRUNCATE + COPY Parquet → Redshift (22 tabelas)
 │
 ├── infrastructure/
 │   ├── 01_setup_s3.py                ← Bucket, pastas, lifecycle, versionamento
 │   ├── 02_setup_glue.py              ← Databases, 18 crawlers, IAM role, registro dos 40 jobs
 │   ├── 03_setup_lambda.py            ← Deploy da Lambda de trigger de crawler
-│   ├── 04_setup_redshift.py          ← Redshift Serverless + Spectrum
+│   ├── 04_setup_redshift.py          ← Redshift Serverless (boto3, original)
 │   ├── 05_setup_emr_serverless.py    ← EMR Serverless application
-│   └── 06_run_pipeline.py            ← Orquestrador: executa os 40 jobs em sequência
+│   ├── 06_run_pipeline.py            ← Orquestrador: executa os 40 jobs em sequência
+│   ├── airflow/
+│   │   ├── docker-compose.yaml       ← Airflow 2.9.3 local (webserver + scheduler + postgres)
+│   │   ├── .env.example              ← Template de variáveis (AWS, Redshift)
+│   │   └── requirements.txt          ← Providers Amazon + Postgres
+│   ├── quicksight/
+│   │   ├── 01_setup_quicksight.py    ← IAM role + Athena datasource + 5 datasets SPICE
+│   │   └── iam_quicksight_policy.json← Policy para QuickSight acessar Athena/S3/Glue
+│   ├── redshift/
+│   │   ├── ddl/
+│   │   │   ├── create_tables.sql     ← DDL das 22 tabelas Gold no Redshift
+│   │   │   └── create_views.sql      ← 8 views analíticas (KPIs 01–12)
+│   │   └── setup_redshift.py         ← Boto3: Namespace + Workgroup + IAM Role
+│   └── terraform/
+│       ├── main.tf                   ← Provider AWS, backend, data sources
+│       ├── variables.tf              ← Variáveis configuráveis (região, bucket, etc.)
+│       ├── s3.tf                     ← Bucket, versionamento, lifecycle, EventBridge
+│       ├── iam.tf                    ← Roles Glue, Lambda e QuickSight
+│       ├── glue.tf                   ← Databases, 40 jobs, workflow e triggers
+│       ├── lambda.tf                 ← Lambda + EventBridge (S3→crawler trigger)
+│       ├── cloudwatch.tf             ← Log groups (14 dias) + alarme de falha
+│       ├── redshift.tf               ← Redshift Serverless Namespace + Workgroup
+│       ├── outputs.tf                ← ARNs e nomes exportados após apply
+│       └── terraform.tfvars          ← Valores padrão para ambiente dev
 │
 ├── pipeline/
 │   ├── ingestion/
@@ -618,7 +653,43 @@ O script respeita a ordem de dependências entre as etapas:
    - `fato_mensagem_chat` → depende de `fato_chat`
    - `fato_ura_navegacao` → depende de `fato_chamada`
 
-### Passo 4 — Consultar KPIs com Athena
+### Passo 4 — Orquestrar com Airflow (alternativa ao boto3)
+
+```bash
+# 1. Configure as variáveis de ambiente
+cd infrastructure/airflow
+cp .env.example .env
+# Edite .env com suas credenciais AWS e Redshift
+
+# 2. Inicialize o banco do Airflow e crie o usuário admin
+docker compose up airflow-init
+
+# 3. Suba o ambiente
+docker compose up -d
+
+# 4. Acesse http://localhost:8080  (admin/admin)
+#    Ative a DAG: cc_pipeline_diario
+#    Dispare manualmente ou aguarde o schedule 02:00 UTC
+```
+
+A DAG `cc_pipeline_diario` executa as 4 waves de jobs Glue e ao final aciona automaticamente a `cc_carga_redshift`, que faz TRUNCATE + COPY Parquet para o Redshift Serverless.
+
+### Passo 5 — Setup Redshift e carga
+
+```bash
+# Provisiona Redshift Serverless via boto3
+python infrastructure/redshift/setup_redshift.py \
+  --aws-account-id 123456789012 \
+  --wait
+
+# Cria schema, tabelas e views
+psql -h <endpoint> -U admin -d dev \
+  -f infrastructure/redshift/ddl/create_tables.sql
+psql -h <endpoint> -U admin -d dev \
+  -f infrastructure/redshift/ddl/create_views.sql
+```
+
+### Passo 6 — Consultar KPIs com Athena
 
 ```sql
 -- Exemplo: Volume e TMA de chamadas por fila e data
