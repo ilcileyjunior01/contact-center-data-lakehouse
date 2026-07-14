@@ -158,7 +158,7 @@ def create_emr_execution_role(
         response = iam_client.create_role(
             RoleName=EXECUTION_ROLE_NAME,
             AssumeRolePolicyDocument=assume_role_policy,
-            Description="Role de execução EMR Serverless — Contact Center Data Lakehouse",
+            Description="Role de execucao EMR Serverless - Contact Center Data Lakehouse",
             Tags=[
                 {"Key": "project", "Value": "contact-center-data-lakehouse"},
                 {"Key": "created_by", "Value": "05_setup_emr_serverless.py"},

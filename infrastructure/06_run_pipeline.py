@@ -1,29 +1,29 @@
 """
 06_run_pipeline.py
 ==================
-Contact Center Data Lakehouse — Execução Sequencial do Pipeline Glue
+Contact Center Data Lakehouse - Execu--o Sequencial do Pipeline Glue
 
-Executa os 40 jobs Glue na ordem correta, respeitando dependências:
+Executa os 40 jobs Glue na ordem correta, respeitando depend-ncias:
 
-  Etapa 1 — Bronze → Silver  (18 jobs, lotes paralelos de MAX_PARALLEL)
-  Etapa 2 — Silver → Gold Dims (11 jobs, paralelo total)
-  Etapa 3 — Silver → Gold Fatos Wave 1 (8 jobs sem dep. de outros fatos)
-  Etapa 4 — Silver → Gold Fatos Wave 2 (3 jobs que dependem de Wave 1)
+  Etapa 1 - Bronze -> Silver  (18 jobs, lotes paralelos de MAX_PARALLEL)
+  Etapa 2 - Silver -> Gold Dims (11 jobs, paralelo total)
+  Etapa 3 - Silver -> Gold Fatos Wave 1 (8 jobs sem dep. de outros fatos)
+  Etapa 4 - Silver -> Gold Fatos Wave 2 (3 jobs que dependem de Wave 1)
 
 Uso:
     python 06_run_pipeline.py
     python 06_run_pipeline.py --bucket-name act-cc-dev-lakehouse --env dev
-    python 06_run_pipeline.py --only bronze         # só etapa Bronze→Silver
-    python 06_run_pipeline.py --only dims           # só dimensões
-    python 06_run_pipeline.py --only fatos          # só fatos (waves 1+2)
+    python 06_run_pipeline.py --only bronze         # s- etapa Bronze->Silver
+    python 06_run_pipeline.py --only dims           # s- dimens-es
+    python 06_run_pipeline.py --only fatos          # s- fatos (waves 1+2)
     python 06_run_pipeline.py --only gold           # dims + fatos
-    python 06_run_pipeline.py --job job-tb-chamada-bronze-to-silver  # job único
+    python 06_run_pipeline.py --job job-tb-chamada-bronze-to-silver  # job -nico
     python 06_run_pipeline.py --max-parallel 3      # limita paralelismo
     python 06_run_pipeline.py --dry-run             # mostra o que seria executado
 
 Requisitos:
     pip install boto3
-    Credenciais AWS configuradas com permissão de execução em Glue
+    Credenciais AWS configuradas com permiss-o de execu--o em Glue
 """
 
 import argparse
@@ -43,10 +43,10 @@ DEFAULT_REGION      = "us-east-1"
 DEFAULT_ENV         = "dev"
 DEFAULT_MAX_PARALLEL = 5
 JOB_TIMEOUT_MINUTES = 45    # encerra polling se job demorar demais
-POLL_INTERVAL_SEC   = 20    # intervalo entre verificações de estado
+POLL_INTERVAL_SEC   = 20    # intervalo entre verifica--es de estado
 
 # ---------------------------------------------------------------------------
-# Pipeline: definição das etapas e ordem de execução
+# Pipeline: defini--o das etapas e ordem de execu--o
 # ---------------------------------------------------------------------------
 
 BRONZE_TO_SILVER = [
@@ -84,11 +84,11 @@ SILVER_TO_GOLD_DIMS = [
     "job-dim-prioridade-ticket-gold",
 ]
 
-# Wave 1: fatos independentes (sem dependência de outros fatos Gold)
+# Wave 1: fatos independentes (sem depend-ncia de outros fatos Gold)
 SILVER_TO_GOLD_FATOS_W1 = [
-    "job-fato-chamada-gold",            # base — fato_ura_navegacao depende deste
-    "job-fato-chat-gold",               # base — fato_mensagem_chat depende deste
-    "job-fato-ticket-gold",             # base — fato_interacao_ticket depende deste
+    "job-fato-chamada-gold",            # base - fato_ura_navegacao depende deste
+    "job-fato-chat-gold",               # base - fato_mensagem_chat depende deste
+    "job-fato-ticket-gold",             # base - fato_interacao_ticket depende deste
     "job-fato-whatsapp-gold",
     "job-fato-qualidade-gold",
     "job-fato-discagem-gold",           # deps: dim_campanha, dim_cliente, dim_data
@@ -112,7 +112,7 @@ ALL_JOBS = (
 
 
 # ---------------------------------------------------------------------------
-# Helpers de formatação
+# Helpers de formata--o
 # ---------------------------------------------------------------------------
 
 def now_str() -> str:
@@ -126,7 +126,7 @@ def elapsed(start: float) -> str:
 
 def _bar(total: int, done: int, width: int = 30) -> str:
     filled = int(width * done / max(total, 1))
-    return "[" + "█" * filled + "░" * (width - filled) + f"] {done}/{total}"
+    return "[" + "-" * filled + "-" * (width - filled) + f"] {done}/{total}"
 
 
 def print_header(title: str) -> None:
@@ -136,13 +136,13 @@ def print_header(title: str) -> None:
 
 
 def print_stage(label: str, jobs: list, total_stages: int, stage_num: int) -> None:
-    print(f"\n{'─' * 65}")
-    print(f"  ETAPA {stage_num}/{total_stages} — {label}  ({len(jobs)} jobs)")
-    print(f"{'─' * 65}")
+    print(f"\n{'-' * 65}")
+    print(f"  ETAPA {stage_num}/{total_stages} - {label}  ({len(jobs)} jobs)")
+    print(f"{'-' * 65}")
 
 
 # ---------------------------------------------------------------------------
-# Execução de job individual
+# Execu--o de job individual
 # ---------------------------------------------------------------------------
 
 def start_job(glue_client, job_name: str, bucket: str, env: str) -> str:
@@ -210,7 +210,7 @@ def poll_job(
                 "run_id":       run_id,
                 "state":        "TIMEOUT_POLL",
                 "duration_sec": int(time.time() - start),
-                "message":      f"Polling timeout após {timeout_minutes}min",
+                "message":      f"Polling timeout ap-s {timeout_minutes}min",
             }
 
         time.sleep(POLL_INTERVAL_SEC)
@@ -231,24 +231,24 @@ def run_single_job(
     t0 = time.time()
     try:
         run_id = start_job(glue_client, job_name, bucket, env)
-        print(f"    [{now_str()}] INICIADO  {job_name}  (run: {run_id[:8]}…)")
+        print(f"    [{now_str()}] INICIADO  {job_name}  (run: {run_id[:8]}-)")
         result = poll_job(glue_client, job_name, run_id)
-        icon   = "✓" if result["state"] == "SUCCEEDED" else "✗"
+        icon   = "[OK]" if result["state"] == "SUCCEEDED" else "[FAIL]"
         dur    = elapsed(t0)
         print(f"    [{now_str()}] {icon} {result['state']:<14} {job_name}  ({dur})")
         if result["message"]:
-            print(f"             └─ {result['message'][:120]}")
+            print(f"             +- {result['message'][:120]}")
         return result
     except RuntimeError as e:
         dur = elapsed(t0)
-        print(f"    [{now_str()}] ✗ START_FAILED   {job_name}  ({dur})")
-        print(f"             └─ {str(e)[:120]}")
+        print(f"    [{now_str()}] [FAIL] START_FAILED   {job_name}  ({dur})")
+        print(f"             +- {str(e)[:120]}")
         return {"job_name": job_name, "run_id": None, "state": "START_FAILED",
                 "duration_sec": int(time.time() - t0), "message": str(e)}
 
 
 # ---------------------------------------------------------------------------
-# Execução em lotes paralelos
+# Execu--o em lotes paralelos
 # ---------------------------------------------------------------------------
 
 def run_batch(
@@ -274,14 +274,14 @@ def run_batch(
         batch = jobs[batch_start : batch_start + max_parallel]
 
         if fail_fast and failed:
-            print(f"\n  [ABORTANDO] fail_fast ativo — {len(failed)} falha(s) detectada(s).")
+            print(f"\n  [ABORTANDO] fail_fast ativo - {len(failed)} falha(s) detectada(s).")
             # Marca os restantes como SKIPPED
             for jn in jobs[batch_start:]:
                 results.append({"job_name": jn, "run_id": None, "state": "SKIPPED",
                                  "duration_sec": 0, "message": "fail_fast"})
             break
 
-        print(f"\n  Lote {batch_start // max_parallel + 1} — {_bar(total, done)}")
+        print(f"\n  Lote {batch_start // max_parallel + 1} - {_bar(total, done)}")
 
         with ThreadPoolExecutor(max_workers=len(batch)) as executor:
             futures = {
@@ -299,7 +299,7 @@ def run_batch(
 
 
 # ---------------------------------------------------------------------------
-# Orquestração por etapas
+# Orquestra--o por etapas
 # ---------------------------------------------------------------------------
 
 def run_stage(
@@ -322,13 +322,13 @@ def run_stage(
     succeeded = [r for r in results if r["state"] == "SUCCEEDED"]
     failed    = [r for r in results if r["state"] not in ("SUCCEEDED", "SKIPPED")]
 
-    print(f"\n  Etapa concluída em {elapsed(t0)}")
+    print(f"\n  Etapa conclu-da em {elapsed(t0)}")
     print(f"  Resultado: {len(succeeded)} sucesso(s) | {len(failed)} falha(s) | {len(jobs)} total")
 
     if failed:
         print("  Jobs com falha:")
         for r in failed:
-            print(f"    ✗ {r['job_name']} → {r['state']}")
+            print(f"    [FAIL] {r['job_name']} -> {r['state']}")
             if r.get("message"):
                 print(f"      {r['message'][:100]}")
 
@@ -336,42 +336,42 @@ def run_stage(
 
 
 # ---------------------------------------------------------------------------
-# Relatório final
+# Relat-rio final
 # ---------------------------------------------------------------------------
 
 def print_report(all_results: list, pipeline_start: float) -> bool:
-    """Imprime relatório final. Retorna True se pipeline foi bem-sucedido."""
-    print_header("RELATÓRIO FINAL DO PIPELINE")
+    """Imprime relat-rio final. Retorna True se pipeline foi bem-sucedido."""
+    print_header("RELAT-RIO FINAL DO PIPELINE")
 
     succeeded = [r for r in all_results if r["state"] == "SUCCEEDED"]
     failed    = [r for r in all_results if r["state"] not in ("SUCCEEDED", "SKIPPED", "dry-run")]
     skipped   = [r for r in all_results if r["state"] == "SKIPPED"]
     total     = len(all_results)
 
-    print(f"\n  Duração total : {elapsed(pipeline_start)}")
+    print(f"\n  Dura--o total : {elapsed(pipeline_start)}")
     print(f"  Jobs totais   : {total}")
-    print(f"  ✓ Sucesso     : {len(succeeded)}")
-    print(f"  ✗ Falha       : {len(failed)}")
-    print(f"  ⊘ Pulados     : {len(skipped)}")
+    print(f"  [OK] Sucesso     : {len(succeeded)}")
+    print(f"  [FAIL] Falha       : {len(failed)}")
+    print(f"  - Pulados     : {len(skipped)}")
 
     if succeeded:
-        print(f"\n  ── Sucessos ──")
+        print(f"\n  -- Sucessos --")
         for r in succeeded:
             dur = str(timedelta(seconds=r["duration_sec"]))
-            print(f"    ✓ {r['job_name']:<50} {dur}")
+            print(f"    [OK] {r['job_name']:<50} {dur}")
 
     if failed:
-        print(f"\n  ── Falhas ──")
+        print(f"\n  -- Falhas --")
         for r in failed:
-            print(f"    ✗ {r['job_name']}")
+            print(f"    [FAIL] {r['job_name']}")
             print(f"      Estado  : {r['state']}")
             if r.get("message"):
                 print(f"      Mensagem: {r['message'][:120]}")
 
     if skipped:
-        print(f"\n  ── Pulados (fail_fast) ──")
+        print(f"\n  -- Pulados (fail_fast) --")
         for r in skipped:
-            print(f"    ⊘ {r['job_name']}")
+            print(f"    - {r['job_name']}")
 
     status = "SUCESSO" if not failed else "FALHA"
     print(f"\n{'=' * 65}")
@@ -390,27 +390,27 @@ def parse_args() -> argparse.Namespace:
         description="Executa o pipeline Contact Center Data Lakehouse no Glue"
     )
     parser.add_argument("--bucket-name",   default=DEFAULT_BUCKET,
-                        help=f"Bucket S3 (padrão: {DEFAULT_BUCKET})")
+                        help=f"Bucket S3 (padr-o: {DEFAULT_BUCKET})")
     parser.add_argument("--region",        default=DEFAULT_REGION,
-                        help=f"Região AWS (padrão: {DEFAULT_REGION})")
+                        help=f"Regi-o AWS (padr-o: {DEFAULT_REGION})")
     parser.add_argument("--env",           default=DEFAULT_ENV,
-                        help=f"Ambiente: dev | prod (padrão: {DEFAULT_ENV})")
+                        help=f"Ambiente: dev | prod (padr-o: {DEFAULT_ENV})")
     parser.add_argument("--max-parallel",  type=int, default=DEFAULT_MAX_PARALLEL,
-                        help=f"Máx. jobs simultâneos por lote (padrão: {DEFAULT_MAX_PARALLEL})")
+                        help=f"M-x. jobs simult-neos por lote (padr-o: {DEFAULT_MAX_PARALLEL})")
     parser.add_argument(
         "--only",
         choices=["bronze", "dims", "fatos", "gold"],
         default=None,
         help=(
             "Executa apenas uma etapa:\n"
-            "  bronze = Bronze→Silver\n"
-            "  dims   = Silver→Gold Dimensões\n"
-            "  fatos  = Silver→Gold Fatos (waves 1+2)\n"
+            "  bronze = Bronze->Silver\n"
+            "  dims   = Silver->Gold Dimens-es\n"
+            "  fatos  = Silver->Gold Fatos (waves 1+2)\n"
             "  gold   = Dims + Fatos"
         ),
     )
     parser.add_argument("--job", default=None,
-                        help="Executa apenas um job específico pelo nome")
+                        help="Executa apenas um job espec-fico pelo nome")
     parser.add_argument("--fail-fast", action="store_true",
                         help="Aborta as etapas seguintes se houver falha")
     parser.add_argument("--dry-run", action="store_true",
@@ -427,9 +427,9 @@ def main():
     fail_fast    = args.fail_fast
     dry_run      = args.dry_run
 
-    print_header("Contact Center Data Lakehouse — Pipeline Runner")
+    print_header("Contact Center Data Lakehouse - Pipeline Runner")
     print(f"  Bucket       : {bucket}")
-    print(f"  Região       : {region}")
+    print(f"  Regi-o       : {region}")
     print(f"  Ambiente     : {env}")
     print(f"  Max paralelo : {max_parallel}")
     print(f"  Fail fast    : {fail_fast}")
@@ -437,16 +437,16 @@ def main():
     if args.only:
         print(f"  Filtro       : --only {args.only}")
     if args.job:
-        print(f"  Job único    : {args.job}")
+        print(f"  Job -nico    : {args.job}")
 
     glue_client  = boto3.client("glue", region_name=region)
     pipeline_t0  = time.time()
     all_results  = []
 
-    # ── Job único ──────────────────────────────────────────────────────────
+    # -- Job -nico ----------------------------------------------------------
     if args.job:
         if args.job not in ALL_JOBS:
-            print(f"\n[ERRO] Job '{args.job}' não encontrado. Jobs disponíveis:")
+            print(f"\n[ERRO] Job '{args.job}' n-o encontrado. Jobs dispon-veis:")
             for j in ALL_JOBS:
                 print(f"  {j}")
             sys.exit(1)
@@ -455,7 +455,7 @@ def main():
         ok = print_report(all_results, pipeline_t0)
         sys.exit(0 if ok else 1)
 
-    # ── Definição das etapas a executar ────────────────────────────────────
+    # -- Defini--o das etapas a executar ------------------------------------
     stages = []
 
     run_bronze = args.only in (None, "bronze")
@@ -463,12 +463,12 @@ def main():
     run_fatos  = args.only in (None, "fatos", "gold")
 
     if run_bronze:
-        stages.append(("Bronze → Silver (18 jobs)", BRONZE_TO_SILVER))
+        stages.append(("Bronze -> Silver (18 jobs)", BRONZE_TO_SILVER))
     if run_dims:
-        stages.append(("Silver → Gold: Dimensões (11 jobs)", SILVER_TO_GOLD_DIMS))
+        stages.append(("Silver -> Gold: Dimens-es (11 jobs)", SILVER_TO_GOLD_DIMS))
     if run_fatos:
-        stages.append(("Silver → Gold: Fatos Wave 1 (8 jobs)", SILVER_TO_GOLD_FATOS_W1))
-        stages.append(("Silver → Gold: Fatos Wave 2 — deps de Wave 1 (3 jobs)", SILVER_TO_GOLD_FATOS_W2))
+        stages.append(("Silver -> Gold: Fatos Wave 1 (8 jobs)", SILVER_TO_GOLD_FATOS_W1))
+        stages.append(("Silver -> Gold: Fatos Wave 2 - deps de Wave 1 (3 jobs)", SILVER_TO_GOLD_FATOS_W2))
 
     total_stages = len(stages)
 
@@ -477,10 +477,10 @@ def main():
         for i, (label, jobs) in enumerate(stages, 1):
             print(f"\n  Etapa {i}: {label}")
             for j in jobs:
-                print(f"    → {j}")
+                print(f"    -> {j}")
         print()
 
-    # ── Execução das etapas ─────────────────────────────────────────────────
+    # -- Execu--o das etapas -------------------------------------------------
     abort = False
     for i, (label, jobs) in enumerate(stages, 1):
         if abort:
@@ -506,7 +506,7 @@ def main():
         )
         all_results.extend(results)
 
-        # Se fail_fast e houve falha na etapa → aborta próximas
+        # Se fail_fast e houve falha na etapa -> aborta pr-ximas
         if fail_fast:
             stage_failed = [r for r in results if r["state"] not in ("SUCCEEDED", "SKIPPED")]
             if stage_failed:
