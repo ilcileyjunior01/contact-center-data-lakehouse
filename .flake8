@@ -1,0 +1,45 @@
+[flake8]
+# Comprimento máximo de linha — jobs PySpark têm linhas longas por natureza
+max-line-length = 120
+
+# Erros ignorados:
+#   E501  — linha muito longa (controlado pelo max-line-length acima)
+#   W503  — quebra de linha antes de operador (estilo PySpark com .withColumn encadeado)
+#   W504  — quebra de linha após operador
+#   E402  — módulo importado fora do topo (getResolvedOptions vem antes dos imports em alguns jobs)
+#   F401  — imported but unused (awsglue imports usados pelo runtime, não diretamente)
+#   E741  — ambiguous variable name (usado 'l' em alguns loops)
+extend-ignore = E501, W503, W504, E402, F401, E741
+
+# Arquivos e pastas ignorados
+exclude =
+    .git,
+    __pycache__,
+    .eggs,
+    *.egg,
+    venv,
+    .venv,
+    build,
+    dist,
+    notebooks/,
+    data/synthetic/output/
+
+# Complexidade ciclomática máxima
+max-complexity = 15
+
+# Regras do flake8-bugbear habilitadas
+extend-select = B
+
+# Ignorar B950 (bugbear — line too long) pois já controlamos pelo max-line-length
+extend-ignore = B950
+
+# Plugins
+per-file-ignores =
+    # Jobs Glue: ignorar F811 (redefinition) pois awsglue é injetado pelo runtime
+    pipeline/bronze_to_silver/*.py: F811, E501
+    pipeline/silver_to_gold/*.py: F811, E501
+    # Scripts de infra podem ter linhas longas de ARN e URLs
+    infrastructure/*.py: E501
+    infrastructure/**/*.py: E501
+    # Testes podem usar assert sem parênteses
+    tests/*.py: S101
