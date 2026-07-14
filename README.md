@@ -536,7 +536,8 @@ contact-center-data-lakehouse/
     ├── 01_exploratory_data_analysis.ipynb
     ├── 02_kpi_operacional.ipynb
     ├── 03_performance_operadores.ipynb
-    └── 04_analise_campanhas.ipynb
+    ├── 04_analise_campanhas.ipynb
+    └── 05_canais_digitais.ipynb
 ```
 
 ---
