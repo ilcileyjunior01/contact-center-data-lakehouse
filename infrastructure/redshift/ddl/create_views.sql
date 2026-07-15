@@ -121,18 +121,19 @@ JOIN gold.dim_data d ON w.sk_data_inicio = d.sk_data
 GROUP BY d.nr_ano, d.nr_mes;
 
 -- ─── KPI 08 — Desempenho de Campanhas ─────────────────────────────────────
+-- sk_campanha = -1 é registro sentinela (DESCONHECIDO) com datas NULL
 CREATE OR REPLACE VIEW gold.vw_kpi_08_campanhas AS
 SELECT
     camp.nm_campanha,
-    camp.dt_inicio,
-    camp.dt_fim,
+    COALESCE(CAST(camp.dt_inicio AS VARCHAR), 'N/A') AS dt_inicio,
+    COALESCE(CAST(camp.dt_fim    AS VARCHAR), 'N/A') AS dt_fim,
     camp.fl_campanha_ativa,
-    COUNT(disc.sk_discagem)                         AS nr_total_discagens,
-    SUM(disc.fl_discagem_atendida)                  AS nr_atendidas,
+    COUNT(disc.sk_discagem)                          AS nr_total_discagens,
+    SUM(disc.fl_discagem_atendida)                   AS nr_atendidas,
     ROUND(
         100.0 * SUM(disc.fl_discagem_atendida) / NULLIF(COUNT(disc.sk_discagem), 0),
         2
-    )                                               AS pct_taxa_atendimento
+    )                                                AS pct_taxa_atendimento
 FROM gold.fato_discagem disc
 JOIN gold.dim_campanha camp ON disc.sk_campanha = camp.sk_campanha
 GROUP BY camp.nm_campanha, camp.dt_inicio, camp.dt_fim, camp.fl_campanha_ativa;
