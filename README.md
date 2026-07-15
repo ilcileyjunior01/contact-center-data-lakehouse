@@ -5,9 +5,11 @@
 [![AWS Glue](https://img.shields.io/badge/AWS-Glue%204.0-FF9900?logo=amazonaws)](https://aws.amazon.com/glue/)
 [![Apache Iceberg](https://img.shields.io/badge/Apache-Iceberg%20v2-4A90D9)](https://iceberg.apache.org/)
 [![Athena](https://img.shields.io/badge/AWS-Athena-FF9900?logo=amazonaws)](https://aws.amazon.com/athena/)
+[![Airflow](https://img.shields.io/badge/Apache-Airflow%202.9.3-017CEE?logo=apacheairflow)](https://airflow.apache.org/)
+[![Redshift](https://img.shields.io/badge/AWS-Redshift%20Serverless-8C4FFF?logo=amazonaws)](https://aws.amazon.com/redshift/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-Pipeline de dados **end-to-end** para Contact Center implementado como um **Data Lakehouse na AWS**. O projeto cobre ingestão via CDC, processamento em camadas com arquitetura Medallion (Bronze → Silver → Gold), modelagem dimensional Star Schema e análise analítica com Athena, Redshift Serverless e EMR Serverless.
+Pipeline de dados **end-to-end** para Contact Center implementado como um **Data Lakehouse na AWS**. O projeto cobre ingestão via CDC, processamento em camadas com arquitetura Medallion (Bronze → Silver → Gold), modelagem dimensional Star Schema, análise analítica com Athena e **carga real no Amazon Redshift Serverless** orquestrada pelo Apache Airflow.
 
 ---
 
@@ -19,6 +21,8 @@ Pipeline de dados **end-to-end** para Contact Center implementado como um **Data
 - [Pipeline Bronze → Silver](#pipeline-bronze--silver)
 - [Pipeline Silver → Gold](#pipeline-silver--gold)
 - [Modelo de Dados Gold](#modelo-de-dados-gold)
+- [Redshift Serverless](#redshift-serverless)
+- [Airflow — Orquestração](#airflow--orquestração)
 - [Padrões de Engenharia](#padrões-de-engenharia)
 - [Conformidade LGPD](#conformidade-lgpd)
 - [Estrutura do Repositório](#estrutura-do-repositório)
@@ -53,8 +57,9 @@ Este projeto implementa um **Data Lakehouse completo** para operações de Conta
 - 12 arquivos SQL com KPIs prontos para execução no Amazon Athena
 - 5 notebooks Jupyter com EDA, KPIs operacionais, performance de operadores, campanhas e canais digitais
 - Script boto3 de setup do Amazon QuickSight com 5 datasets SPICE e 5 páginas de dashboard
-- **Apache Airflow** (Docker Compose): 2 DAGs orquestrando os 40 Glue jobs + carga Redshift
-- **Redshift Serverless**: DDL completo (22 tabelas Gold + 8 views analíticas de KPI)
+- **Apache Airflow 2.9.3** (Docker Compose): 2 DAGs orquestrando os 40 Glue jobs + carga Redshift
+- **Redshift Serverless provisionado e carregado**: 22 tabelas Gold + 9 views analíticas de KPI com dados reais
+- Estratégia de carga **Athena UNLOAD → S3 staging → Redshift COPY** (compatível com Iceberg v2)
 - GitHub Actions CI/CD: 7 jobs (syntax check, lint, SQL validation, unit tests, JSON validation, DAG validation)
 - Terraform IaC: S3, IAM, Glue, Lambda, EventBridge, CloudWatch, Redshift Serverless
 - Suite de 240 testes pytest (sintaxe, SQL, transformações, infraestrutura, DAGs)
@@ -129,10 +134,20 @@ Este projeto implementa um **Data Lakehouse completo** para operações de Conta
                          └───────────────────────────────────────┬─────────────┘
                                                                  │
                          ┌───────────────────────────────────────▼─────────────┐
+                         │              CARGA REDSHIFT (via Athena UNLOAD)      │
+                         │                                                       │
+                         │  Athena UNLOAD (Iceberg → CSV)                       │
+                         │      → s3://.../redshift-staging/<tabela>/           │
+                         │      → Redshift COPY (CSV)                           │
+                         │                                                       │
+                         │  Orquestrado pela DAG cc_carga_redshift (Airflow)    │
+                         └───────────────────────────────────────┬─────────────┘
+                                                                 │
+                         ┌───────────────────────────────────────▼─────────────┐
                          │                  CAMADA ANALÍTICA                    │
                          │                                                       │
                          │  Amazon Athena        → SQL ad-hoc serverless        │
-                         │  Redshift Serverless  → DW + Spectrum sobre Iceberg  │
+                         │  Redshift Serverless  → DW com 22 tabelas + 9 views  │
                          │  EMR Serverless       → jobs Spark sem cluster fixo  │
                          │  Amazon QuickSight    → dashboards BI                │
                          └───────────────────────────────────────────────────────┘
@@ -152,8 +167,8 @@ Este projeto implementa um **Data Lakehouse completo** para operações de Conta
 | Formato de arquivo | Parquet + Snappy | — | Compressão e leitura colunar eficiente |
 | Ingestão CDC | AWS DMS + Kinesis | — | Captura de mudanças via WAL PostgreSQL |
 | Metadados | Glue Data Catalog | — | Catálogo unificado Bronze / Silver / Gold |
-| Query engine | Amazon Athena | — | SQL serverless sobre S3/Iceberg |
-| Data Warehouse | Redshift Serverless | — | Analytics com auto-pause e Spectrum |
+| Query engine | Amazon Athena | — | SQL serverless sobre S3/Iceberg; UNLOAD para staging |
+| Data Warehouse | Redshift Serverless | — | DW com 22 tabelas + 9 views KPI; auto-pause |
 | Spark alternativo | EMR Serverless | — | Jobs Spark sem gerenciamento de cluster |
 | Governança PII | AWS Lake Formation | — | Controle de acesso por coluna |
 | Monitoramento | CloudWatch + SNS | — | Logs estruturados, alertas de falha |
@@ -321,6 +336,131 @@ Ler dimensões/fatos dependentes (spark.table)
 
 ---
 
+## Redshift Serverless
+
+### Infraestrutura Provisionada
+
+```
+Namespace : cc-lakehouse-namespace
+Workgroup : cc-lakehouse-workgroup  (8 RPUs, auto-pause 30 min)
+Database  : dev
+Schema    : gold
+Endpoint  : cc-lakehouse-workgroup.642825398802.us-east-1.redshift-serverless.amazonaws.com:5439
+```
+
+O workgroup é configurado com `publicly_accessible = false`. Toda a comunicação usa o **Redshift Data API** (boto3 `redshift-data`) via HTTPS, sem necessidade de conexão TCP direta.
+
+### Estratégia de Carga: Athena UNLOAD → S3 Staging → Redshift COPY
+
+As tabelas Gold usam **Apache Iceberg v2**, que armazena metadados (`.metadata.json`, `.avro`) no mesmo prefixo S3 dos dados. O Redshift COPY direto falha ao encontrar esses arquivos. A solução:
+
+```
+1. Athena UNLOAD
+   SELECT date_format(dt_ingestao_gold, '%Y-%m-%d %H:%i:%S'), ...
+   FROM db_gold.<tabela>
+   TO 's3://act-cc-dev-lakehouse/redshift-staging/<tabela>/'
+   WITH (format='TEXTFILE', field_delimiter=',')
+
+   ↳ Athena lê o Iceberg nativamente via Glue Catalog
+   ↳ Converte timestamp(6) with time zone → string (evita incompatibilidade)
+   ↳ Gera CSV limpo sem metadados Iceberg
+
+2. Redshift COPY
+   COPY gold.<tabela>
+   FROM 's3://act-cc-dev-lakehouse/redshift-staging/<tabela>/'
+   IAM_ROLE 'arn:aws:iam::...:role/RedshiftS3CopyRole-ContactCenter'
+   DELIMITER ',' DATEFORMAT 'auto' TIMEFORMAT 'auto'
+   ACCEPTINVCHARS BLANKSASNULL EMPTYASNULL REMOVEQUOTES;
+```
+
+### Tabelas e Views no Redshift
+
+**22 tabelas** carregadas no schema `gold` com dados reais:
+
+| Tipo | Tabela | Registros | DISTKEY | SORTKEY |
+|---|---|---:|---|---|
+| DIM | dim_data | 5.844 | ALL | sk_data |
+| DIM | dim_cliente | 4.159 | sk_cliente | nk_cliente |
+| DIM | dim_operador | 208 | ALL | nk_operador |
+| DIM | dim_fila | 17 | ALL | — |
+| DIM | dim_canal | 6 | ALL | — |
+| DIM | dim_status_chamada | 5 | ALL | — |
+| DIM | dim_status_ticket | 5 | ALL | — |
+| DIM | dim_campanha | 25 | ALL | dt_inicio |
+| DIM | dim_categoria_ticket | 5 | ALL | — |
+| DIM | dim_prioridade_ticket | 5 | ALL | — |
+| DIM | dim_skill | 26 | ALL | — |
+| FATO | fato_chamada | 4.168 | sk_chamada | sk_data_inicio |
+| FATO | fato_ticket | 2.059 | sk_ticket | sk_data_abertura |
+| FATO | fato_qualidade | 2.504 | sk_avaliacao | sk_data |
+| FATO | fato_discagem | 4.189 | sk_discagem | sk_data |
+| FATO | fato_ura_navegacao | 4.126 | sk_ura | sk_data |
+| FATO | fato_chat | 2.113 | sk_chat | sk_data_inicio |
+| FATO | fato_whatsapp | 1.386 | sk_whatsapp | sk_data_inicio |
+| FATO | fato_jornada_operador | 5.985 | sk_jornada | sk_data |
+| FATO | fato_metricas_operacionais | 4.187 | sk_metrica | sk_data |
+| FATO | fato_interacao_ticket | 2.494 | sk_interacao | sk_data |
+| FATO | fato_mensagem_chat | 4.905 | sk_mensagem | sk_data |
+
+**9 views analíticas** validadas com dados reais:
+
+| View | KPI | Linhas |
+|---|---|---:|
+| `vw_kpi_01_volume_chamadas` | Volume, TMA, taxa de atendimento por mês/status | 144 |
+| `vw_kpi_02_performance_operadores` | Ranking de operadores por chamadas e TMA | 208 |
+| `vw_kpi_03_qualidade` | Nota média, % aprovados, % críticos por operador/mês | 1.523 |
+| `vw_kpi_04_volume_tickets` | Volume por status, categoria e prioridade | 1.350 |
+| `vw_kpi_05_eficiencia_tickets` | TRT médio em minutos/horas, % SLA cumprido | 144 |
+| `vw_kpi_06_volume_digital` | Atendimentos Chat e WhatsApp por mês | 72 |
+| `vw_kpi_08_campanhas` | Taxa de atendimento por campanha | 25 |
+| `vw_kpi_09_metricas_fila` | Nível de serviço, TMA, TME, abandono por fila/mês | 611 |
+| `vw_kpi_12_ura` | Navegações URA, opções mais usadas, % abandono | 252 |
+
+---
+
+## Airflow — Orquestração
+
+### DAG 1: cc_pipeline_diario
+
+Schedule: `0 2 * * *` (diário às 02:00 UTC). Executa os 40 Glue jobs em 4 waves e ao final aciona a carga no Redshift.
+
+```
+inicio
+  └─► [Wave 1] 18 jobs Bronze→Silver (paralelo)
+        └─► fim_bronze
+              └─► [Wave 2] 11 jobs Silver→Gold Dimensões (paralelo)
+                    └─► fim_dims
+                          └─► [Wave 3] 7 jobs Fatos base (paralelo)
+                                └─► fim_wave1
+                                      └─► [Wave 4] 4 jobs Fatos dependentes (paralelo)
+                                            └─► fim_pipeline
+                                                  └─► TriggerDagRunOperator → cc_carga_redshift
+```
+
+### DAG 2: cc_carga_redshift
+
+Schedule: `None` (acionada pela DAG 1). Faz TRUNCATE + COPY das 22 tabelas Gold no Redshift Serverless.
+
+```
+dims em paralelo (11 tabelas)
+  └─► gate_dims
+        └─► fatos em paralelo (11 tabelas)
+```
+
+### Setup local
+
+```bash
+cd infrastructure/airflow
+cp .env.example .env
+# Edite .env com AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, REDSHIFT_PASSWORD
+
+docker compose up airflow-init
+docker compose up -d
+# Acesse http://localhost:8080  (admin/admin)
+```
+
+---
+
 ## Padrões de Engenharia
 
 ### 1. Idempotência via MERGE + Hash MD5
@@ -462,7 +602,7 @@ contact-center-data-lakehouse/
 │
 ├── dags/                             ← Airflow DAGs
 │   ├── dag_pipeline_diario.py        ← Orquestração completa: 40 Glue jobs em 4 waves
-│   └── dag_carga_redshift.py         ← TRUNCATE + COPY Parquet → Redshift (22 tabelas)
+│   └── dag_carga_redshift.py         ← TRUNCATE + COPY → Redshift (22 tabelas, schedule=None)
 │
 ├── infrastructure/
 │   ├── 01_setup_s3.py                ← Bucket, pastas, lifecycle, versionamento
@@ -480,9 +620,9 @@ contact-center-data-lakehouse/
 │   │   └── iam_quicksight_policy.json← Policy para QuickSight acessar Athena/S3/Glue
 │   ├── redshift/
 │   │   ├── ddl/
-│   │   │   ├── create_tables.sql     ← DDL das 22 tabelas Gold no Redshift
-│   │   │   └── create_views.sql      ← 8 views analíticas (KPIs 01–12)
-│   │   └── setup_redshift.py         ← Boto3: Namespace + Workgroup + IAM Role
+│   │   │   ├── create_tables.sql     ← DDL das 22 tabelas Gold (schemas validados via Athena DESCRIBE)
+│   │   │   └── create_views.sql      ← 9 views analíticas de KPI (01–12)
+│   │   └── setup_redshift.py         ← Boto3: Namespace + Workgroup + IAM Role S3CopyPolicy
 │   └── terraform/
 │       ├── main.tf                   ← Provider AWS, backend, data sources
 │       ├── variables.tf              ← Variáveis configuráveis (região, bucket, etc.)
@@ -500,48 +640,10 @@ contact-center-data-lakehouse/
 │   │   └── s3_data_loader.py         ← Substitui DMS/Kinesis: CSV → S3 Bronze
 │   │
 │   ├── bronze_to_silver/             ← 18 jobs PySpark
-│   │   ├── job_tb_chamada_bronze_to_silver.py
-│   │   ├── job_tb_gravacao_chamada_bronze_to_silver.py
-│   │   ├── job_tb_ura_navegacao_bronze_to_silver.py
-│   │   ├── job_tb_chat_bronze_to_silver.py
-│   │   ├── job_tb_mensagem_chat_bronze_to_silver.py
-│   │   ├── job_tb_whatsapp_atendimento_bronze_to_silver.py
-│   │   ├── job_tb_ticket_bronze_to_silver.py
-│   │   ├── job_tb_interacao_ticket_bronze_to_silver.py
-│   │   ├── job_tb_campanha_bronze_to_silver.py
-│   │   ├── job_tb_discagem_bronze_to_silver.py
-│   │   ├── job_tb_cliente_bronze_to_silver.py
-│   │   ├── job_tb_endereco_cliente_bronze_to_silver.py
-│   │   ├── job_tb_operador_bronze_to_silver.py
-│   │   ├── job_tb_skill_operador_bronze_to_silver.py
-│   │   ├── job_tb_jornada_operador_bronze_to_silver.py
-│   │   ├── job_tb_fila_atendimento_bronze_to_silver.py
-│   │   ├── job_tb_avaliacao_qualidade_bronze_to_silver.py
-│   │   └── job_tb_metricas_operacionais_bronze_to_silver.py
+│   │   └── job_tb_*.py
 │   │
 │   └── silver_to_gold/               ← 22 jobs PySpark (11 dims + 11 fatos)
-│       ├── job_dim_data_gold.py
-│       ├── job_dim_cliente_gold.py
-│       ├── job_dim_operador_gold.py
-│       ├── job_dim_fila_gold.py
-│       ├── job_dim_campanha_gold.py
-│       ├── job_dim_canal_gold.py
-│       ├── job_dim_skill_gold.py
-│       ├── job_dim_status_chamada_gold.py
-│       ├── job_dim_status_ticket_gold.py
-│       ├── job_dim_categoria_ticket_gold.py
-│       ├── job_dim_prioridade_ticket_gold.py
-│       ├── job_fato_chamada_gold.py
-│       ├── job_fato_chat_gold.py
-│       ├── job_fato_ticket_gold.py
-│       ├── job_fato_whatsapp_gold.py
-│       ├── job_fato_discagem_gold.py
-│       ├── job_fato_jornada_operador_gold.py
-│       ├── job_fato_metricas_operacionais_gold.py
-│       ├── job_fato_qualidade_gold.py
-│       ├── job_fato_mensagem_chat_gold.py
-│       ├── job_fato_interacao_ticket_gold.py
-│       └── job_fato_ura_navegacao_gold.py
+│       └── job_dim_*.py / job_fato_*.py
 │
 ├── lambda/
 │   └── fn_start_glue_crawler/
@@ -585,6 +687,7 @@ contact-center-data-lakehouse/
 - AWS CLI configurado (`aws configure`)
 - Conta AWS com permissões em: S3, Glue, Lambda, Athena, Redshift, EMR, IAM
 - Java 8+ (para PySpark local)
+- Docker Desktop (para Airflow local)
 
 ```bash
 git clone https://github.com/ilcileyjunior01/contact-center-data-lakehouse.git
@@ -604,14 +707,27 @@ python infrastructure/02_setup_glue.py
 # Lambda: fn_start_glue_crawler + regra EventBridge
 python infrastructure/03_setup_lambda.py
 
-# Redshift Serverless + Spectrum (opcional)
-python infrastructure/04_setup_redshift.py
+# Redshift Serverless: Namespace + Workgroup + IAM Role S3CopyPolicy
+python infrastructure/redshift/setup_redshift.py \
+  --aws-account-id <ACCOUNT_ID> \
+  --wait
 
 # EMR Serverless application (opcional)
 python infrastructure/05_setup_emr_serverless.py
 ```
 
-### Passo 2 — Gerar dados sintéticos e carregar Bronze
+### Passo 2 — Criar tabelas e views no Redshift
+
+O Redshift Serverless não aceita conexão TCP direta quando `publicly_accessible=false`. Use o **Redshift Data API** via boto3 ou o Query Editor v2 no console AWS:
+
+```python
+# Execute via boto3 redshift-data (ver infrastructure/redshift/setup_redshift.py)
+# ou cole o conteúdo dos arquivos DDL no Query Editor v2:
+#   infrastructure/redshift/ddl/create_tables.sql  (22 tabelas)
+#   infrastructure/redshift/ddl/create_views.sql   (9 views KPI)
+```
+
+### Passo 3 — Gerar dados sintéticos e carregar Bronze
 
 ```bash
 # Gera ~5.000 registros por tabela (18 tabelas) com dados realistas via Faker
@@ -621,7 +737,7 @@ python data/synthetic/generate_data.py
 python pipeline/ingestion/s3_data_loader.py
 ```
 
-### Passo 3 — Executar pipeline
+### Passo 4 — Executar pipeline
 
 ```bash
 # Executa os 40 jobs na ordem correta com paralelismo controlado
@@ -632,82 +748,57 @@ python infrastructure/06_run_pipeline.py --dry-run
 
 # Executa apenas uma etapa
 python infrastructure/06_run_pipeline.py --only bronze   # Bronze→Silver
-python infrastructure/06_run_pipeline.py --only gold     # Dims + Fatos (dims primeiro, depois fatos)
+python infrastructure/06_run_pipeline.py --only gold     # Dims + Fatos
 python infrastructure/06_run_pipeline.py --only dims     # Apenas as 11 dimensões Gold
 python infrastructure/06_run_pipeline.py --only fatos    # Apenas as 11 tabelas fato Gold
-
-# Executa um job específico
-python infrastructure/06_run_pipeline.py --job job-tb-chamada-bronze-to-silver
-
-# Controla paralelismo (padrão: 5 jobs simultâneos por lote)
-python infrastructure/06_run_pipeline.py --max-parallel 3 --fail-fast
 ```
 
-O script respeita a ordem de dependências entre as etapas:
+O script respeita a ordem de dependências:
 1. Bronze → Silver (18 jobs, lotes de 5 em paralelo)
-2. Silver → Gold Dimensões (11 jobs, paralelo total) — sempre antes dos fatos
-3. Silver → Gold Fatos Wave 1 — fatos base sem dependência cruzada (fato_chamada, fato_chat, fato_ticket, fato_whatsapp, fato_discagem, fato_jornada_operador, fato_metricas_operacionais), paralelo total
-4. Silver → Gold Fatos Wave 2 — fatos com dependência cruzada, executados após seus fatos pai:
-   - `fato_qualidade` → depende de `fato_chamada`
-   - `fato_interacao_ticket` → depende de `fato_ticket`
-   - `fato_mensagem_chat` → depende de `fato_chat`
-   - `fato_ura_navegacao` → depende de `fato_chamada`
+2. Silver → Gold Dimensões (11 jobs, paralelo total)
+3. Silver → Gold Fatos Wave 1 — fatos base (fato_chamada, fato_chat, fato_ticket, fato_whatsapp, fato_discagem, fato_jornada_operador, fato_metricas_operacionais)
+4. Silver → Gold Fatos Wave 2 — fatos dependentes: fato_qualidade, fato_interacao_ticket, fato_mensagem_chat, fato_ura_navegacao
 
-### Passo 4 — Orquestrar com Airflow (alternativa ao boto3)
+### Passo 5 — Orquestrar com Airflow
 
 ```bash
-# 1. Configure as variáveis de ambiente
 cd infrastructure/airflow
 cp .env.example .env
-# Edite .env com suas credenciais AWS e Redshift
+# Edite .env com AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, REDSHIFT_PASSWORD
 
-# 2. Inicialize o banco do Airflow e crie o usuário admin
 docker compose up airflow-init
-
-# 3. Suba o ambiente
 docker compose up -d
-
-# 4. Acesse http://localhost:8080  (admin/admin)
-#    Ative a DAG: cc_pipeline_diario
-#    Dispare manualmente ou aguarde o schedule 02:00 UTC
+# Acesse http://localhost:8080  (admin/admin)
+# Ative: cc_pipeline_diario
 ```
 
-A DAG `cc_pipeline_diario` executa as 4 waves de jobs Glue e ao final aciona automaticamente a `cc_carga_redshift`, que faz TRUNCATE + COPY Parquet para o Redshift Serverless.
+A DAG `cc_pipeline_diario` executa as 4 waves de jobs Glue e ao final aciona automaticamente a `cc_carga_redshift`, que usa a estratégia **Athena UNLOAD → S3 staging → Redshift COPY** para carregar as 22 tabelas.
 
-### Passo 5 — Setup Redshift e carga
+### Passo 6 — Consultar KPIs
 
-```bash
-# Provisiona Redshift Serverless via boto3
-python infrastructure/redshift/setup_redshift.py \
-  --aws-account-id 123456789012 \
-  --wait
-
-# Cria schema, tabelas e views
-psql -h <endpoint> -U admin -d dev \
-  -f infrastructure/redshift/ddl/create_tables.sql
-psql -h <endpoint> -U admin -d dev \
-  -f infrastructure/redshift/ddl/create_views.sql
-```
-
-### Passo 6 — Consultar KPIs com Athena
-
+**Via Athena** (workgroup: `wg-cc-analytics`):
 ```sql
 -- Exemplo: Volume e TMA de chamadas por fila e data
-SELECT
-    d.nr_ano,
-    d.nr_mes,
-    f.nm_fila,
-    COUNT(*)                                      AS total_chamadas,
-    ROUND(AVG(c.nr_duracao_segundos) / 60.0, 2)  AS tma_minutos,
-    SUM(CASE WHEN c.fl_chamada_completa = 1 THEN 1 ELSE 0 END) AS chamadas_completas
+SELECT d.nr_ano, d.nr_mes, f.nm_fila,
+    COUNT(*) AS total_chamadas,
+    ROUND(AVG(c.nr_duracao_segundos) / 60.0, 2) AS tma_minutos
 FROM db_gold.fato_chamada c
-JOIN db_gold.dim_data   d ON c.sk_data_inicio = d.sk_data
-JOIN db_gold.dim_fila   f ON c.sk_fila        = f.sk_fila
+JOIN db_gold.dim_data d ON c.sk_data_inicio = d.sk_data
+JOIN db_gold.dim_fila  f ON c.sk_fila        = f.sk_fila
 GROUP BY d.nr_ano, d.nr_mes, f.nm_fila
 ORDER BY d.nr_ano, d.nr_mes, total_chamadas DESC;
 ```
 
-Execute os 12 arquivos em `sql/athena_kpis/` no **Amazon Athena** (workgroup: `wg-cc-analytics`).
+**Via Redshift** (schema `gold`):
+```sql
+-- KPI pronto: métricas de fila com nível de serviço
+SELECT * FROM gold.vw_kpi_09_metricas_fila
+ORDER BY nr_ano, nr_mes, nm_fila;
+
+-- KPI de qualidade por operador
+SELECT * FROM gold.vw_kpi_03_qualidade
+ORDER BY pct_aprovacao DESC;
+```
 
 ---
 
@@ -748,11 +839,12 @@ Execute os 12 arquivos em `sql/athena_kpis/` no **Amazon Athena** (workgroup: `w
 
 | Serviço | Uso | Custo/mês estimado |
 |---|---|---|
-| S3 (500 MB armazenamento + requests) | Todas as camadas | ~$0.03 |
+| S3 (500 MB armazenamento + requests) | Todas as camadas + staging Redshift | ~$0.03 |
 | Lambda (triggers de crawler) | ~100 invocações | ~$0.00 |
-| Athena (queries KPI sobre Parquet) | ~50 queries | ~$0.05 |
+| Athena (queries KPI + UNLOAD para Redshift) | ~50 queries + 22 UNLOADs | ~$0.10 |
 | Glue Jobs (pipeline completo, 2×/mês) | 40 jobs × G.1X × 2 workers | ~$3.20 |
 | Glue Crawlers (18 crawlers × 2 min) | 2 rodadas completas | ~$1.00 |
+| Redshift Serverless (auto-pause 30 min) | Carga pontual + queries demo | ~$0.50 |
 | EMR Serverless (jobs pontuais) | 5 jobs/mês | ~$0.10 |
 | CloudWatch Logs | Logs de jobs (retenção 14 dias) | ~$0.02 |
 | **Total** | | **< $5/mês** |
@@ -760,7 +852,7 @@ Execute os 12 arquivos em `sql/athena_kpis/` no **Amazon Athena** (workgroup: `w
 **Principais economias:**
 
 - Substituir DMS + Kinesis por `s3_data_loader.py` em modo demo: economia de ~$24/mês
-- Redshift Serverless removido do ambiente de demonstração (deletado — sem uso real)
+- Redshift Serverless com auto-pause: cobra apenas RPUs × segundos de uso efetivo
 - CloudWatch Logs com retenção de 14 dias: economia de ~$0,30/mês vs NEVER_EXPIRE
 - Parquet + Snappy + particionamento: reduz custo de Athena em ~70% vs CSV
 
@@ -768,9 +860,9 @@ Execute os 12 arquivos em `sql/athena_kpis/` no **Amazon Athena** (workgroup: `w
 
 ## Validação dos Dados (Execução de Referência)
 
-Resultados reais obtidos via Amazon Athena após execução completa do pipeline em 2026-07-10/11.
+Resultados reais obtidos após execução completa do pipeline em 2026-07-10/14.
 
-### Contagens Gold — Dimensões
+### Contagens Gold — Dimensões (Athena)
 
 | Tabela | Linhas |
 |--------|-------:|
@@ -785,9 +877,8 @@ Resultados reais obtidos via Amazon Athena após execução completa do pipeline
 | dim_status_ticket | 5 |
 | dim_categoria_ticket | 5 |
 | dim_prioridade_ticket | 5 |
-| dim_supervisor | 1 |
 
-### Contagens Gold — Fatos
+### Contagens Gold — Fatos (Athena)
 
 | Tabela | Linhas |
 |--------|-------:|
@@ -803,16 +894,26 @@ Resultados reais obtidos via Amazon Athena após execução completa do pipeline
 | fato_ticket | 2.059 |
 | fato_whatsapp | 1.386 |
 
+### Redshift Serverless — Views KPI validadas
+
+| View | Linhas | Amostra |
+|---|---:|---|
+| vw_kpi_01_volume_chamadas | 144 | TMA abandono ~1 min, atendidas ~23 min |
+| vw_kpi_02_performance_operadores | 208 | Top operador: 29 chamadas, TMA 18,36 min |
+| vw_kpi_03_qualidade | 1.523 | Nota média 7,0–10,0 por operador/mês |
+| vw_kpi_04_volume_tickets | 1.350 | Categorias: ELOGIO, RECLAMAÇÃO, SOLICITAÇÃO |
+| vw_kpi_05_eficiencia_tickets | 144 | TRT médio 3,7–9,4h por prioridade |
+| vw_kpi_06_volume_digital | 72 | WhatsApp ~67 min vs Chat ~30 min (duração média) |
+| vw_kpi_08_campanhas | 25 | Taxa de atendimento 55–66% por campanha |
+| vw_kpi_09_metricas_fila | 611 | Nível de serviço 86–93% por fila |
+| vw_kpi_12_ura | 252 | Opção mais usada: "4 - FALAR COM OPERADOR" |
+
 ### Integridade Referencial (0 orphans)
 
 - `fato_chamada → dim_canal`: 0 registros sem correspondência
 - `fato_chamada → dim_operador`: 0 registros sem correspondência
 - `fato_ticket → dim_cliente`: 0 registros sem correspondência
 - `fato_qualidade → fato_chamada`: 0 registros sem correspondência
-
-### Distribuição por Canal
-
-100% das chamadas classificadas como **TELEFONE** — correto, pois `fato_chamada` é exclusivamente canal de voz. A distinção ENTRADA/SAÍDA (tp_chamada) é preservada como atributo, não como dimensão de canal.
 
 ### Distribuição de Qualidade
 
