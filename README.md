@@ -13,8 +13,54 @@ Pipeline de dados **end-to-end** para Contact Center implementado como um **Data
 
 ---
 
+## Para quem não é da área de tecnologia
+
+> Se você é recrutador, gestor de negócio ou está conhecendo o projeto pela primeira vez, esta seção explica o que foi construído em linguagem simples.
+
+### O que é este projeto?
+
+Imagine que uma empresa de atendimento ao cliente (call center) recebe milhares de ligações, chats e mensagens de WhatsApp por dia. Esses atendimentos geram uma enorme quantidade de informação: quem ligou, qual operador atendeu, quanto tempo durou, o cliente ficou satisfeito, o problema foi resolvido?
+
+Sem organização, esses dados ficam espalhados em sistemas diferentes e ninguém consegue extrair respostas úteis deles. Este projeto constrói a **infraestrutura que coleta, organiza e transforma esses dados em relatórios e indicadores** — de forma automática, confiável e econômica.
+
+### O que o projeto faz, passo a passo?
+
+```
+1. COLETA       Os dados brutos chegam de diversas fontes (sistema de telefonia,
+                chat, WhatsApp, tickets de suporte) e são salvos na nuvem (AWS S3),
+                como uma grande "caixa de entrada" digital.
+
+2. LIMPEZA      Um processo automático lê esses dados brutos, remove erros,
+                elimina duplicatas e protege informações pessoais dos clientes
+                (como CPF e e-mail), seguindo a Lei LGPD.
+
+3. ORGANIZAÇÃO  Os dados limpos são reorganizados em um formato ideal para análise:
+                tabelas de "quem" (clientes, operadores), "o quê" (chamadas, tickets)
+                e "quando" (datas), conectadas entre si — como as peças de um quebra-cabeça.
+
+4. ANÁLISE      Com os dados organizados, é possível responder perguntas como:
+                - Qual operador tem o melhor desempenho?
+                - Qual horário tem mais chamadas abandonadas?
+                - Qual campanha de discagem gerou mais retorno?
+                - Quanto tempo em média os tickets levam para ser resolvidos?
+
+5. AUTOMAÇÃO    Todo esse processo acontece sozinho, sem intervenção manual,
+                monitorado e com alertas em caso de falha.
+```
+
+### Por que isso é valioso para uma empresa?
+
+Antes deste tipo de sistema, essas análises eram feitas manualmente em planilhas Excel, levavam dias para ficar prontas e frequentemente continham erros. Com a infraestrutura construída aqui, os relatórios ficam disponíveis em minutos, são atualizados automaticamente e podem ser acessados por qualquer analista da empresa com um clique.
+
+### Quanto custa rodar isso na nuvem?
+
+O projeto foi construído com foco em economia. Em modo de demonstração (sem processar volumes de produção), o custo mensal na Amazon AWS é de aproximadamente **$0,57 por mês** — menos do que uma xícara de café.
+
+---
+
 ## Sumário
 
+- [Para quem não é da área de tecnologia](#para-quem-não-é-da-área-de-tecnologia)
 - [Visão Geral](#visão-geral)
 - [Arquitetura](#arquitetura)
 - [Stack Tecnológica](#stack-tecnológica)
@@ -837,6 +883,18 @@ ORDER BY pct_aprovacao DESC;
 
 > Baseado em dados sintéticos (~5K linhas/tabela) e 2 execuções completas do pipeline por mês.
 
+### Modo ocioso (sem rodar jobs — apenas infraestrutura ativa)
+
+| Serviço | Configuração | Custo/mês |
+|---|---|---|
+| S3 (armazenamento + lifecycle rules) | ~500 MB, versões antigas expiram em 7 dias | ~$0.03 |
+| Redshift Serverless (auto-pause 30 min) | 8 RPUs, pausa automática quando inativo | ~$0.50 |
+| CloudWatch Logs (retenção 7 dias) | Log groups Glue, Lambda, EMR | ~$0.02 |
+| Lambda, Athena, Glue, EMR (ociosos) | Pay-per-use, $0 sem execução | $0.00 |
+| **Total em modo ocioso** | | **~$0.57/mês** |
+
+### Modo ativo (2 execuções completas do pipeline por mês)
+
 | Serviço | Uso | Custo/mês estimado |
 |---|---|---|
 | S3 (500 MB armazenamento + requests) | Todas as camadas + staging Redshift | ~$0.03 |
@@ -846,10 +904,10 @@ ORDER BY pct_aprovacao DESC;
 | Glue Crawlers (18 crawlers × 2 min) | 2 rodadas completas | ~$1.00 |
 | Redshift Serverless (auto-pause 30 min) | Carga pontual + queries demo | ~$0.50 |
 | EMR Serverless (jobs pontuais) | 5 jobs/mês | ~$0.10 |
-| CloudWatch Logs | Logs de jobs (retenção 14 dias) | ~$0.02 |
-| **Total** | | **< $5/mês** |
+| CloudWatch Logs (retenção 7 dias) | Logs de jobs | ~$0.02 |
+| **Total em modo ativo** | | **< $5/mês** |
 
-**Principais economias:**
+**Principais economias aplicadas:**
 
 - Substituir DMS + Kinesis por `s3_data_loader.py` em modo demo: economia de ~$24/mês
 - Redshift Serverless com auto-pause: cobra apenas RPUs × segundos de uso efetivo
