@@ -1,5 +1,13 @@
 # Guia de Custo Mínimo — AWS
 
+## Para quem não é da área de tecnologia
+
+> Manter um projeto na nuvem (AWS) tem custo, assim como pagar uma conta de luz. Este guia explica as estratégias usadas para manter esse custo o mais baixo possível durante o desenvolvimento — sem desligar nada que seja necessário para demonstrar o projeto.
+>
+> **Resultado: o projeto fica ativo na AWS por aproximadamente R$ 3,00/mês** (equivalente a ~$0,57 dólares) quando não está processando dados ativamente.
+
+---
+
 ## Estratégia para manter custos baixos sem comprometer a demonstração
 
 Este guia explica como executar o projeto completo na AWS com custo inferior a **$10/mês** mesmo com o free tier expirado.
@@ -29,7 +37,9 @@ O script gera Parquet particionado em `bronze/` com a mesma estrutura que o Fire
 
 ---
 
-## 2. Redshift Serverless — Usar com Auto-Pause
+## 2. Redshift Serverless — Auto-Pause Automático
+
+> **Para não-técnicos:** O Redshift é o banco de dados analítico do projeto. Em vez de cobrar uma taxa fixa todo mês (como uma assinatura), ele cobra apenas pelo tempo em que está sendo usado ativamente. Quando fica 30 minutos sem ninguém consultando, ele "hiberna" sozinho e para de cobrar.
 
 O Redshift Serverless cobra apenas quando ativo: **$0.375 × 8 RPUs = $3.00/hora**.
 
@@ -96,7 +106,9 @@ As 12 queries KPI completas: **< $0.001**
 
 ---
 
-## 6. S3 — Custo Negligível
+## 6. S3 — Lifecycle Rules para Eliminar Acúmulo de Arquivos Temporários
+
+> **Para não-técnicos:** O S3 é o "HD virtual" do projeto na nuvem. Sem regras de limpeza automática, arquivos temporários e versões antigas de arquivos continuam ocupando espaço e gerando custo para sempre. As regras abaixo limpam esses arquivos automaticamente.
 
 Para dados sintéticos de demonstração (~500 MB total):
 - Armazenamento: 0.5 GB × $0.023/GB = **$0.012/mês**
@@ -104,9 +116,40 @@ Para dados sintéticos de demonstração (~500 MB total):
 
 **Total S3: < $0.03/mês**
 
+### Lifecycle Rules aplicadas (via `infrastructure/apply_cost_optimizations.py`)
+
+| Regra | Prefixo | Ação | Motivo |
+|---|---|---|---|
+| `redshift-staging-expiry` | `redshift-staging/` | Expira em **3 dias** | Arquivos temporários do UNLOAD para Redshift — inúteis após a carga |
+| `logs-expiry` | `logs/` | Expira em **14 dias** | Logs de EMR e Glue — necessários apenas para diagnóstico recente |
+| `global-noncurrent-version-expiry` | (todos os prefixos) | Versões antigas expiram em **7 dias** | O versionamento S3 está ativo; sem esta regra, cada atualização de arquivo guarda a versão anterior indefinidamente |
+| `abort-incomplete-multipart` | (todos os prefixos) | Cancela em **3 dias** | Uploads interrompidos ficam em estado "zumbi" gerando cobrança de storage |
+
+---
+
+## 7. CloudWatch Logs — Retenção Reduzida
+
+> **Para não-técnicos:** O CloudWatch é o sistema de "diário de bordo" que registra o que acontece em cada processo. Quanto mais tempo guardamos esses registros, mais custam. Para desenvolvimento, 7 dias são suficientes.
+
+- Retenção configurada: **7 dias** (reduzida de 14 dias)
+- Log groups afetados: `/aws-glue/jobs/error`, `/aws-glue/jobs/logs-v2`, `/aws-glue/jobs/output`
+- Economia: ~$0.03/mês vs retenção infinita
+
 ---
 
 ## Resumo Consolidado
+
+### Modo ocioso (infraestrutura ativa, sem processar dados)
+
+| Serviço | Configuração aplicada | Custo/mês |
+|---|---|---|
+| S3 | Lifecycle rules eliminam arquivos temporários automaticamente | $0.03 |
+| Redshift Serverless | Auto-pause 30 min — cobra zero quando inativo | $0.50 |
+| CloudWatch Logs | Retenção 7 dias | $0.02 |
+| Lambda, Glue, Athena, EMR | Pay-per-use — $0 quando ociosos | $0.00 |
+| **TOTAL ocioso** | | **~$0.57/mês** |
+
+### Modo ativo (2 execuções completas do pipeline por mês)
 
 | Serviço | Uso estimado | Custo/mês |
 |---|---|---|
@@ -115,10 +158,10 @@ Para dados sintéticos de demonstração (~500 MB total):
 | Athena | ~50 queries/mês | $0.01 |
 | Glue Jobs | 2 pipelines completos/mês | $3.20 |
 | Glue Crawlers | 2 rodadas completas/mês | $1.00 |
-| Redshift Serverless | 2h ativas/semana | $3.00 |
+| Redshift Serverless | Carga pontual + queries demo | $0.50 |
 | EMR Serverless | 5 jobs/mês | $0.10 |
-| CloudWatch Logs | Logs de 40 jobs | $0.05 |
-| **TOTAL** | | **~$7.39/mês** |
+| CloudWatch Logs | Logs de 40 jobs (retenção 7 dias) | $0.02 |
+| **TOTAL ativo** | | **~$4.86/mês** |
 
 ---
 
