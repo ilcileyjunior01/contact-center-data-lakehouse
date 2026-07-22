@@ -88,6 +88,61 @@ resource "aws_s3_bucket_lifecycle_configuration" "lakehouse" {
       noncurrent_days = 7
     }
   }
+
+  # Regra 4: redshift-staging → expirar após 3 dias (arquivos UNLOAD temporários)
+  rule {
+    id     = "redshift-staging-expiry"
+    status = "Enabled"
+
+    filter {
+      prefix = "redshift-staging/"
+    }
+
+    expiration {
+      days = 3
+    }
+
+    noncurrent_version_expiration {
+      noncurrent_days = 1
+    }
+  }
+
+  # Regra 5: logs → expirar após 14 dias (EMR + Glue logs de dev)
+  rule {
+    id     = "logs-expiry"
+    status = "Enabled"
+
+    filter {
+      prefix = "logs/"
+    }
+
+    expiration {
+      days = 14
+    }
+
+    noncurrent_version_expiration {
+      noncurrent_days = 3
+    }
+  }
+
+  # Regra 6: versões antigas de todos os objetos → expirar após 7 dias
+  # (S3 versioning está ativo; sem esta regra, versões antigas acumulam custo indefinidamente)
+  rule {
+    id     = "global-noncurrent-version-expiry"
+    status = "Enabled"
+
+    filter {
+      prefix = ""
+    }
+
+    noncurrent_version_expiration {
+      noncurrent_days = 7
+    }
+
+    abort_incomplete_multipart_upload {
+      days_after_initiation = 3
+    }
+  }
 }
 
 # ── EventBridge notifications (S3 → EventBridge) ─────────────────────────────

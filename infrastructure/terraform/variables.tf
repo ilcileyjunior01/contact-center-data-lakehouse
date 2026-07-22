@@ -46,7 +46,7 @@ variable "quicksight_role_name" {
 variable "cloudwatch_retention_days" {
   description = "Retenção dos logs do CloudWatch em dias"
   type        = number
-  default     = 14
+  default     = 7
 
   validation {
     condition     = contains([1, 3, 5, 7, 14, 30, 60, 90, 120, 150, 180, 365], var.cloudwatch_retention_days)
@@ -57,7 +57,7 @@ variable "cloudwatch_retention_days" {
 variable "s3_quarantine_glacier_days" {
   description = "Dias para mover arquivos de quarentena para Glacier"
   type        = number
-  default     = 90
+  default     = 30
 }
 
 variable "glue_version" {
