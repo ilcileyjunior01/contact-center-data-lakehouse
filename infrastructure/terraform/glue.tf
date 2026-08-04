@@ -101,11 +101,15 @@ locals {
 resource "aws_glue_job" "bronze_to_silver" {
   for_each = toset(local.bronze_jobs)
 
-  name         = each.value
-  role_arn     = aws_iam_role.glue.arn
-  glue_version = var.glue_version
-  worker_type  = var.glue_worker_type
+  name              = each.value
+  role_arn          = aws_iam_role.glue.arn
+  glue_version      = var.glue_version
+  worker_type       = var.glue_worker_type
   number_of_workers = var.glue_num_workers
+
+  # Timeout de segurança: jobs de demonstração (~5K linhas) terminam em < 5 min.
+  # Sem timeout, um job travado cobra pelo tempo máximo padrão (2.880 min = 48h).
+  timeout = var.glue_job_timeout_minutes
 
   command {
     name            = "glueetl"
@@ -114,14 +118,14 @@ resource "aws_glue_job" "bronze_to_silver" {
   }
 
   default_arguments = {
-    "--job-bookmark-option"        = "job-bookmark-enable"
-    "--enable-metrics"             = "true"
+    "--job-bookmark-option"              = "job-bookmark-enable"
+    "--enable-metrics"                   = "true"
     "--enable-continuous-cloudwatch-log" = "true"
-    "--enable-spark-ui"            = "false"
-    "--TempDir"                    = "s3://${var.bucket_name}/logs/glue-temp/"
-    "--BUCKET_NAME"                = var.bucket_name
-    "--ENV"                        = var.environment
-    "--conf"                       = "spark.sql.extensions=org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions"
+    "--enable-spark-ui"                  = "false"
+    "--TempDir"                          = "s3://${var.bucket_name}/logs/glue-temp/"
+    "--BUCKET_NAME"                      = var.bucket_name
+    "--ENV"                              = var.environment
+    "--conf"                             = "spark.sql.extensions=org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions"
   }
 
   execution_property {
@@ -137,11 +141,14 @@ resource "aws_glue_job" "bronze_to_silver" {
 resource "aws_glue_job" "silver_to_gold" {
   for_each = toset(local.all_gold_jobs)
 
-  name         = each.value
-  role_arn     = aws_iam_role.glue.arn
-  glue_version = var.glue_version
-  worker_type  = var.glue_worker_type
+  name              = each.value
+  role_arn          = aws_iam_role.glue.arn
+  glue_version      = var.glue_version
+  worker_type       = var.glue_worker_type
   number_of_workers = var.glue_num_workers
+
+  # Mesmo critério: jobs de dimensão/fato em dev terminam em < 10 min.
+  timeout = var.glue_job_timeout_minutes
 
   command {
     name            = "glueetl"
@@ -150,13 +157,13 @@ resource "aws_glue_job" "silver_to_gold" {
   }
 
   default_arguments = {
-    "--job-bookmark-option"        = "job-bookmark-enable"
-    "--enable-metrics"             = "true"
+    "--job-bookmark-option"              = "job-bookmark-enable"
+    "--enable-metrics"                   = "true"
     "--enable-continuous-cloudwatch-log" = "true"
-    "--TempDir"                    = "s3://${var.bucket_name}/logs/glue-temp/"
-    "--BUCKET_NAME"                = var.bucket_name
-    "--ENV"                        = var.environment
-    "--conf"                       = "spark.sql.extensions=org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions --conf spark.sql.catalog.glue_catalog=org.apache.iceberg.spark.SparkCatalog --conf spark.sql.catalog.glue_catalog.warehouse=s3://${var.bucket_name}/gold/ --conf spark.sql.catalog.glue_catalog.catalog-impl=org.apache.iceberg.aws.glue.GlueCatalog"
+    "--TempDir"                          = "s3://${var.bucket_name}/logs/glue-temp/"
+    "--BUCKET_NAME"                      = var.bucket_name
+    "--ENV"                              = var.environment
+    "--conf"                             = "spark.sql.extensions=org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions --conf spark.sql.catalog.glue_catalog=org.apache.iceberg.spark.SparkCatalog --conf spark.sql.catalog.glue_catalog.warehouse=s3://${var.bucket_name}/gold/ --conf spark.sql.catalog.glue_catalog.catalog-impl=org.apache.iceberg.aws.glue.GlueCatalog"
   }
 
   execution_property {

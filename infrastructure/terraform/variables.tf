@@ -78,6 +78,17 @@ variable "glue_num_workers" {
   default     = 2
 }
 
+variable "glue_job_timeout_minutes" {
+  description = "Timeout máximo de cada Glue Job em minutos. Evita cobrança de jobs travados (padrão AWS = 2.880 min = 48h). Para dev com ~5K linhas, 60 min é mais que suficiente."
+  type        = number
+  default     = 60
+
+  validation {
+    condition     = var.glue_job_timeout_minutes >= 1 && var.glue_job_timeout_minutes <= 10080
+    error_message = "glue_job_timeout_minutes deve estar entre 1 e 10080 (7 dias)."
+  }
+}
+
 variable "redshift_role_name" {
   description = "Nome da IAM Role usada pelo Redshift para COPY do S3"
   type        = string
