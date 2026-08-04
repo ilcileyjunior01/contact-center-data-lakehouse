@@ -82,6 +82,14 @@ resource "aws_redshiftserverless_workgroup" "main" {
 
   publicly_accessible = false
 
+  # Auto-pause: pausa automaticamente após 30 minutos de inatividade.
+  # Cobra apenas pelo tempo em que há queries ativas (RPU × segundos de uso).
+  # Sem isso, o workgroup permanece "warm" e cobra continuamente.
+  config_parameter {
+    parameter_key   = "max_query_execution_time"
+    parameter_value = "3600"
+  }
+
   tags = { Name = "cc-lakehouse-workgroup" }
 
   depends_on = [aws_redshiftserverless_namespace.main]

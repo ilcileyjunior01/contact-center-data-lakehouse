@@ -61,7 +61,7 @@ resource "aws_s3_bucket_lifecycle_configuration" "lakehouse" {
     }
   }
 
-  # Regra 2: Athena results → expirar após 30 dias
+  # Regra 2: Athena results → expirar após 7 dias (resultados de query têm vida curta)
   rule {
     id     = "athena-results-expiry"
     status = "Enabled"
@@ -71,7 +71,7 @@ resource "aws_s3_bucket_lifecycle_configuration" "lakehouse" {
     }
 
     expiration {
-      days = 30
+      days = 7
     }
   }
 
@@ -107,7 +107,7 @@ resource "aws_s3_bucket_lifecycle_configuration" "lakehouse" {
     }
   }
 
-  # Regra 5: logs → expirar após 14 dias (EMR + Glue logs de dev)
+  # Regra 5: logs → expirar após 7 dias (EMR + Glue logs de dev — alinhado ao cost-guide.md)
   rule {
     id     = "logs-expiry"
     status = "Enabled"
@@ -117,7 +117,7 @@ resource "aws_s3_bucket_lifecycle_configuration" "lakehouse" {
     }
 
     expiration {
-      days = 14
+      days = 7
     }
 
     noncurrent_version_expiration {
