@@ -16,6 +16,21 @@ Orquestra o pipeline completo diário:
 
 Schedule: diário às 02:00 UTC
 Timeout:  3 horas
+
+── Reprocessamento ──────────────────────────────────────────────────────────────
+Para reprocessar sem buscar dados na origem, acione manualmente com:
+
+  reprocess_date : data a reprocessar (YYYY-MM-DD). Vazio = usa data lógica.
+  start_layer    : camada de entrada do reprocessamento.
+
+    "bronze"   → pipeline completo (Bronze→Silver→Gold→Redshift)
+    "silver"   → pula ingestão; reprocessa a partir dos dados já no Bronze S3
+    "gold"     → pula Bronze e Silver; reprocessa só Gold→Redshift
+    "redshift" → só recarrega o Redshift a partir dos dados Gold já no S3
+
+Exemplo via CLI:
+  airflow dags trigger cc_pipeline_diario \\
+    --conf '{"reprocess_date": "2024-06-15", "start_layer": "silver"}'
 """
 
 from __future__ import annotations
@@ -24,10 +39,13 @@ from datetime import datetime, timedelta
 
 from airflow import DAG
 from airflow.models import Variable
+from airflow.models.param import Param
 from airflow.operators.empty import EmptyOperator
+from airflow.operators.python import ShortCircuitOperator
 from airflow.operators.trigger_dagrun import TriggerDagRunOperator
 from airflow.providers.amazon.aws.operators.glue import GlueJobOperator
 from airflow.providers.amazon.aws.sensors.glue import GlueJobSensor
+from airflow.utils.trigger_rule import TriggerRule
 
 # ─── Configuracoes ────────────────────────────────────────────────────────────
 
@@ -44,12 +62,6 @@ DEFAULT_ARGS = {
     "email_on_retry":   False,
     "retries":          1,
     "retry_delay":      timedelta(minutes=5),
-}
-
-GLUE_JOB_ARGS = {
-    "--BUCKET_NAME": BUCKET,
-    "--ENV":         ENV,
-    "--enable-job-insights": "true",
 }
 
 # ─── Jobs por wave ───────────────────────────────────────────────────────────
@@ -110,12 +122,25 @@ GOLD_FATO_WAVE2_JOBS = [
 # ─── Helpers ─────────────────────────────────────────────────────────────────
 
 def make_glue_task(dag: DAG, job_name: str, task_id: str | None = None) -> GlueJobOperator:
-    """Cria um GlueJobOperator padrao para o job informado."""
+    """
+    Cria um GlueJobOperator padrao para o job informado.
+
+    Passa --REPROCESS_DATE para o script Glue, permitindo que o job filtre
+    e reprocesse apenas a particao da data informada — sem buscar dados na origem.
+    O valor é resolvido em tempo de execução via template Jinja:
+      - se params.reprocess_date foi informado, usa esse valor;
+      - caso contrário, usa {{ ds }} (data lógica da execução).
+    """
     tid = task_id or f"run_{job_name.replace('-', '_')}"
     return GlueJobOperator(
         task_id=tid,
         job_name=job_name,
-        script_args=GLUE_JOB_ARGS,
+        script_args={
+            "--BUCKET_NAME":          BUCKET,
+            "--ENV":                  ENV,
+            "--enable-job-insights":  "true",
+            "--REPROCESS_DATE":       "{{ params.reprocess_date or ds }}",
+        },
         aws_conn_id=AWS_CONN,
         region_name=GLUE_REGION,
         wait_for_completion=True,
@@ -134,6 +159,14 @@ def make_sensor(dag: DAG, job_name: str, run_id_xcom_key: str) -> GlueJobSensor:
     )
 
 
+def _gate(layers: list[str], **context) -> bool:
+    """
+    Retorna True se a camada atual está inclusa nas camadas permitidas.
+    Usado pelos ShortCircuitOperators para pular waves desnecessárias.
+    """
+    return context["params"]["start_layer"] in layers
+
+
 # ─── DAG ──────────────────────────────────────────────────────────────────────
 
 with DAG(
@@ -145,6 +178,30 @@ with DAG(
     default_args=DEFAULT_ARGS,
     dagrun_timeout=timedelta(hours=3),
     tags=["contact-center", "lakehouse", "glue", "producao"],
+    params={
+        "reprocess_date": Param(
+            default="",
+            type="string",
+            description=(
+                "Data a reprocessar (YYYY-MM-DD). "
+                "Vazio = usa a data lógica da execução ({{ ds }}). "
+                "Os Glue Jobs usam esse valor para filtrar apenas a partição da data informada, "
+                "sem buscar dados na origem."
+            ),
+        ),
+        "start_layer": Param(
+            default="bronze",
+            type="string",
+            enum=["bronze", "silver", "gold", "redshift"],
+            description=(
+                "Camada de entrada do pipeline:\n"
+                "  bronze   → pipeline completo (Bronze→Silver→Gold→Redshift)\n"
+                "  silver   → pula ingestão; usa dados já no Bronze S3\n"
+                "  gold     → pula Bronze e Silver; usa dados já no Silver S3\n"
+                "  redshift → só recarrega o Redshift; usa dados já no Gold S3"
+            ),
+        ),
+    },
     doc_md="""
     ## Pipeline Diário — Contact Center Data Lakehouse
 
@@ -157,37 +214,94 @@ with DAG(
     | 3    | 7    | Silver → Gold Fatos (independentes) |
     | 4    | 4    | Silver → Gold Fatos (dependem de fatos da wave 3) |
 
-    Apos a wave 4, aciona a DAG `cc_carga_redshift` para carregar o Redshift.
+    Após a wave 4, aciona a DAG `cc_carga_redshift` para carregar o Redshift.
+
+    ### Reprocessamento
+    Acione manualmente com `reprocess_date` e `start_layer` para reprocessar
+    uma data específica sem buscar dados na origem.
     """,
 ) as dag:
 
     inicio = EmptyOperator(task_id="inicio_pipeline")
+
+    # ── Gate Bronze ──────────────────────────────────────────────────────────
+    # Permite a wave Bronze→Silver apenas se start_layer="bronze".
+    # ignore_downstream_trigger_rules=False: quando retorna False, marca apenas
+    # os downstream com trigger_rule=ALL_SUCCESS como SKIPPED — os próximos gates
+    # (com trigger_rule=ALL_DONE) continuam executando normalmente.
+    gate_bronze = ShortCircuitOperator(
+        task_id="gate_bronze",
+        python_callable=_gate,
+        op_kwargs={"layers": ["bronze"]},
+        ignore_downstream_trigger_rules=False,
+    )
+
     fim_bronze = EmptyOperator(task_id="bronze_concluido")
+
+    # ── Gate Silver/Gold Dims ─────────────────────────────────────────────────
+    # trigger_rule=ALL_DONE: executa mesmo que o gate_bronze tenha retornado False
+    # (bronze tasks estarão SKIPPED, fim_bronze estará SKIPPED).
+    gate_silver = ShortCircuitOperator(
+        task_id="gate_silver",
+        python_callable=_gate,
+        op_kwargs={"layers": ["bronze", "silver"]},
+        trigger_rule=TriggerRule.ALL_DONE,
+        ignore_downstream_trigger_rules=False,
+    )
+
     fim_dims = EmptyOperator(task_id="gold_dims_concluido")
-    fim_wave1 = EmptyOperator(task_id="gold_fatos_wave1_concluido")
+
+    # ── Gate Gold Fatos ───────────────────────────────────────────────────────
+    gate_gold = ShortCircuitOperator(
+        task_id="gate_gold",
+        python_callable=_gate,
+        op_kwargs={"layers": ["bronze", "silver", "gold"]},
+        trigger_rule=TriggerRule.ALL_DONE,
+        ignore_downstream_trigger_rules=False,
+    )
+
+    fim_wave1   = EmptyOperator(task_id="gold_fatos_wave1_concluido")
     fim_pipeline = EmptyOperator(task_id="pipeline_glue_concluido")
 
     # ── Wave 1: Bronze → Silver (todos em paralelo) ──────────────────────────
     bronze_tasks = [make_glue_task(dag, job) for job in BRONZE_JOBS]
-    inicio >> bronze_tasks >> fim_bronze
 
-    # ── Wave 2: Gold Dimensoes (todos em paralelo, apos bronze) ─────────────
+    # ── Wave 2: Gold Dimensoes (todos em paralelo) ───────────────────────────
     dim_tasks = [make_glue_task(dag, job) for job in GOLD_DIM_JOBS]
-    fim_bronze >> dim_tasks >> fim_dims
 
-    # ── Wave 3: Gold Fatos independentes (paralelo, apos dims) ──────────────
+    # ── Wave 3: Gold Fatos independentes (paralelo) ──────────────────────────
     wave1_tasks = [make_glue_task(dag, job) for job in GOLD_FATO_WAVE1_JOBS]
-    fim_dims >> wave1_tasks >> fim_wave1
 
-    # ── Wave 4: Gold Fatos dependentes (paralelo, apos wave 3) ──────────────
+    # ── Wave 4: Gold Fatos dependentes (paralelo) ────────────────────────────
     wave2_tasks = [make_glue_task(dag, job) for job in GOLD_FATO_WAVE2_JOBS]
-    fim_wave1 >> wave2_tasks >> fim_pipeline
 
     # ── Trigger carga Redshift ───────────────────────────────────────────────
+    # trigger_rule=ALL_DONE: aciona mesmo que as waves Glue tenham sido puladas
+    # (ex: start_layer="redshift"). Passa reprocess_date para a DAG filha.
     trigger_redshift = TriggerDagRunOperator(
         task_id="acionar_carga_redshift",
         trigger_dag_id="cc_carga_redshift",
+        conf={"reprocess_date": "{{ params.reprocess_date or ds }}"},
         wait_for_completion=True,
         poke_interval=60,
+        trigger_rule=TriggerRule.ALL_DONE,
     )
+
+    # ── Dependencias ─────────────────────────────────────────────────────────
+    #
+    # Fluxo linear com gates:
+    #
+    #   inicio → gate_bronze → [bronze_tasks] → fim_bronze
+    #                → gate_silver (ALL_DONE) → [dim_tasks] → fim_dims
+    #                      → gate_gold (ALL_DONE) → [wave1_tasks] → fim_wave1
+    #                                                  → [wave2_tasks] → fim_pipeline
+    #                                                        → trigger_redshift (ALL_DONE)
+    #
+    # Os gates com trigger_rule=ALL_DONE executam mesmo quando a wave anterior
+    # foi pulada (tasks com status SKIPPED contam como "done").
+
+    inicio >> gate_bronze >> bronze_tasks >> fim_bronze
+    fim_bronze >> gate_silver >> dim_tasks >> fim_dims
+    fim_dims >> gate_gold >> wave1_tasks >> fim_wave1
+    fim_wave1 >> wave2_tasks >> fim_pipeline
     fim_pipeline >> trigger_redshift
