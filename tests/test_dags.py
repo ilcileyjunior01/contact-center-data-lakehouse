@@ -114,10 +114,10 @@ class TestDAGPipelineDiario:
         assert dag_pipeline.catchup is False
 
     def test_numero_total_de_tasks(self, dag_pipeline):
-        """Pipeline deve ter: 40 Glue + 5 vazios + 1 trigger = 46 tasks."""
+        """Pipeline deve ter: 40 Glue + 5 vazios + 3 gates + 1 trigger = 49 tasks."""
         total = len(dag_pipeline.tasks)
-        assert total >= 46, (
-            f"Esperado >= 46 tasks, encontrado {total}"
+        assert total >= 49, (
+            f"Esperado >= 49 tasks, encontrado {total}"
         )
 
     def test_contem_18_jobs_bronze(self, dag_pipeline):
@@ -154,6 +154,25 @@ class TestDAGPipelineDiario:
     def test_tags_presentes(self, dag_pipeline):
         assert "contact-center" in dag_pipeline.tags
         assert "glue" in dag_pipeline.tags
+
+    def test_param_reprocess_date_existe(self, dag_pipeline):
+        """DAG deve ter o param reprocess_date para reprocessamento sem buscar origem."""
+        assert "reprocess_date" in dag_pipeline.params
+
+    def test_param_start_layer_existe(self, dag_pipeline):
+        """DAG deve ter o param start_layer para controle de entrada do pipeline."""
+        assert "start_layer" in dag_pipeline.params
+
+    def test_param_start_layer_default_bronze(self, dag_pipeline):
+        """start_layer deve ter default 'bronze' para manter comportamento normal."""
+        param = dag_pipeline.params["start_layer"]
+        assert param.value == "bronze"
+
+    def test_gates_de_reprocessamento_existem(self, dag_pipeline):
+        """DAG deve ter os 3 ShortCircuitOperators de controle de camada."""
+        task_ids = {t.task_id for t in dag_pipeline.tasks}
+        for gate in ("gate_bronze", "gate_silver", "gate_gold"):
+            assert gate in task_ids, f"Gate '{gate}' nao encontrado na DAG"
 
 
 class TestDAGCargaRedshift:
@@ -245,6 +264,28 @@ class TestConteudoArquivosDAG:
     def test_pipeline_referencia_dag_redshift(self):
         content = self._read("dag_pipeline_diario.py")
         assert "cc_carga_redshift" in content, "Pipeline deve referenciar a DAG de carga Redshift"
+
+    def test_pipeline_tem_param_reprocess_date(self):
+        content = self._read("dag_pipeline_diario.py")
+        assert "reprocess_date" in content, "Pipeline deve ter param reprocess_date"
+
+    def test_pipeline_tem_param_start_layer(self):
+        content = self._read("dag_pipeline_diario.py")
+        assert "start_layer" in content, "Pipeline deve ter param start_layer"
+
+    def test_pipeline_tem_gates_de_camada(self):
+        content = self._read("dag_pipeline_diario.py")
+        assert "gate_bronze" in content, "Pipeline deve ter gate_bronze"
+        assert "gate_silver" in content, "Pipeline deve ter gate_silver"
+        assert "gate_gold" in content, "Pipeline deve ter gate_gold"
+
+    def test_glue_jobs_recebem_reprocess_date(self):
+        content = self._read("dag_pipeline_diario.py")
+        assert "--REPROCESS_DATE" in content, "Glue jobs devem receber --REPROCESS_DATE"
+
+    def test_carga_redshift_loga_reprocess_date(self):
+        content = self._read("dag_carga_redshift.py")
+        assert "reprocess_date" in content, "DAG de carga deve usar reprocess_date"
 
     def test_pipeline_tem_4_waves(self):
         content = self._read("dag_pipeline_diario.py")

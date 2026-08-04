@@ -14,16 +14,29 @@ Estrategia de carga:
   - TRUNCATE + COPY (full refresh diario)
   - COPY usa IAM Role com acesso ao S3 Gold
   - Formato: PARQUET (nativo no Redshift Serverless)
+
+── Reprocessamento ──────────────────────────────────────────────────────────────
+Recebe reprocess_date via dag_run.conf (passado pela dag_pipeline_diario ou
+via trigger manual). O TRUNCATE + COPY garante idempotência: pode ser executado
+quantas vezes for necessário com o mesmo resultado.
+
+Exemplo de trigger manual (só recarrega Redshift, sem rodar Glue):
+  airflow dags trigger cc_carga_redshift \\
+    --conf '{"reprocess_date": "2024-06-15"}'
 """
 
 from __future__ import annotations
 
+import logging
 from datetime import datetime, timedelta
 
 from airflow import DAG
 from airflow.models import Variable
 from airflow.operators.empty import EmptyOperator
+from airflow.operators.python import PythonOperator
 from airflow.providers.amazon.aws.operators.redshift_sql import RedshiftSQLOperator
+
+log = logging.getLogger(__name__)
 
 # ─── Configuracoes ────────────────────────────────────────────────────────────
 
@@ -49,7 +62,9 @@ def copy_sql(table: str, s3_prefix: str) -> str:
     """
     Gera o SQL de TRUNCATE + COPY para uma tabela Gold.
 
-    Estrategia full-refresh: truncate antes do copy garante idempotencia.
+    Estrategia full-refresh: o TRUNCATE antes do COPY garante idempotência —
+    executar novamente com os mesmos dados Gold no S3 sempre produz o mesmo
+    resultado no Redshift, sem duplicatas.
     """
     return f"""
         TRUNCATE TABLE {SCHEMA}.{table};
@@ -98,7 +113,7 @@ FATOS = {
 with DAG(
     dag_id="cc_carga_redshift",
     description="Carga diaria Gold S3 → Redshift Serverless (TRUNCATE + COPY Parquet)",
-    schedule_interval=None,  # Acionada pela dag_pipeline_diario
+    schedule_interval=None,  # Acionada pela dag_pipeline_diario ou manualmente
     start_date=datetime(2025, 1, 1),
     catchup=False,
     default_args=DEFAULT_ARGS,
@@ -110,15 +125,38 @@ with DAG(
     Realiza TRUNCATE + COPY de todas as tabelas Gold para o Redshift Serverless.
 
     **Ordem de execucao:**
-    1. Dimensoes (todas em paralelo — sem FK entre si)
-    2. Fatos (todos em paralelo — apos todas as dimensoes)
+    1. Log da data de reprocessamento
+    2. Dimensoes (todas em paralelo — sem FK entre si)
+    3. Fatos (todos em paralelo — apos todas as dimensoes)
 
-    **Estrategia:** Full refresh diario.
-    Os dados no Redshift sao sempre uma copia fiel do S3 Gold do dia.
+    **Estrategia:** Full refresh com TRUNCATE + COPY.
+    Idempotente: pode ser reexecutada quantas vezes for necessário.
+
+    **Reprocessamento manual (só Redshift, sem Glue):**
+    ```
+    airflow dags trigger cc_carga_redshift \\
+      --conf '{"reprocess_date": "2024-06-15"}'
+    ```
     """,
 ) as dag:
 
+    def _log_reprocess_date(**context) -> None:
+        """Loga a data de reprocessamento para rastreabilidade."""
+        conf = context.get("dag_run").conf or {}
+        reprocess_date = conf.get("reprocess_date") or context["ds"]
+        log.info(
+            "Iniciando carga Redshift | reprocess_date=%s | dag_run_id=%s",
+            reprocess_date,
+            context["run_id"],
+        )
+
     inicio_carga = EmptyOperator(task_id="inicio_carga_redshift")
+
+    log_reprocess = PythonOperator(
+        task_id="log_reprocess_date",
+        python_callable=_log_reprocess_date,
+    )
+
     dims_carregadas = EmptyOperator(task_id="dimensoes_carregadas")
     carga_concluida = EmptyOperator(task_id="carga_redshift_concluida")
 
@@ -143,4 +181,4 @@ with DAG(
         fato_tasks.append(task)
 
     # ── Dependencias ─────────────────────────────────────────────────────────
-    inicio_carga >> dim_tasks >> dims_carregadas >> fato_tasks >> carga_concluida
+    inicio_carga >> log_reprocess >> dim_tasks >> dims_carregadas >> fato_tasks >> carga_concluida
