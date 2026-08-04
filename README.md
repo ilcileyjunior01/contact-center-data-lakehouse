@@ -103,7 +103,7 @@ Este projeto implementa um **Data Lakehouse completo** para operações de Conta
 - 12 arquivos SQL com KPIs prontos para execução no Amazon Athena
 - 5 notebooks Jupyter com EDA, KPIs operacionais, performance de operadores, campanhas e canais digitais
 - Script boto3 de setup do Amazon QuickSight com 5 datasets SPICE e 5 páginas de dashboard
-- **Apache Airflow 2.9.3** (Docker Compose): 2 DAGs orquestrando os 40 Glue jobs + carga Redshift
+- **Apache Airflow 2.9.3** (Docker Compose): 2 DAGs orquestrando os 40 Glue jobs + carga Redshift, com suporte a **reprocessamento por camada** (`reprocess_date` + `start_layer`) sem buscar dados na origem
 - **Redshift Serverless provisionado e carregado**: 22 tabelas Gold + 9 views analíticas de KPI com dados reais
 - Estratégia de carga **Athena UNLOAD → S3 staging → Redshift COPY** (compatível com Iceberg v2)
 - GitHub Actions CI/CD: 7 jobs (syntax check, lint, SQL validation, unit tests, JSON validation, DAG validation)
@@ -472,25 +472,60 @@ Schedule: `0 2 * * *` (diário às 02:00 UTC). Executa os 40 Glue jobs em 4 wave
 
 ```
 inicio
-  └─► [Wave 1] 18 jobs Bronze→Silver (paralelo)
-        └─► fim_bronze
-              └─► [Wave 2] 11 jobs Silver→Gold Dimensões (paralelo)
-                    └─► fim_dims
-                          └─► [Wave 3] 7 jobs Fatos base (paralelo)
-                                └─► fim_wave1
-                                      └─► [Wave 4] 4 jobs Fatos dependentes (paralelo)
-                                            └─► fim_pipeline
-                                                  └─► TriggerDagRunOperator → cc_carga_redshift
+  └─► [gate_bronze] ShortCircuit
+        └─► [Wave 1] 18 jobs Bronze→Silver (paralelo)
+              └─► fim_bronze
+                    └─► [gate_silver] ShortCircuit / ALL_DONE
+                          └─► [Wave 2] 11 jobs Silver→Gold Dimensões (paralelo)
+                                └─► fim_dims
+                                      └─► [gate_gold] ShortCircuit / ALL_DONE
+                                            └─► [Wave 3] 7 jobs Fatos base (paralelo)
+                                                  └─► fim_wave1
+                                                        └─► [Wave 4] 4 jobs Fatos dependentes
+                                                              └─► fim_pipeline
+                                                                    └─► TriggerDagRunOperator → cc_carga_redshift
 ```
+
+**Parâmetros da DAG:**
+
+| Parâmetro | Default | Descrição |
+|---|---|---|
+| `reprocess_date` | `""` (usa `{{ ds }}`) | Data a reprocessar (`YYYY-MM-DD`). Passada como `--REPROCESS_DATE` a todos os Glue jobs. |
+| `start_layer` | `"bronze"` | Camada de entrada: `bronze` \| `silver` \| `gold` \| `redshift` |
+
+Os gates `gate_bronze`, `gate_silver` e `gate_gold` são `ShortCircuitOperator` com `trigger_rule=ALL_DONE`: quando uma wave é pulada, os tasks ficam com status SKIPPED, mas o gate seguinte executa normalmente — garantindo que o pipeline sempre chega ao fim e aciona a carga do Redshift.
 
 ### DAG 2: cc_carga_redshift
 
-Schedule: `None` (acionada pela DAG 1). Faz TRUNCATE + COPY das 22 tabelas Gold no Redshift Serverless.
+Schedule: `None` (acionada pela DAG 1 ou manualmente). Faz TRUNCATE + COPY das 22 tabelas Gold no Redshift Serverless. Recebe `reprocess_date` via `dag_run.conf` para rastreabilidade nos logs.
 
 ```
-dims em paralelo (11 tabelas)
-  └─► gate_dims
-        └─► fatos em paralelo (11 tabelas)
+inicio_carga
+  └─► log_reprocess_date
+        └─► dims em paralelo (11 tabelas)
+              └─► dimensoes_carregadas
+                    └─► fatos em paralelo (11 tabelas)
+                          └─► carga_redshift_concluida
+```
+
+### Reprocessamento por camada
+
+Para reprocessar uma data específica **sem buscar dados na origem**, acione a DAG manualmente com o parâmetro `start_layer` correspondente à camada desejada. Os dados já persistidos no S3 (Bronze, Silver ou Gold) são reutilizados.
+
+| Cenário | Comando |
+|---|---|
+| Bug na lógica Silver | `start_layer=silver` → reprocessa Silver→Gold→Redshift a partir do Bronze |
+| Bug só no Gold | `start_layer=gold` → reprocessa Gold→Redshift a partir do Silver |
+| Recarregar só o Redshift | `start_layer=redshift` → só TRUNCATE+COPY a partir do Gold |
+
+```bash
+# Via CLI (reprocessar Silver e Gold do dia 15/06/2024)
+airflow dags trigger cc_pipeline_diario \
+  --conf '{"reprocess_date": "2024-06-15", "start_layer": "silver"}'
+
+# Ou só recarregar o Redshift diretamente
+airflow dags trigger cc_carga_redshift \
+  --conf '{"reprocess_date": "2024-06-15"}'
 ```
 
 ### Setup local
@@ -601,7 +636,21 @@ TBLPROPERTIES (
 )
 ```
 
-### 8. Event-Driven Pipeline
+### 8. Reprocessamento por Camada (sem buscar na origem)
+
+A arquitetura Medallion permite reprocessar qualquer camada aproveitando os dados já persistidos no S3 — sem acesso à fonte original. Os Glue jobs recebem `--REPROCESS_DATE` e filtram apenas a partição da data solicitada; o Iceberg v2 substitui somente aquela partição via `overwritePartitions()`.
+
+```
+Fonte → [Bronze S3] → Silver → Gold → Redshift
+              ↑            ↑       ↑        ↑
+         jamais        ponto   ponto    ponto
+         retocar       de re-  de re-   de re-
+                      processo processo processo
+```
+
+Os gates `ShortCircuitOperator` na DAG pulam as waves anteriores ao `start_layer` escolhido. O `trigger_rule=ALL_DONE` garante que mesmo com tasks em SKIPPED o pipeline avança até o Redshift.
+
+### 9. Event-Driven Pipeline
 
 Zero agendamento fixo. O pipeline é acionado por chegada de dados:
 

@@ -14,6 +14,8 @@ A arquitetura Medallion separa cada responsabilidade em uma camada distinta, gar
 
 **Trade-off:** Aumenta o custo de armazenamento (dados em três camadas), mas garante que qualquer camada pode ser reprocessada a partir da anterior sem necessidade de acesso à fonte original.
 
+**Reprocessamento na prática:** Os jobs Glue recebem o parâmetro `--REPROCESS_DATE` e filtram apenas a partição da data solicitada nas tabelas Iceberg. A DAG `cc_pipeline_diario` expõe os params `reprocess_date` e `start_layer` com gates `ShortCircuitOperator` que pulam as waves anteriores à camada de entrada — sem tocar na origem.
+
 ---
 
 ### 2. Por que Apache Iceberg e não Delta Lake ou Hudi?
@@ -139,7 +141,34 @@ O dado original permanece apenas na camada Bronze, protegido por AWS Lake Format
 
 ---
 
-### 10. Orquestração Event-Driven
+### 10. Reprocessamento por Camada — ShortCircuit Gates
+
+A DAG `cc_pipeline_diario` implementa três `ShortCircuitOperator` (gates) que controlam o ponto de entrada do pipeline em cada reprocessamento:
+
+```
+inicio → [gate_bronze] → Wave 1 (Bronze→Silver) → fim_bronze
+              → [gate_silver] ALL_DONE → Wave 2 (Gold Dims) → fim_dims
+                    → [gate_gold]  ALL_DONE → Wave 3+4 (Fatos) → fim_pipeline
+                                                    → TriggerDagRunOperator (ALL_DONE) → Redshift
+```
+
+**Como funciona:**
+- `gate_bronze` retorna `True` apenas se `start_layer == "bronze"`. Se `False`, os 18 jobs ficam SKIPPED.
+- `gate_silver` tem `trigger_rule=ALL_DONE`: executa mesmo com Bronze SKIPPED. Retorna `True` se `start_layer in ("bronze", "silver")`.
+- `gate_gold` idem: executa mesmo com Bronze+Silver SKIPPED.
+- O `TriggerDagRunOperator` final também tem `trigger_rule=ALL_DONE`, garantindo que a carga do Redshift sempre ocorre independentemente de quais waves foram puladas.
+
+**Passagem do parâmetro para os Glue jobs:**
+```python
+script_args={
+    "--REPROCESS_DATE": "{{ params.reprocess_date or ds }}",
+}
+```
+O job Glue usa esse valor para filtrar a partição correta na leitura da tabela Iceberg e reescreve apenas aquela partição com `overwritePartitions()`, sem impactar datas anteriores.
+
+---
+
+### 11. Orquestração Event-Driven
 
 O pipeline **não usa schedules fixos** (cron). Cada etapa é acionada pelo evento da anterior:
 
