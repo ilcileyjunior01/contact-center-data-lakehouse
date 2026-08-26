@@ -63,12 +63,14 @@ O projeto foi construído com foco em economia. Em modo de demonstração (sem p
 - [Para quem não é da área de tecnologia](#para-quem-não-é-da-área-de-tecnologia)
 - [Visão Geral](#visão-geral)
 - [Arquitetura](#arquitetura)
+- [Sobre os Dados](#sobre-os-dados)
 - [Stack Tecnológica](#stack-tecnológica)
 - [Pipeline Bronze → Silver](#pipeline-bronze--silver)
 - [Pipeline Silver → Gold](#pipeline-silver--gold)
 - [Modelo de Dados Gold](#modelo-de-dados-gold)
 - [Redshift Serverless](#redshift-serverless)
 - [Airflow — Orquestração](#airflow--orquestração)
+- [Planos de Contingência](#planos-de-contingência)
 - [Padrões de Engenharia](#padrões-de-engenharia)
 - [Conformidade LGPD](#conformidade-lgpd)
 - [Estrutura do Repositório](#estrutura-do-repositório)
@@ -114,6 +116,13 @@ Este projeto implementa um **Data Lakehouse completo** para operações de Conta
 ---
 
 ## Arquitetura
+
+> Diagrama gerado com ícones oficiais AWS via biblioteca `diagrams` + Graphviz.
+
+![Arquitetura AWS](docs/architecture_aws_icons.png)
+
+<details>
+<summary>Diagrama em texto (ASCII) — clique para expandir</summary>
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────────┐
@@ -198,6 +207,64 @@ Este projeto implementa um **Data Lakehouse completo** para operações de Conta
                          │  Amazon QuickSight    → dashboards BI                │
                          └───────────────────────────────────────────────────────┘
 ```
+
+</details>
+
+---
+
+## Sobre os Dados
+
+O projeto consome **18 tabelas transacionais** originadas de um sistema PostgreSQL de Contact Center, replicadas via WAL (Change Data Capture). Abaixo a descrição de cada entidade de origem, seu domínio e o que representa no negócio.
+
+### Domínio: Atendimento por Voz
+
+| Tabela de Origem | Descrição | Campos-chave |
+|---|---|---|
+| `tb_chamada` | Registro de cada chamada telefônica (inbound e outbound). Contém duração, status, operador responsável e fila de atendimento. | `id_chamada`, `id_operador`, `id_fila`, `dt_inicio`, `dt_fim`, `st_chamada`, `nr_duracao_segundos` |
+| `tb_gravacao_chamada` | Metadados das gravações de voz vinculadas às chamadas. Não armazena o áudio, apenas referências e informações de retenção. | `id_gravacao`, `id_chamada`, `dt_expiracao`, `nr_tamanho_mb`, `ds_url_arquivo` |
+| `tb_ura_navegacao` | Eventos de navegação do cliente na URA (Unidade de Resposta Audível / IVR) antes de ser transferido a um operador ou abandonar. | `id_ura`, `id_chamada`, `ds_opcao_selecionada`, `nr_tempo_espera`, `fl_abandonou_ura` |
+
+### Domínio: Atendimento Digital
+
+| Tabela de Origem | Descrição | Campos-chave |
+|---|---|---|
+| `tb_chat` | Sessões de atendimento via chat web. Cada linha é uma sessão completa com início, fim e operador responsável. | `id_chat`, `id_cliente`, `id_operador`, `dt_inicio`, `dt_fim`, `st_chat` |
+| `tb_mensagem_chat` | Mensagens individuais trocadas dentro de uma sessão de chat. O conteúdo textual é descartado (LGPD); preserva-se apenas o tamanho. | `id_mensagem`, `id_chat`, `ds_remetente`, `ds_conteudo`, `dt_envio` |
+| `tb_whatsapp_atendimento` | Atendimentos realizados via WhatsApp Business. Estrutura similar ao chat, com campo de telefone mascarado. | `id_whatsapp`, `id_cliente`, `id_operador`, `nr_telefone`, `dt_inicio`, `dt_fim`, `st_atendimento` |
+
+### Domínio: Suporte (Tickets)
+
+| Tabela de Origem | Descrição | Campos-chave |
+|---|---|---|
+| `tb_ticket` | Registro de tickets de suporte abertos por clientes. Inclui SLA, categoria, prioridade e tempo de resolução. | `id_ticket`, `nr_protocolo`, `id_cliente`, `id_operador_abertura`, `ds_categoria`, `ds_prioridade`, `st_ticket`, `dt_abertura`, `dt_fechamento` |
+| `tb_interacao_ticket` | Comentários e atualizações registrados em um ticket por operadores ao longo do ciclo de vida. O texto é descartado (LGPD). | `id_interacao`, `id_ticket`, `id_operador`, `ds_canal`, `ds_observacao`, `dt_interacao` |
+
+### Domínio: Marketing e Discagem
+
+| Tabela de Origem | Descrição | Campos-chave |
+|---|---|---|
+| `tb_campanha` | Campanhas de discagem ativa (outbound). Define período de vigência, objetivo e status da campanha. | `id_campanha`, `nm_campanha`, `dt_inicio`, `dt_fim`, `st_campanha` |
+| `tb_discagem` | Tentativas individuais de contato realizadas dentro de uma campanha. Registra se o cliente atendeu a ligação. | `id_discagem`, `id_campanha`, `id_cliente`, `nr_telefone`, `dt_discagem`, `st_discagem` |
+
+### Domínio: Cadastro (Dimensões Mestres)
+
+| Tabela de Origem | Descrição | Campos-chave |
+|---|---|---|
+| `tb_cliente` | Cadastro dos clientes atendidos. Contém dados pessoais (PII) que são mascarados na Silver: CPF, e-mail, telefone. | `id_cliente`, `nm_cliente`, `nr_documento`, `ds_email`, `nr_telefone`, `dt_cadastro`, `st_cliente` |
+| `tb_endereco_cliente` | Endereço dos clientes. CEP é mascarado na Silver; cidade e estado são preservados para análise geográfica. | `id_endereco`, `id_cliente`, `ds_cidade`, `ds_estado`, `ds_bairro`, `nr_cep` |
+| `tb_operador` | Cadastro dos agentes de atendimento. Login e e-mail são mascarados; hierarquia de supervisão é preservada. | `id_operador`, `nm_operador`, `ds_login`, `ds_email`, `dt_admissao`, `st_operador`, `id_supervisor` |
+| `tb_skill_operador` | Habilidades certificadas de cada operador, com nível de proficiência (BASICO → ESPECIALISTA). | `id_skill`, `id_operador`, `ds_skill`, `nr_nivel` |
+| `tb_fila_atendimento` | Filas de atendimento configuradas no sistema. Define o SLA (em segundos) e o tipo de canal suportado. | `id_fila`, `nm_fila`, `ds_tipo_canal`, `nr_sla_segundos` |
+
+### Domínio: Qualidade e Performance
+
+| Tabela de Origem | Descrição | Campos-chave |
+|---|---|---|
+| `tb_avaliacao_qualidade` | Avaliações de monitoria aplicadas por supervisores sobre atendimentos realizados. Nota de 0–10, com feedback textual descartado (LGPD). | `id_avaliacao`, `id_chamada`, `id_operador_avaliado`, `id_avaliador`, `nr_nota`, `ds_feedback`, `dt_avaliacao` |
+| `tb_jornada_operador` | Registro diário da presença e produtividade de cada operador: horas trabalhadas, chamadas atendidas, tickets resolvidos. | `id_jornada`, `id_operador`, `dt_jornada`, `nr_horas_trabalhadas`, `nr_chamadas_atendidas`, `st_presenca` |
+| `tb_metricas_operacionais` | Métricas agregadas por fila e por dia: volume de chamadas, TMA, TME, nível de serviço, taxa de abandono. Alimenta os KPIs operacionais. | `id_metrica`, `id_fila`, `dt_referencia`, `nr_chamadas_recebidas`, `nr_chamadas_atendidas`, `nr_tma_segundos`, `nr_nivel_servico` |
+
+> **Sobre PII:** dados pessoais identificáveis presentes nas tabelas acima são mascarados de forma irreversível na transição Bronze → Silver. O dado original permanece apenas no Bronze, com acesso restrito via IAM + AWS Lake Formation. Ver seção [Conformidade LGPD](#conformidade-lgpd).
 
 ---
 
@@ -539,6 +606,94 @@ docker compose up airflow-init
 docker compose up -d
 # Acesse http://localhost:8080  (admin/admin)
 ```
+
+---
+
+## Planos de Contingência
+
+O pipeline foi desenhado para **falhas isoladas não propagarem** para as camadas seguintes. Cada cenário abaixo descreve o comportamento automático e a ação manual recomendada.
+
+### Cenário 1 — Job Bronze → Silver falha
+
+| | |
+|---|---|
+| **Detecção automática** | CloudWatch Alarm dispara → SNS envia notificação por e-mail/SMS |
+| **Impacto** | Apenas a tabela do job com falha fica desatualizada; as demais continuam normalmente |
+| **Preservação** | Glue Job Bookmark mantém a posição; o dado bruto no S3 Bronze não é afetado |
+| **Recuperação** | Retry automático (configurável no Glue) ou acionamento manual: `start_layer=bronze` com a data a reprocessar |
+| **Registros inválidos** | Isolados em quarentena particionada por data — nunca bloqueiam o job |
+
+```bash
+# Reprocessar Silver de uma data específica
+airflow dags trigger cc_pipeline_diario \
+  --conf '{"reprocess_date": "2024-06-15", "start_layer": "bronze"}'
+```
+
+---
+
+### Cenário 2 — Job Silver → Gold falha
+
+| | |
+|---|---|
+| **Detecção automática** | CloudWatch Alarm + SNS |
+| **Impacto** | `ShortCircuitOperator` com `trigger_rule=ALL_DONE` marca as waves seguintes como SKIPPED, não FAILED — o pipeline não trava |
+| **Preservação** | Silver em S3 intacta; dado de Bronze disponível como fallback |
+| **Recuperação** | Reprocessar somente a partir da Silver, sem buscar dados na origem |
+
+```bash
+airflow dags trigger cc_pipeline_diario \
+  --conf '{"reprocess_date": "2024-06-15", "start_layer": "silver"}'
+```
+
+---
+
+### Cenário 3 — Carga Redshift falha
+
+| | |
+|---|---|
+| **Detecção automática** | CloudWatch Alarm + SNS |
+| **Impacto** | Dados Gold em S3 permanecem íntegros; Athena continua disponível para consultas |
+| **Recuperação** | Acionar a DAG 2 diretamente (TRUNCATE + COPY) sem reprocessar o pipeline |
+| **Fallback imediato** | Analysts consultam via Athena diretamente no db_gold enquanto o Redshift é restaurado |
+
+```bash
+# Recarregar só o Redshift (pula Bronze/Silver/Gold)
+airflow dags trigger cc_carga_redshift \
+  --conf '{"reprocess_date": "2024-06-15"}'
+
+# Ou via parâmetro start_layer na DAG principal
+airflow dags trigger cc_pipeline_diario \
+  --conf '{"reprocess_date": "2024-06-15", "start_layer": "redshift"}'
+```
+
+---
+
+### Cenário 4 — Dados corrompidos na origem
+
+| | |
+|---|---|
+| **Detecção** | Validação na Silver isola registros em quarentena com motivo de rejeição; alerta via CloudWatch |
+| **Rastreio** | CloudTrail registra todo acesso ao S3 Bronze; Quarentena auditável por data |
+| **Reversão** | Iceberg v2 Time Travel permite restaurar versão anterior de qualquer tabela Silver/Gold |
+| **Reprocessamento** | Ajustar Watermark JSON para a data anterior ao problema e reexecutar com `start_layer=bronze` |
+
+```sql
+-- Restaurar tabela Silver para versão de ontem (Iceberg Time Travel)
+SELECT * FROM glue_catalog.db_silver.chamada
+FOR SYSTEM_TIME AS OF TIMESTAMP '2024-06-14 23:59:00';
+```
+
+---
+
+### Resumo — Matriz de Recuperação
+
+| Falha | Impacto | Downtime analítico | Ação |
+|---|---|---|---|
+| Job B→S (1 tabela) | Apenas a tabela afetada | Nenhum | `start_layer=bronze` na data |
+| Job S→G (1 tabela) | Apenas a dimensão/fato | Nenhum (Athena Silver ok) | `start_layer=silver` na data |
+| Carga Redshift | Redshift desatualizado | Temporário (Athena ok) | Trigger `cc_carga_redshift` |
+| Dado corrompido na origem | Quarentena isola impacto | Nenhum | Time Travel + `start_layer=bronze` |
+| Pipeline completo travado | Nenhuma camada atualiza | Alto | Verificar CloudWatch → retry manual |
 
 ---
 
