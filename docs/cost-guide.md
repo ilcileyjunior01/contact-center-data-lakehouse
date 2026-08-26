@@ -27,7 +27,7 @@ O maior custo evitável é a ingestão em tempo real com DMS e Kinesis:
 
 **Como usar:**
 ```bash
-python pipeline/ingestion/s3_data_loader.py \
+python src/ingestion/s3_data_loader.py \
   --bucket act-cc-dev-lakehouse \
   --tabela all \
   --rows 5000

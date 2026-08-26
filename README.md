@@ -885,7 +885,7 @@ contact-center-data-lakehouse/
 │       ├── outputs.tf                ← ARNs e nomes exportados após apply
 │       └── terraform.tfvars          ← Valores padrão para ambiente dev
 │
-├── pipeline/
+├── src/
 │   ├── ingestion/
 │   │   └── s3_data_loader.py         ← Substitui DMS/Kinesis: CSV → S3 Bronze
 │   │
@@ -984,7 +984,7 @@ O Redshift Serverless não aceita conexão TCP direta quando `publicly_accessibl
 python data/synthetic/generate_data.py
 
 # Carrega CSVs no S3 Bronze (simula DMS + Kinesis Firehose)
-python pipeline/ingestion/s3_data_loader.py
+python src/ingestion/s3_data_loader.py
 ```
 
 ### Passo 4 — Executar pipeline

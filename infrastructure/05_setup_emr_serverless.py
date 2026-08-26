@@ -763,7 +763,7 @@ def main():
     print()
     print("  PROXIMOS PASSOS:")
     print(f"  1. Faça upload dos scripts PySpark:")
-    print(f"     aws s3 sync pipeline/ s3://{bucket_name}/scripts/")
+    print(f"     aws s3 sync src/ s3://{bucket_name}/scripts/")
     print(f"  2. Submeta jobs com: python 05_setup_emr_serverless.py --submit-example")
     print(f"  3. Monitore em: AWS Console -> EMR Serverless -> {APP_NAME}")
     print()

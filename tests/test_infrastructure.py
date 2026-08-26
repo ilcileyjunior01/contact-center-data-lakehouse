@@ -244,7 +244,7 @@ class TestRepositoryStructure:
     def test_pipeline_dirs_existem(self):
         for d in ["bronze_to_silver", "silver_to_gold", "ingestion"]:
             path = REPO_ROOT / "pipeline" / d
-            assert path.exists(), f"Diretório de pipeline ausente: pipeline/{d}"
+            assert path.exists(), f"Diretório de pipeline ausente: src/{d}"
 
     def test_sql_kpis_dir_existe(self):
         assert (REPO_ROOT / "sql" / "athena_kpis").exists()
