@@ -271,7 +271,7 @@ Você verá os 3 databases: `db_bronze`, `db_silver`, `db_gold`.
 python data/synthetic/generate_data.py
 
 # Carregar no S3
-python pipeline/ingestion/s3_data_loader.py --bucket act-cc-dev-lakehouse --region us-east-1
+python src/ingestion/s3_data_loader.py --bucket act-cc-dev-lakehouse --region us-east-1
 ```
 
 ### Verificar no Console AWS
@@ -344,8 +344,8 @@ Você verá as tabelas descobertas pelos crawlers.
 ### Fazer upload dos scripts para o S3
 
 ```bash
-! aws s3 cp pipeline/bronze_to_silver/ s3://act-cc-dev-lakehouse/scripts/bronze_to_silver/ --recursive --region us-east-1
-! aws s3 cp pipeline/silver_to_gold/ s3://act-cc-dev-lakehouse/scripts/silver_to_gold/ --recursive --region us-east-1
+! aws s3 cp src/bronze_to_silver/ s3://act-cc-dev-lakehouse/scripts/bronze_to_silver/ --recursive --region us-east-1
+! aws s3 cp src/silver_to_gold/ s3://act-cc-dev-lakehouse/scripts/silver_to_gold/ --recursive --region us-east-1
 ```
 
 ### Registrar um job (exemplo: tb_chamada)

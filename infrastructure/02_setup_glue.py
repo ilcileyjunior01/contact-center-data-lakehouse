@@ -532,7 +532,7 @@ def upload_scripts(bucket_name: str, region: str) -> None:
     pipeline_dir = os.path.join(project_root, "pipeline")
 
     if not os.path.isdir(pipeline_dir):
-        print(f"  [AVISO] Diretório pipeline/ não encontrado em: {pipeline_dir}")
+        print(f"  [AVISO] Diretório src/ não encontrado em: {pipeline_dir}")
         print("  Pulando upload de scripts.")
         return
 
@@ -546,7 +546,7 @@ def upload_scripts(bucket_name: str, region: str) -> None:
         "--region", region,
     ]
 
-    print(f"  [INFO] Enviando pipeline/ → {dest}")
+    print(f"  [INFO] Enviando src/ → {dest}")
     print(f"         Comando: {' '.join(cmd)}")
     try:
         result = subprocess.run(cmd, capture_output=True, text=True)
@@ -561,7 +561,7 @@ def upload_scripts(bucket_name: str, region: str) -> None:
     except FileNotFoundError:
         print(
             "  [AVISO] AWS CLI não encontrada. Faça upload manual:\n"
-            f"    aws s3 sync pipeline/ {dest}"
+            f"    aws s3 sync src/ {dest}"
         )
 
 
@@ -727,7 +727,7 @@ def main():
         print("\n[ETAPA 6] Upload de scripts ignorado (--skip-upload).")
         print(
             f"  Execute manualmente:\n"
-            f"    aws s3 sync pipeline/ s3://{bucket_name}/scripts/ --region {region}"
+            f"    aws s3 sync src/ s3://{bucket_name}/scripts/ --region {region}"
         )
 
     # -----------------------------------------------------------------------
@@ -748,7 +748,7 @@ def main():
     print()
     print("  PRÓXIMOS PASSOS:")
     print("    1. Carregue os dados sintéticos:")
-    print(f"       python pipeline/ingestion/s3_data_loader.py --bucket-name {bucket_name}")
+    print(f"       python src/ingestion/s3_data_loader.py --bucket-name {bucket_name}")
     print("    2. Execute os crawlers Bronze (no Console Glue ou via CLI):")
     print(f"       aws glue start-crawler --name crawler-operacao-chamada --region {region}")
     print("    3. Execute os jobs Bronze→Silver sequencialmente:")

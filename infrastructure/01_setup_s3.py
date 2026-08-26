@@ -344,7 +344,7 @@ def main():
     print("  PRÓXIMOS PASSOS:")
     print("    python 02_setup_glue.py   # Databases, Crawlers, Role IAM e Jobs Glue")
     print("    python 03_setup_lambda.py # Lambda + EventBridge (pipeline event-driven)")
-    print(f"    python pipeline/ingestion/s3_data_loader.py --bucket-name {bucket_name}")
+    print(f"    python src/ingestion/s3_data_loader.py --bucket-name {bucket_name}")
     print("=" * 65)
     print("  Setup S3 finalizado com sucesso!")
     print("=" * 65)
