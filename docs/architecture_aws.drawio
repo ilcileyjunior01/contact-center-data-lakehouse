@@ -1,444 +1,53 @@
-<mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="3300" pageHeight="2000" math="0" shadow="0">
-  <root>
-    <mxCell id="0" />
-    <mxCell id="1" parent="0" />
-
-    <!-- ═══════════════════════════════════════════════════════════════
-         TÍTULO
-    ═══════════════════════════════════════════════════════════════ -->
-    <mxCell id="2" value="Contact Center Data Lakehouse — AWS Architecture" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=22;fontStyle=1;fontColor=#FFFFFF;" vertex="1" parent="1">
-      <mxGeometry x="40" y="20" width="3220" height="50" as="geometry" />
-    </mxCell>
-
-    <!-- ═══════════════════════════════════════════════════════════════
-         FUNDO GERAL (cor escura)
-    ═══════════════════════════════════════════════════════════════ -->
-    <mxCell id="3" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#0D1B2A;strokeColor=none;" vertex="1" parent="1">
-      <mxGeometry x="0" y="0" width="3300" height="2000" as="geometry" />
-    </mxCell>
-
-    <!-- ═══════════════════════════════════════════════════════════════
-         SWIM LANE — FONTE DE DADOS
-    ═══════════════════════════════════════════════════════════════ -->
-    <mxCell id="10" value="FONTE DE DADOS" style="points=[[0,0],[0.25,0],[0.5,0],[0.75,0],[1,0],[1,0.25],[1,0.5],[1,0.75],[1,1],[0.75,1],[0.5,1],[0.25,1],[0,1],[0,0.75],[0,0.5],[0,0.25]];shape=mxgraph.aws4.group;grIcon=mxgraph.aws4.group_general;strokeColor=#232F3E;fillColor=#1C2B39;verticalLabelPosition=top;verticalAlign=bottom;align=center;html=1;fontSize=13;fontStyle=1;fontColor=#AABBCC;" vertex="1" parent="1">
-      <mxGeometry x="60" y="100" width="200" height="580" as="geometry" />
-    </mxCell>
-
-    <!-- PostgreSQL -->
-    <mxCell id="11" value="PostgreSQL&#xa;18 tabelas&#xa;(WAL CDC)" style="outlineConnect=0;fontColor=#232F3E;gradientColor=none;strokeColor=none;fillColor=#C7131F;labelBackgroundColor=#ffffff;align=center;html=1;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.rds;" vertex="1" parent="1">
-      <mxGeometry x="110" y="180" width="78" height="78" as="geometry" />
-    </mxCell>
-    <mxCell id="11b" value="PostgreSQL&#xa;18 tabelas (WAL CDC)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=top;fontSize=11;fontColor=#AABBCC;" vertex="1" parent="1">
-      <mxGeometry x="80" y="265" width="140" height="40" as="geometry" />
-    </mxCell>
-
-    <!-- Dados Sintéticos (s3_data_loader) -->
-    <mxCell id="12" value="s3_data_loader.py&#xa;(simula DMS em demo)" style="outlineConnect=0;fontColor=#232F3E;gradientColor=none;strokeColor=none;fillColor=#3F8624;labelBackgroundColor=#ffffff;align=center;html=1;fontSize=11;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.python;" vertex="1" parent="1">
-      <mxGeometry x="110" y="460" width="78" height="78" as="geometry" />
-    </mxCell>
-    <mxCell id="12b" value="Ingestão demo&#xa;CSV → S3 Bronze" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=top;fontSize=11;fontColor=#AABBCC;" vertex="1" parent="1">
-      <mxGeometry x="80" y="545" width="140" height="40" as="geometry" />
-    </mxCell>
-
-    <!-- ═══════════════════════════════════════════════════════════════
-         SWIM LANE — INGESTÃO CDC
-    ═══════════════════════════════════════════════════════════════ -->
-    <mxCell id="20" value="INGESTÃO (CDC)" style="points=[[0,0],[0.25,0],[0.5,0],[0.75,0],[1,0],[1,0.25],[1,0.5],[1,0.75],[1,1],[0.75,1],[0.5,1],[0.25,1],[0,1],[0,0.75],[0,0.5],[0,0.25]];shape=mxgraph.aws4.group;grIcon=mxgraph.aws4.group_management_console;strokeColor=#E7157B;fillColor=#1C2030;verticalLabelPosition=top;verticalAlign=bottom;align=center;html=1;fontSize=13;fontStyle=1;fontColor=#E7157B;" vertex="1" parent="1">
-      <mxGeometry x="300" y="100" width="340" height="580" as="geometry" />
-    </mxCell>
-
-    <!-- AWS DMS -->
-    <mxCell id="21" value="" style="outlineConnect=0;fontColor=#232F3E;gradientColor=none;strokeColor=none;fillColor=#E7157B;labelBackgroundColor=#ffffff;align=center;html=1;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.database_migration_service;" vertex="1" parent="1">
-      <mxGeometry x="330" y="160" width="78" height="78" as="geometry" />
-    </mxCell>
-    <mxCell id="21b" value="AWS DMS&#xa;18 tasks" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=top;fontSize=11;fontColor=#AABBCC;" vertex="1" parent="1">
-      <mxGeometry x="305" y="245" width="130" height="35" as="geometry" />
-    </mxCell>
-
-    <!-- Kinesis Streams -->
-    <mxCell id="22" value="" style="outlineConnect=0;fontColor=#232F3E;gradientColor=none;strokeColor=none;fillColor=#E7157B;labelBackgroundColor=#ffffff;align=center;html=1;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.kinesis_data_streams;" vertex="1" parent="1">
-      <mxGeometry x="460" y="160" width="78" height="78" as="geometry" />
-    </mxCell>
-    <mxCell id="22b" value="Kinesis Streams&#xa;18 streams" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=top;fontSize=11;fontColor=#AABBCC;" vertex="1" parent="1">
-      <mxGeometry x="435" y="245" width="130" height="35" as="geometry" />
-    </mxCell>
-
-    <!-- Kinesis Firehose -->
-    <mxCell id="23" value="" style="outlineConnect=0;fontColor=#232F3E;gradientColor=none;strokeColor=none;fillColor=#E7157B;labelBackgroundColor=#ffffff;align=center;html=1;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.kinesis_data_firehose;" vertex="1" parent="1">
-      <mxGeometry x="390" y="370" width="78" height="78" as="geometry" />
-    </mxCell>
-    <mxCell id="23b" value="Kinesis Firehose&#xa;Parquet + Snappy" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=top;fontSize=11;fontColor=#AABBCC;" vertex="1" parent="1">
-      <mxGeometry x="360" y="455" width="140" height="35" as="geometry" />
-    </mxCell>
-
-    <!-- Seta DMS → Streams -->
-    <mxCell id="a1" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#E7157B;strokeWidth=2;endArrow=open;endFill=0;" edge="1" parent="1" source="21" target="22">
-      <mxGeometry relative="1" as="geometry" />
-    </mxCell>
-    <!-- Seta Streams → Firehose -->
-    <mxCell id="a2" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#E7157B;strokeWidth=2;endArrow=open;endFill=0;" edge="1" parent="1" source="22" target="23">
-      <mxGeometry relative="1" as="geometry" />
-    </mxCell>
-
-    <!-- ═══════════════════════════════════════════════════════════════
-         SWIM LANE — BRONZE
-    ═══════════════════════════════════════════════════════════════ -->
-    <mxCell id="30" value="CAMADA BRONZE" style="points=[[0,0],[0.25,0],[0.5,0],[0.75,0],[1,0],[1,0.25],[1,0.5],[1,0.75],[1,1],[0.75,1],[0.5,1],[0.25,1],[0,1],[0,0.75],[0,0.5],[0,0.25]];shape=mxgraph.aws4.group;grIcon=mxgraph.aws4.group_storage;strokeColor=#7D4B00;fillColor=#261500;verticalLabelPosition=top;verticalAlign=bottom;align=center;html=1;fontSize=13;fontStyle=1;fontColor=#FF9900;" vertex="1" parent="1">
-      <mxGeometry x="680" y="100" width="340" height="580" as="geometry" />
-    </mxCell>
-
-    <!-- S3 Bronze -->
-    <mxCell id="31" value="" style="outlineConnect=0;fontColor=#232F3E;gradientColor=none;strokeColor=none;fillColor=#7F3600;labelBackgroundColor=#ffffff;align=center;html=1;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.s3;" vertex="1" parent="1">
-      <mxGeometry x="730" y="160" width="78" height="78" as="geometry" />
-    </mxCell>
-    <mxCell id="31b" value="Amazon S3&#xa;Bronze Layer&#xa;Parquet + Snappy" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=top;fontSize=11;fontColor=#AABBCC;" vertex="1" parent="1">
-      <mxGeometry x="695" y="245" width="150" height="50" as="geometry" />
-    </mxCell>
-
-    <!-- EventBridge -->
-    <mxCell id="32" value="" style="outlineConnect=0;fontColor=#232F3E;gradientColor=none;strokeColor=none;fillColor=#E7157B;labelBackgroundColor=#ffffff;align=center;html=1;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.eventbridge;" vertex="1" parent="1">
-      <mxGeometry x="860" y="160" width="78" height="78" as="geometry" />
-    </mxCell>
-    <mxCell id="32b" value="Amazon&#xa;EventBridge&#xa;S3 PutObject rule" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=top;fontSize=11;fontColor=#AABBCC;" vertex="1" parent="1">
-      <mxGeometry x="830" y="245" width="140" height="50" as="geometry" />
-    </mxCell>
-
-    <!-- Lambda -->
-    <mxCell id="33" value="" style="outlineConnect=0;fontColor=#232F3E;gradientColor=none;strokeColor=none;fillColor=#E7157B;labelBackgroundColor=#ffffff;align=center;html=1;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.lambda;" vertex="1" parent="1">
-      <mxGeometry x="730" y="380" width="78" height="78" as="geometry" />
-    </mxCell>
-    <mxCell id="33b" value="AWS Lambda&#xa;fn_start_glue_crawler&#xa;S3 event → Crawler" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=top;fontSize=11;fontColor=#AABBCC;" vertex="1" parent="1">
-      <mxGeometry x="695" y="465" width="150" height="50" as="geometry" />
-    </mxCell>
-
-    <!-- Glue Crawler -->
-    <mxCell id="34" value="" style="outlineConnect=0;fontColor=#232F3E;gradientColor=none;strokeColor=none;fillColor=#8C4FFF;labelBackgroundColor=#ffffff;align=center;html=1;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.glue_crawlers;" vertex="1" parent="1">
-      <mxGeometry x="860" y="380" width="78" height="78" as="geometry" />
-    </mxCell>
-    <mxCell id="34b" value="Glue Crawler&#xa;18 crawlers&#xa;Atualiza catálogo" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=top;fontSize=11;fontColor=#AABBCC;" vertex="1" parent="1">
-      <mxGeometry x="830" y="465" width="140" height="50" as="geometry" />
-    </mxCell>
-
-    <!-- Setas Bronze interno -->
-    <mxCell id="a3" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#FF9900;strokeWidth=2;endArrow=open;endFill=0;" edge="1" parent="1" source="31" target="32">
-      <mxGeometry relative="1" as="geometry" />
-    </mxCell>
-    <mxCell id="a4" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#FF9900;strokeWidth=2;endArrow=open;endFill=0;" edge="1" parent="1" source="32" target="33">
-      <mxGeometry relative="1" as="geometry" />
-    </mxCell>
-    <mxCell id="a5" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#FF9900;strokeWidth=2;endArrow=open;endFill=0;" edge="1" parent="1" source="33" target="34">
-      <mxGeometry relative="1" as="geometry" />
-    </mxCell>
-
-    <!-- ═══════════════════════════════════════════════════════════════
-         SWIM LANE — SILVER
-    ═══════════════════════════════════════════════════════════════ -->
-    <mxCell id="40" value="CAMADA SILVER" style="points=[[0,0],[0.25,0],[0.5,0],[0.75,0],[1,0],[1,0.25],[1,0.5],[1,0.75],[1,1],[0.75,1],[0.5,1],[0.25,1],[0,1],[0,0.75],[0,0.5],[0,0.25]];shape=mxgraph.aws4.group;grIcon=mxgraph.aws4.group_data_lake;strokeColor=#1E5A3A;fillColor=#0A1F14;verticalLabelPosition=top;verticalAlign=bottom;align=center;html=1;fontSize=13;fontStyle=1;fontColor=#2ECC71;" vertex="1" parent="1">
-      <mxGeometry x="1060" y="100" width="340" height="580" as="geometry" />
-    </mxCell>
-
-    <!-- Glue Jobs Silver -->
-    <mxCell id="41" value="" style="outlineConnect=0;fontColor=#232F3E;gradientColor=none;strokeColor=none;fillColor=#8C4FFF;labelBackgroundColor=#ffffff;align=center;html=1;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.glue;" vertex="1" parent="1">
-      <mxGeometry x="1110" y="160" width="78" height="78" as="geometry" />
-    </mxCell>
-    <mxCell id="41b" value="AWS Glue 4.0&#xa;18 jobs PySpark&#xa;Bronze → Silver" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=top;fontSize=11;fontColor=#AABBCC;" vertex="1" parent="1">
-      <mxGeometry x="1080" y="245" width="140" height="50" as="geometry" />
-    </mxCell>
-
-    <!-- S3 Silver / Iceberg -->
-    <mxCell id="42" value="" style="outlineConnect=0;fontColor=#232F3E;gradientColor=none;strokeColor=none;fillColor=#7F3600;labelBackgroundColor=#ffffff;align=center;html=1;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.s3;" vertex="1" parent="1">
-      <mxGeometry x="1240" y="160" width="78" height="78" as="geometry" />
-    </mxCell>
-    <mxCell id="42b" value="Amazon S3&#xa;Silver / Iceberg v2&#xa;ACID · MERGE · CDC" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=top;fontSize=11;fontColor=#AABBCC;" vertex="1" parent="1">
-      <mxGeometry x="1210" y="245" width="140" height="50" as="geometry" />
-    </mxCell>
-
-    <!-- Glue Data Catalog Silver -->
-    <mxCell id="43" value="" style="outlineConnect=0;fontColor=#232F3E;gradientColor=none;strokeColor=none;fillColor=#8C4FFF;labelBackgroundColor=#ffffff;align=center;html=1;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.glue_data_catalog;" vertex="1" parent="1">
-      <mxGeometry x="1175" y="390" width="78" height="78" as="geometry" />
-    </mxCell>
-    <mxCell id="43b" value="Glue Data Catalog&#xa;db_silver&#xa;18 tabelas Iceberg" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=top;fontSize=11;fontColor=#AABBCC;" vertex="1" parent="1">
-      <mxGeometry x="1140" y="475" width="150" height="50" as="geometry" />
-    </mxCell>
-
-    <!-- Setas Silver interno -->
-    <mxCell id="a6" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#2ECC71;strokeWidth=2;endArrow=open;endFill=0;" edge="1" parent="1" source="41" target="42">
-      <mxGeometry relative="1" as="geometry" />
-    </mxCell>
-    <mxCell id="a7" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#2ECC71;strokeWidth=2;endArrow=open;endFill=0;" edge="1" parent="1" source="42" target="43">
-      <mxGeometry relative="1" as="geometry" />
-    </mxCell>
-
-    <!-- ═══════════════════════════════════════════════════════════════
-         SWIM LANE — GOLD
-    ═══════════════════════════════════════════════════════════════ -->
-    <mxCell id="50" value="CAMADA GOLD" style="points=[[0,0],[0.25,0],[0.5,0],[0.75,0],[1,0],[1,0.25],[1,0.5],[1,0.75],[1,1],[0.75,1],[0.5,1],[0.25,1],[0,1],[0,0.75],[0,0.5],[0,0.25]];shape=mxgraph.aws4.group;grIcon=mxgraph.aws4.group_data_lake;strokeColor=#7D6000;fillColor=#201600;verticalLabelPosition=top;verticalAlign=bottom;align=center;html=1;fontSize=13;fontStyle=1;fontColor=#FFD700;" vertex="1" parent="1">
-      <mxGeometry x="1440" y="100" width="340" height="580" as="geometry" />
-    </mxCell>
-
-    <!-- Glue Jobs Gold -->
-    <mxCell id="51" value="" style="outlineConnect=0;fontColor=#232F3E;gradientColor=none;strokeColor=none;fillColor=#8C4FFF;labelBackgroundColor=#ffffff;align=center;html=1;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.glue;" vertex="1" parent="1">
-      <mxGeometry x="1490" y="160" width="78" height="78" as="geometry" />
-    </mxCell>
-    <mxCell id="51b" value="AWS Glue 4.0&#xa;22 jobs PySpark&#xa;Silver → Gold" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=top;fontSize=11;fontColor=#AABBCC;" vertex="1" parent="1">
-      <mxGeometry x="1460" y="245" width="140" height="50" as="geometry" />
-    </mxCell>
-
-    <!-- S3 Gold / Star Schema -->
-    <mxCell id="52" value="" style="outlineConnect=0;fontColor=#232F3E;gradientColor=none;strokeColor=none;fillColor=#7F3600;labelBackgroundColor=#ffffff;align=center;html=1;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.s3;" vertex="1" parent="1">
-      <mxGeometry x="1620" y="160" width="78" height="78" as="geometry" />
-    </mxCell>
-    <mxCell id="52b" value="Amazon S3&#xa;Gold / Star Schema&#xa;11 dims + 11 fatos" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=top;fontSize=11;fontColor=#AABBCC;" vertex="1" parent="1">
-      <mxGeometry x="1590" y="245" width="140" height="50" as="geometry" />
-    </mxCell>
-
-    <!-- Glue Data Catalog Gold -->
-    <mxCell id="53" value="" style="outlineConnect=0;fontColor=#232F3E;gradientColor=none;strokeColor=none;fillColor=#8C4FFF;labelBackgroundColor=#ffffff;align=center;html=1;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.glue_data_catalog;" vertex="1" parent="1">
-      <mxGeometry x="1555" y="390" width="78" height="78" as="geometry" />
-    </mxCell>
-    <mxCell id="53b" value="Glue Data Catalog&#xa;db_gold&#xa;Iceberg v2 + Parquet" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=top;fontSize=11;fontColor=#AABBCC;" vertex="1" parent="1">
-      <mxGeometry x="1520" y="475" width="150" height="50" as="geometry" />
-    </mxCell>
-
-    <!-- Setas Gold interno -->
-    <mxCell id="a8" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#FFD700;strokeWidth=2;endArrow=open;endFill=0;" edge="1" parent="1" source="51" target="52">
-      <mxGeometry relative="1" as="geometry" />
-    </mxCell>
-    <mxCell id="a9" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#FFD700;strokeWidth=2;endArrow=open;endFill=0;" edge="1" parent="1" source="52" target="53">
-      <mxGeometry relative="1" as="geometry" />
-    </mxCell>
-
-    <!-- ═══════════════════════════════════════════════════════════════
-         SWIM LANE — ANALYTICS
-    ═══════════════════════════════════════════════════════════════ -->
-    <mxCell id="60" value="CAMADA ANALÍTICA" style="points=[[0,0],[0.25,0],[0.5,0],[0.75,0],[1,0],[1,0.25],[1,0.5],[1,0.75],[1,1],[0.75,1],[0.5,1],[0.25,1],[0,1],[0,0.75],[0,0.5],[0,0.25]];shape=mxgraph.aws4.group;grIcon=mxgraph.aws4.group_analytics;strokeColor=#00539B;fillColor=#00142B;verticalLabelPosition=top;verticalAlign=bottom;align=center;html=1;fontSize=13;fontStyle=1;fontColor=#009BFF;" vertex="1" parent="1">
-      <mxGeometry x="1820" y="100" width="540" height="580" as="geometry" />
-    </mxCell>
-
-    <!-- Athena UNLOAD (staging) -->
-    <mxCell id="61" value="" style="outlineConnect=0;fontColor=#232F3E;gradientColor=none;strokeColor=none;fillColor=#8C4FFF;labelBackgroundColor=#ffffff;align=center;html=1;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.athena;" vertex="1" parent="1">
-      <mxGeometry x="1860" y="160" width="78" height="78" as="geometry" />
-    </mxCell>
-    <mxCell id="61b" value="Amazon Athena&#xa;SQL serverless&#xa;UNLOAD → staging" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=top;fontSize=11;fontColor=#AABBCC;" vertex="1" parent="1">
-      <mxGeometry x="1825" y="245" width="150" height="50" as="geometry" />
-    </mxCell>
-
-    <!-- S3 Staging -->
-    <mxCell id="62" value="" style="outlineConnect=0;fontColor=#232F3E;gradientColor=none;strokeColor=none;fillColor=#7F3600;labelBackgroundColor=#ffffff;align=center;html=1;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.s3;" vertex="1" parent="1">
-      <mxGeometry x="1990" y="160" width="78" height="78" as="geometry" />
-    </mxCell>
-    <mxCell id="62b" value="Amazon S3&#xa;Staging (CSV)&#xa;Athena UNLOAD" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=top;fontSize=11;fontColor=#AABBCC;" vertex="1" parent="1">
-      <mxGeometry x="1960" y="245" width="140" height="50" as="geometry" />
-    </mxCell>
-
-    <!-- Redshift -->
-    <mxCell id="63" value="" style="outlineConnect=0;fontColor=#232F3E;gradientColor=none;strokeColor=none;fillColor=#8C4FFF;labelBackgroundColor=#ffffff;align=center;html=1;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.redshift;" vertex="1" parent="1">
-      <mxGeometry x="2150" y="160" width="78" height="78" as="geometry" />
-    </mxCell>
-    <mxCell id="63b" value="Redshift Serverless&#xa;8 RPUs · auto-pause&#xa;22 tabelas + 9 views" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=top;fontSize=11;fontColor=#AABBCC;" vertex="1" parent="1">
-      <mxGeometry x="2115" y="245" width="150" height="50" as="geometry" />
-    </mxCell>
-
-    <!-- QuickSight -->
-    <mxCell id="64" value="" style="outlineConnect=0;fontColor=#232F3E;gradientColor=none;strokeColor=none;fillColor=#8C4FFF;labelBackgroundColor=#ffffff;align=center;html=1;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.quicksight;" vertex="1" parent="1">
-      <mxGeometry x="2000" y="400" width="78" height="78" as="geometry" />
-    </mxCell>
-    <mxCell id="64b" value="Amazon QuickSight&#xa;5 datasets SPICE&#xa;Dashboards BI" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=top;fontSize=11;fontColor=#AABBCC;" vertex="1" parent="1">
-      <mxGeometry x="1965" y="485" width="150" height="50" as="geometry" />
-    </mxCell>
-
-    <!-- EMR Serverless -->
-    <mxCell id="65" value="" style="outlineConnect=0;fontColor=#232F3E;gradientColor=none;strokeColor=none;fillColor=#E7157B;labelBackgroundColor=#ffffff;align=center;html=1;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.emr;" vertex="1" parent="1">
-      <mxGeometry x="2150" y="400" width="78" height="78" as="geometry" />
-    </mxCell>
-    <mxCell id="65b" value="EMR Serverless&#xa;Jobs Spark&#xa;sem cluster fixo" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=top;fontSize=11;fontColor=#AABBCC;" vertex="1" parent="1">
-      <mxGeometry x="2115" y="485" width="150" height="50" as="geometry" />
-    </mxCell>
-
-    <!-- Setas Analytics interno -->
-    <mxCell id="a10" value="UNLOAD" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#009BFF;strokeWidth=2;endArrow=open;endFill=0;fontColor=#009BFF;fontSize=10;" edge="1" parent="1" source="61" target="62">
-      <mxGeometry relative="1" as="geometry" />
-    </mxCell>
-    <mxCell id="a11" value="COPY" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#009BFF;strokeWidth=2;endArrow=open;endFill=0;fontColor=#009BFF;fontSize=10;" edge="1" parent="1" source="62" target="63">
-      <mxGeometry relative="1" as="geometry" />
-    </mxCell>
-    <mxCell id="a12" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#009BFF;strokeWidth=2;endArrow=open;endFill=0;" edge="1" parent="1" source="61" target="64">
-      <mxGeometry relative="1" as="geometry" />
-    </mxCell>
-
-    <!-- ═══════════════════════════════════════════════════════════════
-         SETAS ENTRE LAYERS PRINCIPAIS
-    ═══════════════════════════════════════════════════════════════ -->
-    <!-- Firehose → S3 Bronze -->
-    <mxCell id="b1" value="Parquet+Snappy" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#FF9900;strokeWidth=2;endArrow=open;endFill=0;fontColor=#FF9900;fontSize=10;" edge="1" parent="1" source="23" target="31">
-      <mxGeometry relative="1" as="geometry" />
-    </mxCell>
-    <!-- Crawler → Glue Silver -->
-    <mxCell id="b2" value="Trigger" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#2ECC71;strokeWidth=2;endArrow=open;endFill=0;fontColor=#2ECC71;fontSize=10;" edge="1" parent="1" source="34" target="41">
-      <mxGeometry relative="1" as="geometry" />
-    </mxCell>
-    <!-- Silver Catalog → Gold Jobs -->
-    <mxCell id="b3" value="spark.table()" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#FFD700;strokeWidth=2;endArrow=open;endFill=0;fontColor=#FFD700;fontSize=10;" edge="1" parent="1" source="43" target="51">
-      <mxGeometry relative="1" as="geometry" />
-    </mxCell>
-    <!-- Gold Catalog → Athena -->
-    <mxCell id="b4" value="SELECT *" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#009BFF;strokeWidth=2;endArrow=open;endFill=0;fontColor=#009BFF;fontSize=10;" edge="1" parent="1" source="53" target="61">
-      <mxGeometry relative="1" as="geometry" />
-    </mxCell>
-
-    <!-- ═══════════════════════════════════════════════════════════════
-         SWIM LANE — ORQUESTRAÇÃO
-    ═══════════════════════════════════════════════════════════════ -->
-    <mxCell id="70" value="ORQUESTRAÇÃO" style="points=[[0,0],[0.25,0],[0.5,0],[0.75,0],[1,0],[1,0.25],[1,0.5],[1,0.75],[1,1],[0.75,1],[0.5,1],[0.25,1],[0,1],[0,0.75],[0,0.5],[0,0.25]];shape=mxgraph.aws4.group;grIcon=mxgraph.aws4.group_management_console;strokeColor=#017CEE;fillColor=#001930;verticalLabelPosition=top;verticalAlign=bottom;align=center;html=1;fontSize=13;fontStyle=1;fontColor=#017CEE;" vertex="1" parent="1">
-      <mxGeometry x="60" y="740" width="2300" height="260" as="geometry" />
-    </mxCell>
-
-    <!-- Apache Airflow -->
-    <mxCell id="71" value="" style="outlineConnect=0;fontColor=#232F3E;gradientColor=none;strokeColor=none;fillColor=#017CEE;labelBackgroundColor=#ffffff;align=center;html=1;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.management_console;" vertex="1" parent="1">
-      <mxGeometry x="130" y="810" width="78" height="78" as="geometry" />
-    </mxCell>
-    <mxCell id="71b" value="Apache Airflow 2.9.3&#xa;Docker Compose&#xa;http://localhost:8080" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=top;fontSize=11;fontColor=#AABBCC;" vertex="1" parent="1">
-      <mxGeometry x="100" y="895" width="140" height="50" as="geometry" />
-    </mxCell>
-
-    <!-- DAG 1 -->
-    <mxCell id="72" value="DAG 1: cc_pipeline_diario&#xa;Schedule: 0 2 * * *&#xa;Wave 1 (18 jobs B→S) → Wave 2 (11 dims) → Wave 3 (7 fatos) → Wave 4 (4 fatos dep.)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#003366;strokeColor=#017CEE;fontColor=#FFFFFF;fontSize=11;" vertex="1" parent="1">
-      <mxGeometry x="320" y="810" width="860" height="100" as="geometry" />
-    </mxCell>
-
-    <!-- DAG 2 -->
-    <mxCell id="73" value="DAG 2: cc_carga_redshift&#xa;Schedule: None (trigger DAG 1 ou manual)&#xa;11 dims (paralelo) → dims_carregadas → 11 fatos (paralelo) → carga_concluída" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#003366;strokeColor=#00D4AA;fontColor=#FFFFFF;fontSize=11;" vertex="1" parent="1">
-      <mxGeometry x="1220" y="810" width="860" height="100" as="geometry" />
-    </mxCell>
-
-    <!-- ShortCircuit label -->
-    <mxCell id="74" value="ShortCircuitOperator (start_layer: bronze | silver | gold | redshift) — reprocessamento sem buscar na origem" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=11;fontColor=#017CEE;fontStyle=2;" vertex="1" parent="1">
-      <mxGeometry x="320" y="930" width="1760" height="40" as="geometry" />
-    </mxCell>
-
-    <!-- Seta Airflow → DAG1 -->
-    <mxCell id="c1" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#017CEE;strokeWidth=2;endArrow=open;endFill=0;" edge="1" parent="1" source="71" target="72">
-      <mxGeometry relative="1" as="geometry" />
-    </mxCell>
-    <mxCell id="c2" value="Trigger" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#017CEE;strokeWidth=1;endArrow=open;endFill=0;dashed=1;fontColor=#017CEE;fontSize=10;" edge="1" parent="1" source="72" target="73">
-      <mxGeometry relative="1" as="geometry" />
-    </mxCell>
-
-    <!-- ═══════════════════════════════════════════════════════════════
-         SWIM LANE — GOVERNANÇA & MONITORAMENTO
-    ═══════════════════════════════════════════════════════════════ -->
-    <mxCell id="80" value="GOVERNANÇA, SEGURANÇA &amp; MONITORAMENTO" style="points=[[0,0],[0.25,0],[0.5,0],[0.75,0],[1,0],[1,0.25],[1,0.5],[1,0.75],[1,1],[0.75,1],[0.5,1],[0.25,1],[0,1],[0,0.75],[0,0.5],[0,0.25]];shape=mxgraph.aws4.group;grIcon=mxgraph.aws4.group_security;strokeColor=#DD344C;fillColor=#1A0005;verticalLabelPosition=top;verticalAlign=bottom;align=center;html=1;fontSize=13;fontStyle=1;fontColor=#DD344C;" vertex="1" parent="1">
-      <mxGeometry x="60" y="1070" width="2300" height="260" as="geometry" />
-    </mxCell>
-
-    <!-- CloudWatch -->
-    <mxCell id="81" value="" style="outlineConnect=0;fontColor=#232F3E;gradientColor=none;strokeColor=none;fillColor=#E7157B;labelBackgroundColor=#ffffff;align=center;html=1;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.cloudwatch;" vertex="1" parent="1">
-      <mxGeometry x="130" y="1140" width="78" height="78" as="geometry" />
-    </mxCell>
-    <mxCell id="81b" value="CloudWatch&#xa;Logs + Alarmes&#xa;Falha de jobs" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=top;fontSize=11;fontColor=#AABBCC;" vertex="1" parent="1">
-      <mxGeometry x="100" y="1225" width="140" height="50" as="geometry" />
-    </mxCell>
-
-    <!-- SNS -->
-    <mxCell id="82" value="" style="outlineConnect=0;fontColor=#232F3E;gradientColor=none;strokeColor=none;fillColor=#E7157B;labelBackgroundColor=#ffffff;align=center;html=1;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.sns;" vertex="1" parent="1">
-      <mxGeometry x="380" y="1140" width="78" height="78" as="geometry" />
-    </mxCell>
-    <mxCell id="82b" value="Amazon SNS&#xa;Notificações&#xa;Alertas de falha" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=top;fontSize=11;fontColor=#AABBCC;" vertex="1" parent="1">
-      <mxGeometry x="350" y="1225" width="140" height="50" as="geometry" />
-    </mxCell>
-
-    <!-- Lake Formation -->
-    <mxCell id="83" value="" style="outlineConnect=0;fontColor=#232F3E;gradientColor=none;strokeColor=none;fillColor=#3F8624;labelBackgroundColor=#ffffff;align=center;html=1;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.lake_formation;" vertex="1" parent="1">
-      <mxGeometry x="630" y="1140" width="78" height="78" as="geometry" />
-    </mxCell>
-    <mxCell id="83b" value="Lake Formation&#xa;Controle por coluna&#xa;Acesso Bronze/PII" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=top;fontSize=11;fontColor=#AABBCC;" vertex="1" parent="1">
-      <mxGeometry x="595" y="1225" width="150" height="50" as="geometry" />
-    </mxCell>
-
-    <!-- CloudTrail -->
-    <mxCell id="84" value="" style="outlineConnect=0;fontColor=#232F3E;gradientColor=none;strokeColor=none;fillColor=#E7157B;labelBackgroundColor=#ffffff;align=center;html=1;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.cloudtrail;" vertex="1" parent="1">
-      <mxGeometry x="880" y="1140" width="78" height="78" as="geometry" />
-    </mxCell>
-    <mxCell id="84b" value="CloudTrail&#xa;Auditoria&#xa;Rastreio de acesso" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=top;fontSize=11;fontColor=#AABBCC;" vertex="1" parent="1">
-      <mxGeometry x="845" y="1225" width="150" height="50" as="geometry" />
-    </mxCell>
-
-    <!-- Terraform -->
-    <mxCell id="85" value="Terraform&#xa;IaC: S3, IAM, Glue,&#xa;Lambda, Redshift,&#xa;EventBridge, CloudWatch" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1A0050;strokeColor=#623CE4;fontColor=#FFFFFF;fontSize=11;" vertex="1" parent="1">
-      <mxGeometry x="1130" y="1140" width="240" height="100" as="geometry" />
-    </mxCell>
-
-    <!-- GitHub Actions -->
-    <mxCell id="86" value="GitHub Actions CI/CD&#xa;7 jobs: syntax · lint · SQL&#xa;unit-tests · JSON · DAG&#xa;ci-status · 240 testes" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0D1117;strokeColor=#FFFFFF;fontColor=#FFFFFF;fontSize=11;" vertex="1" parent="1">
-      <mxGeometry x="1430" y="1140" width="240" height="100" as="geometry" />
-    </mxCell>
-
-    <!-- IAM -->
-    <mxCell id="87" value="" style="outlineConnect=0;fontColor=#232F3E;gradientColor=none;strokeColor=none;fillColor=#DD344C;labelBackgroundColor=#ffffff;align=center;html=1;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.role;" vertex="1" parent="1">
-      <mxGeometry x="1760" y="1140" width="78" height="78" as="geometry" />
-    </mxCell>
-    <mxCell id="87b" value="IAM Roles&#xa;Glue · Lambda&#xa;Redshift · QuickSight" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=top;fontSize=11;fontColor=#AABBCC;" vertex="1" parent="1">
-      <mxGeometry x="1730" y="1225" width="140" height="50" as="geometry" />
-    </mxCell>
-
-    <!-- CloudWatch → SNS -->
-    <mxCell id="d1" value="Alarm" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#DD344C;strokeWidth=2;endArrow=open;endFill=0;fontColor=#DD344C;fontSize=10;" edge="1" parent="1" source="81" target="82">
-      <mxGeometry relative="1" as="geometry" />
-    </mxCell>
-
-    <!-- ═══════════════════════════════════════════════════════════════
-         LEGENDA
-    ═══════════════════════════════════════════════════════════════ -->
-    <mxCell id="90" value="LEGENDA" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=13;fontStyle=1;fontColor=#AABBCC;" vertex="1" parent="1">
-      <mxGeometry x="2430" y="110" width="120" height="30" as="geometry" />
-    </mxCell>
-
-    <mxCell id="91" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#261500;strokeColor=#7D4B00;fontSize=11;fontColor=#FF9900;" vertex="1" parent="1">
-      <mxGeometry x="2430" y="150" width="30" height="20" as="geometry" />
-    </mxCell>
-    <mxCell id="91b" value="Bronze Layer" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=11;fontColor=#AABBCC;" vertex="1" parent="1">
-      <mxGeometry x="2470" y="148" width="130" height="25" as="geometry" />
-    </mxCell>
-
-    <mxCell id="92" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0A1F14;strokeColor=#1E5A3A;fontSize=11;" vertex="1" parent="1">
-      <mxGeometry x="2430" y="185" width="30" height="20" as="geometry" />
-    </mxCell>
-    <mxCell id="92b" value="Silver Layer (Iceberg v2)" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=11;fontColor=#AABBCC;" vertex="1" parent="1">
-      <mxGeometry x="2470" y="183" width="160" height="25" as="geometry" />
-    </mxCell>
-
-    <mxCell id="93" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#201600;strokeColor=#7D6000;fontSize=11;" vertex="1" parent="1">
-      <mxGeometry x="2430" y="220" width="30" height="20" as="geometry" />
-    </mxCell>
-    <mxCell id="93b" value="Gold Layer (Star Schema)" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=11;fontColor=#AABBCC;" vertex="1" parent="1">
-      <mxGeometry x="2470" y="218" width="160" height="25" as="geometry" />
-    </mxCell>
-
-    <mxCell id="94" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#00142B;strokeColor=#00539B;fontSize=11;" vertex="1" parent="1">
-      <mxGeometry x="2430" y="255" width="30" height="20" as="geometry" />
-    </mxCell>
-    <mxCell id="94b" value="Analytics Layer" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=11;fontColor=#AABBCC;" vertex="1" parent="1">
-      <mxGeometry x="2470" y="253" width="130" height="25" as="geometry" />
-    </mxCell>
-
-    <mxCell id="95" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#001930;strokeColor=#017CEE;fontSize=11;" vertex="1" parent="1">
-      <mxGeometry x="2430" y="290" width="30" height="20" as="geometry" />
-    </mxCell>
-    <mxCell id="95b" value="Orquestração (Airflow)" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=11;fontColor=#AABBCC;" vertex="1" parent="1">
-      <mxGeometry x="2470" y="288" width="160" height="25" as="geometry" />
-    </mxCell>
-
-    <mxCell id="96" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1A0005;strokeColor=#DD344C;fontSize=11;" vertex="1" parent="1">
-      <mxGeometry x="2430" y="325" width="30" height="20" as="geometry" />
-    </mxCell>
-    <mxCell id="96b" value="Governança &amp; Segurança" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=11;fontColor=#AABBCC;" vertex="1" parent="1">
-      <mxGeometry x="2470" y="323" width="160" height="25" as="geometry" />
-    </mxCell>
-
-    <!-- Nota rodapé -->
-    <mxCell id="99" value="Ícones: AWS Architecture Icons (CC BY-ND 2.0)  |  Formato: draw.io / diagrams.net" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=10;fontColor=#7F9EBB;fontStyle=2;" vertex="1" parent="1">
-      <mxGeometry x="60" y="1380" width="2300" height="25" as="geometry" />
-    </mxCell>
-
-  </root>
-</mxGraphModel>
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" version="21.7.5" type="device">
+  <diagram name="Contact Center Data Lakehouse" id="arch_v2">
+    <mxGraphModel dx="1600" dy="880" grid="1" gridSize="10" guides="1"
+                  tooltips="1" connect="1" arrows="1" fold="1" page="1"
+                  pageScale="1" pageWidth="1754" pageHeight="1240"
+                  math="0" shadow="1" background="#F0F4F8">
+      <root>
+        <mxCell id="0" /><mxCell id="1" parent="0" /><mxCell id="title" value="Contact Center Data Lakehouse — AWS" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontStyle=1;fontSize=22;fontColor=#1a1a2e;" vertex="1" parent="1"><mxGeometry x="20" y="8" width="1500" height="52" as="geometry" /></mxCell><mxCell id="sub" value="40 jobs PySpark  |  22 tabelas Redshift  |  9 views KPI  |  12 queries Athena  |  CI/CD 7 jobs" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontStyle=2;fontSize=11;fontColor=#546E7A;" vertex="1" parent="1"><mxGeometry x="20" y="34" width="1500" height="28" as="geometry" /></mxCell><mxCell id="c_src" value="Fontes de Dados" style="swimlane;startSize=32;fillColor=#263238;strokeColor=#ffffff;fontColor=#ffffff;fontStyle=1;fontSize=13;rounded=1;arcSize=4;shadow=1;swimlaneLine=0;" vertex="1" parent="1"><mxGeometry x="20" y="70" width="150" height="460" as="geometry" /></mxCell><mxCell id="c_ing" value="Ingestão" style="swimlane;startSize=32;fillColor=#4527A0;strokeColor=#ffffff;fontColor=#ffffff;fontStyle=1;fontSize=13;rounded=1;arcSize=4;shadow=1;swimlaneLine=0;" vertex="1" parent="1"><mxGeometry x="190" y="70" width="220" height="460" as="geometry" /></mxCell><mxCell id="c_bro" value="Camada Bronze" style="swimlane;startSize=32;fillColor=#6D4C41;strokeColor=#ffffff;fontColor=#ffffff;fontStyle=1;fontSize=13;rounded=1;arcSize=4;shadow=1;swimlaneLine=0;" vertex="1" parent="1"><mxGeometry x="430" y="70" width="260" height="460" as="geometry" /></mxCell><mxCell id="c_sil" value="Camada Silver" style="swimlane;startSize=32;fillColor=#37474F;strokeColor=#ffffff;fontColor=#ffffff;fontStyle=1;fontSize=13;rounded=1;arcSize=4;shadow=1;swimlaneLine=0;" vertex="1" parent="1"><mxGeometry x="710" y="70" width="230" height="460" as="geometry" /></mxCell><mxCell id="c_gol" value="Camada Gold" style="swimlane;startSize=32;fillColor=#BF360C;strokeColor=#ffffff;fontColor=#ffffff;fontStyle=1;fontSize=13;rounded=1;arcSize=4;shadow=1;swimlaneLine=0;" vertex="1" parent="1"><mxGeometry x="960" y="70" width="240" height="460" as="geometry" /></mxCell><mxCell id="c_ana" value="Camada Analytics" style="swimlane;startSize=32;fillColor=#0D47A1;strokeColor=#ffffff;fontColor=#ffffff;fontStyle=1;fontSize=13;rounded=1;arcSize=4;shadow=1;swimlaneLine=0;" vertex="1" parent="1"><mxGeometry x="1220" y="50" width="320" height="490" as="geometry" /></mxCell><mxCell id="c_orc" value="Orquestração" style="swimlane;startSize=32;fillColor=#1B5E20;strokeColor=#ffffff;fontColor=#ffffff;fontStyle=1;fontSize=13;rounded=1;arcSize=4;shadow=1;swimlaneLine=0;" vertex="1" parent="1"><mxGeometry x="190" y="560" width="240" height="210" as="geometry" /></mxCell><mxCell id="c_cic" value="CI/CD &amp; IaC" style="swimlane;startSize=32;fillColor=#311B92;strokeColor=#ffffff;fontColor=#ffffff;fontStyle=1;fontSize=13;rounded=1;arcSize=4;shadow=1;swimlaneLine=0;" vertex="1" parent="1"><mxGeometry x="450" y="560" width="290" height="210" as="geometry" /></mxCell><mxCell id="c_obs" value="Observabilidade" style="swimlane;startSize=32;fillColor=#880E4F;strokeColor=#ffffff;fontColor=#ffffff;fontStyle=1;fontSize=13;rounded=1;arcSize=4;shadow=1;swimlaneLine=0;" vertex="1" parent="1"><mxGeometry x="760" y="560" width="200" height="210" as="geometry" /></mxCell><mxCell id="postgres" value="PostgreSQL
+19 tabelas
+WAL CDC" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1a237e;strokeColor=#ffffff;fontStyle=1;fontSize=10;fontColor=#ffffff;shadow=1;" vertex="1" parent="c_src"><mxGeometry x="25" y="50" width="100" height="70" as="geometry" /></mxCell><mxCell id="dms" value="AWS DMS
+18 tasks" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.database_migration_service;fillColor=#DD344C;strokeColor=none;labelPosition=center;verticalLabelPosition=bottom;verticalAlign=top;fontStyle=1;fontSize=9;fontColor=#1a1a1a;" vertex="1" parent="c_ing"><mxGeometry x="80" y="45" width="60" height="60" as="geometry" /></mxCell><mxCell id="k_streams" value="Kinesis
+Streams
+18 streams" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.kinesis_data_streams;fillColor=#8C4FFF;strokeColor=none;labelPosition=center;verticalLabelPosition=bottom;verticalAlign=top;fontStyle=1;fontSize=9;fontColor=#1a1a1a;" vertex="1" parent="c_ing"><mxGeometry x="80" y="175" width="60" height="60" as="geometry" /></mxCell><mxCell id="k_firehose" value="Kinesis
+Firehose
+Parquet+Snappy" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.kinesis_firehose;fillColor=#8C4FFF;strokeColor=none;labelPosition=center;verticalLabelPosition=bottom;verticalAlign=top;fontStyle=1;fontSize=9;fontColor=#1a1a1a;" vertex="1" parent="c_ing"><mxGeometry x="80" y="315" width="60" height="60" as="geometry" /></mxCell><mxCell id="s3_bro" value="S3 Bronze
+Parquet+Snappy
+FullObject" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.s3;fillColor=#7AA116;strokeColor=none;labelPosition=center;verticalLabelPosition=bottom;verticalAlign=top;fontStyle=1;fontSize=9;fontColor=#1a1a1a;" vertex="1" parent="c_bro"><mxGeometry x="100" y="40" width="60" height="60" as="geometry" /></mxCell><mxCell id="evtbr" value="EventBridge
+fn_start_crawler" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.eventbridge;fillColor=#E7157B;strokeColor=none;labelPosition=center;verticalLabelPosition=bottom;verticalAlign=top;fontStyle=1;fontSize=9;fontColor=#1a1a1a;" vertex="1" parent="c_bro"><mxGeometry x="100" y="150" width="60" height="60" as="geometry" /></mxCell><mxCell id="lambda" value="Lambda
+fn_start_crawler" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.lambda;fillColor=#ED7100;strokeColor=none;labelPosition=center;verticalLabelPosition=bottom;verticalAlign=top;fontStyle=1;fontSize=9;fontColor=#1a1a1a;" vertex="1" parent="c_bro"><mxGeometry x="100" y="255" width="60" height="60" as="geometry" /></mxCell><mxCell id="g_crawler" value="Glue Crawler
+19 crawlers" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.glue_crawlers;fillColor=#8C4FFF;strokeColor=none;labelPosition=center;verticalLabelPosition=bottom;verticalAlign=top;fontStyle=1;fontSize=9;fontColor=#1a1a1a;" vertex="1" parent="c_bro"><mxGeometry x="40" y="360" width="60" height="60" as="geometry" /></mxCell><mxCell id="cat_bro" value="Glue Catalog
+db_bronze" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.glue_data_catalog;fillColor=#8C4FFF;strokeColor=none;labelPosition=center;verticalLabelPosition=bottom;verticalAlign=top;fontStyle=1;fontSize=9;fontColor=#1a1a1a;" vertex="1" parent="c_bro"><mxGeometry x="160" y="360" width="60" height="60" as="geometry" /></mxCell><mxCell id="g_silver" value="Glue 4.0
+16 jobs PySpark
+Bronze→Silver" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.glue;fillColor=#8C4FFF;strokeColor=none;labelPosition=center;verticalLabelPosition=bottom;verticalAlign=top;fontStyle=1;fontSize=9;fontColor=#1a1a1a;" vertex="1" parent="c_sil"><mxGeometry x="85" y="45" width="60" height="60" as="geometry" /></mxCell><mxCell id="s3_sil" value="S3 Silver
+Iceberg v2
+ACID" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.s3;fillColor=#7AA116;strokeColor=none;labelPosition=center;verticalLabelPosition=bottom;verticalAlign=top;fontStyle=1;fontSize=9;fontColor=#1a1a1a;" vertex="1" parent="c_sil"><mxGeometry x="85" y="185" width="60" height="60" as="geometry" /></mxCell><mxCell id="cat_sil" value="Glue Catalog
+db_silver" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.glue_data_catalog;fillColor=#8C4FFF;strokeColor=none;labelPosition=center;verticalLabelPosition=bottom;verticalAlign=top;fontStyle=1;fontSize=9;fontColor=#1a1a1a;" vertex="1" parent="c_sil"><mxGeometry x="85" y="330" width="60" height="60" as="geometry" /></mxCell><mxCell id="g_gold" value="Glue 4.0
+22 jobs PySpark
+Silver→Gold" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.glue;fillColor=#8C4FFF;strokeColor=none;labelPosition=center;verticalLabelPosition=bottom;verticalAlign=top;fontStyle=1;fontSize=9;fontColor=#1a1a1a;" vertex="1" parent="c_gol"><mxGeometry x="90" y="45" width="60" height="60" as="geometry" /></mxCell><mxCell id="s3_gol" value="S3 Gold
+11 dims + 11 fatos
+Star Schema" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.s3;fillColor=#7AA116;strokeColor=none;labelPosition=center;verticalLabelPosition=bottom;verticalAlign=top;fontStyle=1;fontSize=9;fontColor=#1a1a1a;" vertex="1" parent="c_gol"><mxGeometry x="90" y="185" width="60" height="60" as="geometry" /></mxCell><mxCell id="cat_gol" value="Glue Catalog
+db_gold" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.glue_data_catalog;fillColor=#8C4FFF;strokeColor=none;labelPosition=center;verticalLabelPosition=bottom;verticalAlign=top;fontStyle=1;fontSize=9;fontColor=#1a1a1a;" vertex="1" parent="c_gol"><mxGeometry x="90" y="330" width="60" height="60" as="geometry" /></mxCell><mxCell id="emr" value="EMR Serverless
+Spark jobs" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.emr;fillColor=#C7522A;strokeColor=none;labelPosition=center;verticalLabelPosition=bottom;verticalAlign=top;fontStyle=1;fontSize=9;fontColor=#1a1a1a;" vertex="1" parent="c_ana"><mxGeometry x="35" y="55" width="60" height="60" as="geometry" /></mxCell><mxCell id="athena" value="Amazon Athena
+SQL serverless
+12 KPI queries" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.athena;fillColor=#8C4FFF;strokeColor=none;labelPosition=center;verticalLabelPosition=bottom;verticalAlign=top;fontStyle=1;fontSize=9;fontColor=#1a1a1a;" vertex="1" parent="c_ana"><mxGeometry x="195" y="55" width="60" height="60" as="geometry" /></mxCell><mxCell id="s3_stg" value="S3 Staging
+CSV
+UNLOAD/COPY" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.s3;fillColor=#7AA116;strokeColor=none;labelPosition=center;verticalLabelPosition=bottom;verticalAlign=top;fontStyle=1;fontSize=9;fontColor=#1a1a1a;" vertex="1" parent="c_ana"><mxGeometry x="35" y="210" width="60" height="60" as="geometry" /></mxCell><mxCell id="redshift" value="Redshift
+Serverless
+22 tab + 9 views" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.redshift;fillColor=#205B99;strokeColor=none;labelPosition=center;verticalLabelPosition=bottom;verticalAlign=top;fontStyle=1;fontSize=9;fontColor=#1a1a1a;" vertex="1" parent="c_ana"><mxGeometry x="195" y="210" width="60" height="60" as="geometry" /></mxCell><mxCell id="quicksight" value="QuickSight
+5 datasets
+SPICE Dashboards" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.quicksight;fillColor=#8C4FFF;strokeColor=none;labelPosition=center;verticalLabelPosition=bottom;verticalAlign=top;fontStyle=1;fontSize=9;fontColor=#1a1a1a;" vertex="1" parent="c_ana"><mxGeometry x="125" y="375" width="60" height="60" as="geometry" /></mxCell><mxCell id="airflow" value="Apache Airflow 2.9.3
+Docker Compose
+2 DAGs  |  40 jobs" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#00838F;strokeColor=#00BCD4;fontStyle=1;fontSize=10;fontColor=#ffffff;shadow=1;" vertex="1" parent="c_orc"><mxGeometry x="30" y="50" width="180" height="80" as="geometry" /></mxCell><mxCell id="github" value="GitHub Actions
+CI/CD  7 jobs" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#24292E;strokeColor=#586069;fontStyle=1;fontSize=10;fontColor=#ffffff;shadow=1;" vertex="1" parent="c_cic"><mxGeometry x="20" y="50" width="75" height="60" as="geometry" /></mxCell><mxCell id="terraform" value="Terraform
+IaC completo" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#5C4EE5;strokeColor=#7B68EE;fontStyle=1;fontSize=10;fontColor=#ffffff;shadow=1;" vertex="1" parent="c_cic"><mxGeometry x="108" y="50" width="75" height="60" as="geometry" /></mxCell><mxCell id="iam" value="IAM Roles
+Glue + Lambda" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.role;fillColor=#DD344C;strokeColor=none;labelPosition=center;verticalLabelPosition=bottom;verticalAlign=top;fontStyle=1;fontSize=9;fontColor=#1a1a1a;" vertex="1" parent="c_cic"><mxGeometry x="198" y="50" width="60" height="60" as="geometry" /></mxCell><mxCell id="cloudtrail" value="CloudTrail
+Auditoria" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.cloudtrail;fillColor=#E7157B;strokeColor=none;labelPosition=center;verticalLabelPosition=bottom;verticalAlign=top;fontStyle=1;fontSize=9;fontColor=#1a1a1a;" vertex="1" parent="c_cic"><mxGeometry x="108" y="130" width="60" height="60" as="geometry" /></mxCell><mxCell id="cloudwatch" value="CloudWatch
+Logs + Alarmes" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.cloudwatch;fillColor=#FF6D00;strokeColor=none;labelPosition=center;verticalLabelPosition=bottom;verticalAlign=top;fontStyle=1;fontSize=9;fontColor=#1a1a1a;" vertex="1" parent="c_obs"><mxGeometry x="20" y="60" width="60" height="60" as="geometry" /></mxCell><mxCell id="sns" value="SNS
+Alertas" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.sns;fillColor=#E7157B;strokeColor=none;labelPosition=center;verticalLabelPosition=bottom;verticalAlign=top;fontStyle=1;fontSize=9;fontColor=#1a1a1a;" vertex="1" parent="c_obs"><mxGeometry x="115" y="60" width="60" height="60" as="geometry" /></mxCell><mxCell id="e1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;strokeColor=#546E7A;strokeWidth=2.5;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="postgres" target="dms" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell><mxCell id="e2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;strokeColor=#8C4FFF;strokeWidth=2.5;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="dms" target="k_streams" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell><mxCell id="e3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;strokeColor=#8C4FFF;strokeWidth=2.5;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="k_streams" target="k_firehose" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell><mxCell id="e4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;strokeColor=#7AA116;strokeWidth=2.5;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="k_firehose" target="s3_bro" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell><mxCell id="e5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;strokeColor=#888888;strokeWidth=2.5;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="s3_bro" target="evtbr" parent="c_bro"><mxGeometry relative="1" as="geometry" /></mxCell><mxCell id="e6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;strokeColor=#888888;strokeWidth=2.5;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="evtbr" target="lambda" parent="c_bro"><mxGeometry relative="1" as="geometry" /></mxCell><mxCell id="e7" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;strokeColor=#888888;strokeWidth=2.5;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="lambda" target="g_crawler" parent="c_bro"><mxGeometry relative="1" as="geometry" /></mxCell><mxCell id="e8" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;strokeColor=#888888;strokeWidth=2.5;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="g_crawler" target="cat_bro" parent="c_bro"><mxGeometry relative="1" as="geometry" /></mxCell><mxCell id="e9" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;strokeColor=#8C4FFF;strokeWidth=2.5;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="cat_bro" target="g_silver" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell><mxCell id="e10" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;strokeColor=#888888;strokeWidth=2.5;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="g_silver" target="s3_sil" parent="c_sil"><mxGeometry relative="1" as="geometry" /></mxCell><mxCell id="e11" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;strokeColor=#888888;strokeWidth=2.5;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="s3_sil" target="cat_sil" parent="c_sil"><mxGeometry relative="1" as="geometry" /></mxCell><mxCell id="e12" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;strokeColor=#8C4FFF;strokeWidth=2.5;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="cat_sil" target="g_gold" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell><mxCell id="e13" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;strokeColor=#888888;strokeWidth=2.5;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="g_gold" target="s3_gol" parent="c_gol"><mxGeometry relative="1" as="geometry" /></mxCell><mxCell id="e14" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;strokeColor=#888888;strokeWidth=2.5;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="s3_gol" target="cat_gol" parent="c_gol"><mxGeometry relative="1" as="geometry" /></mxCell><mxCell id="e15" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;strokeColor=#C7522A;strokeWidth=2.5;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="s3_gol" target="emr" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell><mxCell id="e16" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;strokeColor=#8C4FFF;strokeWidth=2.5;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="cat_gol" target="athena" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell><mxCell id="e17" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;strokeColor=#7AA116;strokeWidth=2.5;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="s3_gol" target="s3_stg" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell><mxCell id="e18" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;strokeColor=#205B99;strokeWidth=2.5;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="s3_stg" target="redshift" parent="c_ana"><mxGeometry relative="1" as="geometry" /></mxCell><mxCell id="e19" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;strokeColor=#8C4FFF;strokeWidth=2.5;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="emr" target="quicksight" parent="c_ana"><mxGeometry relative="1" as="geometry" /></mxCell><mxCell id="e20" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;strokeColor=#205B99;strokeWidth=2.5;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="redshift" target="quicksight" parent="c_ana"><mxGeometry relative="1" as="geometry" /></mxCell><mxCell id="e21" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;strokeColor=#8C4FFF;strokeWidth=2.5;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="athena" target="quicksight" parent="c_ana"><mxGeometry relative="1" as="geometry" /></mxCell><mxCell id="e22" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;strokeColor=#1B5E20;strokeWidth=2.5;dashed=1;dashPattern=8 4;exitX=0.5;exitY=0;exitDx=0;exitDy=0;" edge="1" source="airflow" target="c_bro" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell><mxCell id="e23" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;strokeColor=#1B5E20;strokeWidth=2.5;dashed=1;dashPattern=8 4;exitX=0.5;exitY=0;exitDx=0;exitDy=0;" edge="1" source="airflow" target="c_sil" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell><mxCell id="e24" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;strokeColor=#1B5E20;strokeWidth=2.5;dashed=1;dashPattern=8 4;exitX=0.5;exitY=0;exitDx=0;exitDy=0;" edge="1" source="airflow" target="c_gol" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell><mxCell id="e25" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;strokeColor=#E7157B;strokeWidth=2.5;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="cloudwatch" target="sns" parent="c_obs"><mxGeometry relative="1" as="geometry" /></mxCell><mxCell id="e26" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;strokeColor=#7B1FA2;strokeWidth=2.5;dashed=1;dashPattern=8 4;exitX=0.5;exitY=0;exitDx=0;exitDy=0;" edge="1" source="github" target="c_bro" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell><mxCell id="e27" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;strokeColor=#7B1FA2;strokeWidth=2.5;dashed=1;dashPattern=8 4;exitX=0.5;exitY=0;exitDx=0;exitDy=0;" edge="1" source="terraform" target="c_ing" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell><mxCell id="leg_title" value="Legenda" style="swimlane;startSize=25;fillColor=#37474F;strokeColor=#607D8B;fontColor=#ffffff;fontStyle=1;fontSize=11;rounded=1;" vertex="1" parent="1"><mxGeometry x="1550" y="560" width="165" height="190" as="geometry" /></mxCell><mxCell id="l1" value="" style="ellipse;fillColor=#7AA116;strokeColor=none;" vertex="1" parent="leg_title"><mxGeometry x="10" y="35" width="18" height="18" as="geometry" /></mxCell><mxCell id="l1t" value="Amazon S3" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=9;fontColor=#eeeeee;" vertex="1" parent="leg_title"><mxGeometry x="35" y="32" width="120" height="22" as="geometry" /></mxCell><mxCell id="l2" value="" style="ellipse;fillColor=#8C4FFF;strokeColor=none;" vertex="1" parent="leg_title"><mxGeometry x="10" y="65" width="18" height="18" as="geometry" /></mxCell><mxCell id="l2t" value="Glue / Athena / EMR" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=9;fontColor=#eeeeee;" vertex="1" parent="leg_title"><mxGeometry x="35" y="62" width="120" height="22" as="geometry" /></mxCell><mxCell id="l3" value="" style="ellipse;fillColor=#ED7100;strokeColor=none;" vertex="1" parent="leg_title"><mxGeometry x="10" y="95" width="18" height="18" as="geometry" /></mxCell><mxCell id="l3t" value="Lambda" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=9;fontColor=#eeeeee;" vertex="1" parent="leg_title"><mxGeometry x="35" y="92" width="120" height="22" as="geometry" /></mxCell><mxCell id="l4" value="" style="ellipse;fillColor=#205B99;strokeColor=none;" vertex="1" parent="leg_title"><mxGeometry x="10" y="125" width="18" height="18" as="geometry" /></mxCell><mxCell id="l4t" value="Redshift" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=9;fontColor=#eeeeee;" vertex="1" parent="leg_title"><mxGeometry x="35" y="122" width="120" height="22" as="geometry" /></mxCell><mxCell id="l5" value="" style="ellipse;fillColor=#E7157B;strokeColor=none;" vertex="1" parent="leg_title"><mxGeometry x="10" y="155" width="18" height="18" as="geometry" /></mxCell><mxCell id="l5t" value="EventBridge / SNS" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=9;fontColor=#eeeeee;" vertex="1" parent="leg_title"><mxGeometry x="35" y="152" width="120" height="22" as="geometry" /></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
