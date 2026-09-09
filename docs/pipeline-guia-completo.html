@@ -469,6 +469,7 @@
     <li><a href="#comparativo">Comparativo de Decisões Arquiteturais</a></li>
     <li><a href="#checklist">Checklist de Implantação</a></li>
     <li><a href="#troubleshooting">Guia de Troubleshooting</a></li>
+    <li><a href="#terraform">Infraestrutura como Código (Terraform)</a></li>
     <li><a href="#resumo">Resumo do Caminho Percorrido</a></li>
   </ol>
 </div>
@@ -3082,6 +3083,161 @@ TO ROLE role-analyst-read;
 </table>
 </div>
 
+
+<!-- ═══════════════════════════════════════════════════════ TERRAFORM -->
+<div class="page-break"></div>
+<div id="terraform">
+<h2>17. Infraestrutura como Código (Terraform)</h2>
+<p>Toda a infraestrutura AWS do projeto é provisionada via <strong>Terraform</strong> — nenhum recurso é criado manualmente pelo console. Isso garante rastreabilidade, reprodutibilidade e controle de versão da infraestrutura junto ao código.</p>
+
+<div class="callout info">
+  <span class="callout-icon">ℹ️</span>
+  <p><strong>Infraestrutura como Código (IaC):</strong> o Terraform descreve os recursos AWS em arquivos <code>.tf</code>. Um <code>terraform apply</code> cria ou atualiza todos os recursos automaticamente. Um <code>terraform destroy</code> remove tudo. A mesma configuração pode ser aplicada em dev, staging e prod alterando apenas a variável <code>environment</code>.</p>
+</div>
+
+<h3>17.1 — Mapa de Arquivos</h3>
+<table>
+  <thead><tr><th>Arquivo</th><th>O que provisiona</th><th>Recursos principais</th><th>GitHub</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><code>main.tf</code></td>
+      <td>Provider AWS + configurações globais</td>
+      <td>Provider AWS 5.x, tags padrão (<code>Project</code>, <code>Environment</code>, <code>ManagedBy</code>), data sources de account e região</td>
+      <td><a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/infrastructure/terraform/main.tf" target="_blank">📄 main.tf</a></td>
+    </tr>
+    <tr>
+      <td><code>variables.tf</code></td>
+      <td>Variáveis configuráveis do projeto</td>
+      <td>14 variáveis: região, ambiente, nome do bucket, configs de Glue (versão, workers, timeout), Redshift (RPUs, senha), retenção de logs</td>
+      <td><a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/infrastructure/terraform/variables.tf" target="_blank">📄 variables.tf</a></td>
+    </tr>
+    <tr>
+      <td><code>s3.tf</code></td>
+      <td>Bucket S3 do Lakehouse</td>
+      <td>Bucket com Block Public Access, versionamento, criptografia SSE-S3, 6 lifecycle rules (quarantine→Glacier, athena-results expiry, checkpoints, redshift-staging, logs, noncurrent versions) e notificações EventBridge</td>
+      <td><a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/infrastructure/terraform/s3.tf" target="_blank">📄 s3.tf</a></td>
+    </tr>
+    <tr>
+      <td><code>iam.tf</code></td>
+      <td>IAM Roles e Policies</td>
+      <td>3 roles: <code>GlueExecutionRole</code> (S3 full + Catalog + CloudWatch), <code>LambdaGlueTriggerRole</code> (StartCrawler), <code>QuickSightServiceRole</code> (Athena + Catalog + S3 Gold)</td>
+      <td><a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/infrastructure/terraform/iam.tf" target="_blank">📄 iam.tf</a></td>
+    </tr>
+    <tr>
+      <td><code>glue.tf</code></td>
+      <td>Glue Catalog + 40 Jobs + Workflow</td>
+      <td>3 databases (db_bronze, db_silver, db_gold), 40 Glue Jobs criados via <code>for_each</code>, Workflow <code>wf-cc-pipeline-diario</code> com 4 triggers condicionais encadeados (Bronze→Dims→Fatos Wave1→Wave2)</td>
+      <td><a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/infrastructure/terraform/glue.tf" target="_blank">📄 glue.tf</a></td>
+    </tr>
+    <tr>
+      <td><code>lambda.tf</code></td>
+      <td>Lambda + EventBridge</td>
+      <td>Empacota automaticamente o <code>lambda_function.py</code> em ZIP, cria a função <code>fn-start-glue-crawler-cc</code> (Python 3.12, 128MB, 30s timeout), regra EventBridge que escuta <code>s3:ObjectCreated</code> no prefixo <code>bronze/</code> e permissão de invocação</td>
+      <td><a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/infrastructure/terraform/lambda.tf" target="_blank">📄 lambda.tf</a></td>
+    </tr>
+    <tr>
+      <td><code>redshift.tf</code></td>
+      <td>Redshift Serverless</td>
+      <td>IAM Role para COPY S3→Redshift (acesso apenas ao prefixo <code>gold/</code>), Namespace <code>cc-lakehouse-namespace</code>, Workgroup <code>cc-lakehouse-workgroup</code> (8 RPUs mínimos, sem acesso público, max_query_execution_time = 3600s)</td>
+      <td><a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/infrastructure/terraform/redshift.tf" target="_blank">📄 redshift.tf</a></td>
+    </tr>
+    <tr>
+      <td><code>cloudwatch.tf</code></td>
+      <td>Log Groups + Alarme</td>
+      <td>Log Groups individuais para cada um dos 40 Glue Jobs e para o Workflow (retenção configurável via variável), alarme <code>alarm-cc-glue-job-failure</code> que monitora tasks falhas no Glue a cada 5 min</td>
+      <td><a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/infrastructure/terraform/cloudwatch.tf" target="_blank">📄 cloudwatch.tf</a></td>
+    </tr>
+    <tr>
+      <td><code>outputs.tf</code></td>
+      <td>Outputs exportados após apply</td>
+      <td>ARNs das roles, nome do bucket, endpoint do Redshift, nome do Workflow, contagem de jobs, path do Athena output — valores reutilizáveis por outros módulos ou scripts</td>
+      <td><a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/infrastructure/terraform/outputs.tf" target="_blank">📄 outputs.tf</a></td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>17.2 — Variáveis Principais</h3>
+<table>
+  <thead><tr><th>Variável</th><th>Padrão</th><th>Descrição</th></tr></thead>
+  <tbody>
+    <tr><td><code>aws_region</code></td><td><code>us-east-1</code></td><td>Região onde todos os recursos são criados</td></tr>
+    <tr><td><code>environment</code></td><td><code>dev</code></td><td>Ambiente: <code>dev</code>, <code>staging</code> ou <code>prod</code>. Controla tags e comportamentos (ex: <code>force_destroy</code> do S3 só é <code>true</code> em dev)</td></tr>
+    <tr><td><code>bucket_name</code></td><td><code>act-cc-dev-lakehouse</code></td><td>Nome do bucket S3 — propagado para todos os recursos via variável</td></tr>
+    <tr><td><code>glue_worker_type</code></td><td><code>G.1X</code></td><td>Tipo de worker dos 40 Glue Jobs (G.1X = 4 vCPU, 16 GB RAM por worker)</td></tr>
+    <tr><td><code>glue_num_workers</code></td><td><code>2</code></td><td>Número de workers por job. Mínimo para dev; escalar para prod conforme volume</td></tr>
+    <tr><td><code>glue_job_timeout_minutes</code></td><td><code>60</code></td><td>Timeout de segurança por job. Sem isso, o padrão AWS é 48h — um job travado cobra pelo tempo inteiro</td></tr>
+    <tr><td><code>redshift_base_capacity</code></td><td><code>8</code></td><td>RPUs do Redshift Serverless (mínimo = 8). Escalado automaticamente sob demanda</td></tr>
+    <tr><td><code>cloudwatch_retention_days</code></td><td><code>7</code></td><td>Retenção dos logs no CloudWatch — 7 dias em dev reduz custo de armazenamento de logs</td></tr>
+    <tr><td><code>s3_quarantine_glacier_days</code></td><td><code>30</code></td><td>Dias para mover arquivos de quarentena para Glacier (reduz custo de armazenamento S3)</td></tr>
+  </tbody>
+</table>
+
+<h3>17.3 — Comandos de Uso</h3>
+<pre><code><span class="cm"># 1. Entrar na pasta Terraform</span>
+cd infrastructure/terraform
+
+<span class="cm"># 2. Inicializar — baixa providers e configura backend</span>
+terraform init
+
+<span class="cm"># 3. Planejar — mostra o que será criado/alterado/destruído sem executar</span>
+terraform plan
+
+<span class="cm"># 4. Aplicar — cria/atualiza todos os recursos na AWS</span>
+terraform apply
+
+<span class="cm"># 5. Para outro ambiente (ex: produção)</span>
+terraform apply -var="environment=prod" -var="bucket_name=act-cc-prod-lakehouse"
+
+<span class="cm"># 6. Destruir — remove TODOS os recursos (use com cuidado!)</span>
+terraform destroy</code></pre>
+
+<div class="callout warning">
+  <span class="callout-icon">⚠️</span>
+  <p><strong>Antes do apply:</strong> configure as credenciais AWS (<code>aws configure</code> ou variáveis de ambiente <code>AWS_ACCESS_KEY_ID</code> / <code>AWS_SECRET_ACCESS_KEY</code>) e certifique-se de que a conta tem permissões de criação dos recursos listados. O <code>terraform plan</code> valida tudo antes de alterar qualquer recurso na AWS.</p>
+</div>
+
+<h3>17.4 — O que o Terraform cria automaticamente</h3>
+<div class="grid2">
+  <div class="card">
+    <strong>Armazenamento &amp; Segurança</strong>
+    <ul style="margin-top:8px;padding-left:18px;font-size:13px;">
+      <li>Bucket S3 com 27 prefixos marcadores</li>
+      <li>Block Public Access em todas as ACLs</li>
+      <li>Criptografia SSE-S3 (AES-256)</li>
+      <li>Versionamento habilitado</li>
+      <li>6 regras de lifecycle (economia automática)</li>
+    </ul>
+  </div>
+  <div class="card">
+    <strong>Processamento &amp; Orquestração</strong>
+    <ul style="margin-top:8px;padding-left:18px;font-size:13px;">
+      <li>3 databases no Glue Catalog (Bronze/Silver/Gold)</li>
+      <li>18 Glue Jobs Bronze→Silver</li>
+      <li>22 Glue Jobs Silver→Gold</li>
+      <li>Workflow com 4 triggers condicionais</li>
+      <li>Lambda + EventBridge (trigger automático)</li>
+    </ul>
+  </div>
+  <div class="card">
+    <strong>Acesso &amp; Identidade</strong>
+    <ul style="margin-top:8px;padding-left:18px;font-size:13px;">
+      <li>IAM Role Glue (S3 + Catalog + CloudWatch)</li>
+      <li>IAM Role Lambda (StartCrawler)</li>
+      <li>IAM Role QuickSight (Athena + S3 Gold)</li>
+      <li>IAM Role Redshift (S3 COPY gold/ apenas)</li>
+    </ul>
+  </div>
+  <div class="card">
+    <strong>Analytics &amp; Observabilidade</strong>
+    <ul style="margin-top:8px;padding-left:18px;font-size:13px;">
+      <li>Redshift Serverless Namespace + Workgroup</li>
+      <li>40 CloudWatch Log Groups (1 por Glue Job)</li>
+      <li>Log Group do Workflow</li>
+      <li>Alarme de falha nos Glue Jobs</li>
+    </ul>
+  </div>
+</div>
+</div>
 
 <!-- ═══════════════════════════════════════════════════════ FOOTER -->
 <hr>
