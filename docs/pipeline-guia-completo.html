@@ -2940,11 +2940,11 @@ TO ROLE role-analyst-read;
   <thead><tr><th>#</th><th>Ação</th><th>Comando / Local</th><th>Validação</th></tr></thead>
   <tbody>
     <tr><td>1</td><td>Criar bucket S3 do lakehouse</td><td><code>aws s3 mb s3://act-cc-dev-lakehouse</code></td><td>Bucket aparece no console S3</td></tr>
-    <tr><td>2</td><td>Criar estrutura de pastas</td><td><code>python infrastructure/01_setup_s3.py</code></td><td>Pastas bronze/, silver/, gold/, checkpoints/, quarantine/</td></tr>
-    <tr><td>3</td><td>Criar IAM Roles</td><td><code>python infrastructure/00_setup_iam.py</code></td><td>Roles criados no IAM Console</td></tr>
-    <tr><td>4</td><td>Configurar Glue Data Catalog</td><td><code>python infrastructure/02_setup_glue.py</code></td><td>Databases db_bronze, db_silver, db_gold criados</td></tr>
-    <tr><td>5</td><td>Deploy da Lambda fn-start-glue-crawler</td><td><code>python infrastructure/03_setup_lambda.py</code></td><td>Lambda visível no console, test manual retorna 200</td></tr>
-    <tr><td>6</td><td>Criar regra EventBridge</td><td><code>python infrastructure/04_setup_eventbridge.py</code></td><td>Regra ativa no EventBridge Console</td></tr>
+    <tr><td>2</td><td>Criar estrutura de pastas</td><td><code>python infrastructure/01_setup_s3.py</code><br><a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/infrastructure/01_setup_s3.py" target="_blank">📄 01_setup_s3.py</a></td><td>Pastas bronze/, silver/, gold/, checkpoints/, quarantine/</td></tr>
+    <tr><td>3</td><td>Criar IAM Roles</td><td>Console AWS → IAM → Roles<br><a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/tree/master/infrastructure" target="_blank">📁 infrastructure/</a></td><td>Roles criados no IAM Console</td></tr>
+    <tr><td>4</td><td>Configurar Glue Data Catalog</td><td><code>python infrastructure/02_setup_glue.py</code><br><a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/infrastructure/02_setup_glue.py" target="_blank">📄 02_setup_glue.py</a></td><td>Databases db_bronze, db_silver, db_gold criados</td></tr>
+    <tr><td>5</td><td>Deploy da Lambda fn-start-glue-crawler</td><td><code>python infrastructure/03_setup_lambda.py</code><br><a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/infrastructure/03_setup_lambda.py" target="_blank">📄 03_setup_lambda.py</a> · <a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/lambda/fn_start_glue_crawler/lambda_function.py" target="_blank">📄 lambda_function.py</a></td><td>Lambda visível no console, test manual retorna 200</td></tr>
+    <tr><td>6</td><td>Criar regra EventBridge</td><td>Console AWS → EventBridge → Rules<br><a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/tree/master/infrastructure" target="_blank">📁 infrastructure/</a></td><td>Regra ativa no EventBridge Console</td></tr>
   </tbody>
 </table>
 
@@ -2952,11 +2952,11 @@ TO ROLE role-analyst-read;
 <table>
   <thead><tr><th>#</th><th>Ação</th><th>Comando / Local</th><th>Validação</th></tr></thead>
   <tbody>
-    <tr><td>7</td><td>Gerar dados sintéticos</td><td><code>python data/synthetic/generate_data.py</code></td><td>Arquivos CSV/Parquet em data/synthetic/output/</td></tr>
-    <tr><td>8</td><td>Carregar Bronze S3</td><td><code>python src/ingestion/s3_data_loader.py</code></td><td>Arquivos Parquet em s3://…/bronze/</td></tr>
-    <tr><td>9</td><td>Upload dos scripts Glue</td><td><code>aws s3 sync src/ s3://act-cc-dev-lakehouse/scripts/</code></td><td>Scripts visíveis no S3</td></tr>
-    <tr><td>10</td><td>Criar Glue Jobs (40 jobs)</td><td><code>python infrastructure/05_setup_glue_jobs.py</code></td><td>40 jobs listados no Glue Console</td></tr>
-    <tr><td>11</td><td>Executar Glue Crawlers (Bronze)</td><td>Trigger manual ou via Lambda</td><td>Tabelas db_bronze.* criadas no Catalog</td></tr>
+    <tr><td>7</td><td>Gerar dados sintéticos</td><td><code>python data/synthetic/generate_data.py</code><br><a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/data/synthetic/generate_data.py" target="_blank">📄 generate_data.py</a></td><td>Arquivos CSV/Parquet em data/synthetic/output/</td></tr>
+    <tr><td>8</td><td>Carregar Bronze S3</td><td><code>python src/ingestion/s3_data_loader.py</code><br><a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/src/ingestion/s3_data_loader.py" target="_blank">📄 s3_data_loader.py</a></td><td>Arquivos Parquet em s3://…/bronze/</td></tr>
+    <tr><td>9</td><td>Upload dos scripts Glue</td><td><code>aws s3 sync src/ s3://act-cc-dev-lakehouse/scripts/</code><br><a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/tree/master/src" target="_blank">📁 src/ (40 scripts)</a></td><td>Scripts visíveis no S3</td></tr>
+    <tr><td>10</td><td>Criar Glue Jobs (40 jobs)</td><td>Console AWS → Glue → Jobs → Create<br><a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/tree/master/src/bronze_to_silver" target="_blank">📁 src/bronze_to_silver/</a> · <a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/tree/master/src/silver_to_gold" target="_blank">📁 src/silver_to_gold/</a></td><td>40 jobs listados no Glue Console</td></tr>
+    <tr><td>11</td><td>Executar Glue Crawlers (Bronze)</td><td>Trigger manual ou via Lambda<br><a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/lambda/fn_start_glue_crawler/lambda_function.py" target="_blank">📄 lambda_function.py</a></td><td>Tabelas db_bronze.* criadas no Catalog</td></tr>
   </tbody>
 </table>
 
@@ -2964,10 +2964,10 @@ TO ROLE role-analyst-read;
 <table>
   <thead><tr><th>#</th><th>Ação</th><th>Comando / Local</th><th>Validação</th></tr></thead>
   <tbody>
-    <tr><td>12</td><td>Criar Redshift Serverless namespace</td><td>Console AWS ou <code>infrastructure/06_setup_redshift.py</code></td><td>Namespace e workgroup ativos</td></tr>
-    <tr><td>13</td><td>Executar DDL das tabelas</td><td><code>psql -f infrastructure/redshift/ddl/create_tables.sql</code></td><td>22 tabelas em gold schema</td></tr>
-    <tr><td>14</td><td>Executar DDL das views</td><td><code>psql -f infrastructure/redshift/ddl/create_views.sql</code></td><td>9 views vw_kpi_* criadas</td></tr>
-    <tr><td>15</td><td>Configurar Airflow / MWAA</td><td>Upload das DAGs para bucket MWAA ou Airflow local</td><td>DAGs cc_pipeline_diario e cc_carga_redshift visíveis e sem erros</td></tr>
+    <tr><td>12</td><td>Criar Redshift Serverless namespace</td><td>Console AWS ou <code>python infrastructure/redshift/setup_redshift.py</code><br><a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/infrastructure/redshift/setup_redshift.py" target="_blank">📄 setup_redshift.py</a></td><td>Namespace e workgroup ativos</td></tr>
+    <tr><td>13</td><td>Executar DDL das tabelas</td><td><code>psql -f infrastructure/redshift/ddl/create_tables.sql</code><br><a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/infrastructure/redshift/ddl/create_tables.sql" target="_blank">📄 create_tables.sql</a></td><td>22 tabelas em gold schema</td></tr>
+    <tr><td>14</td><td>Executar DDL das views</td><td><code>psql -f infrastructure/redshift/ddl/create_views.sql</code><br><a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/infrastructure/redshift/ddl/create_views.sql" target="_blank">📄 create_views.sql</a></td><td>9 views vw_kpi_* criadas</td></tr>
+    <tr><td>15</td><td>Configurar Airflow / MWAA</td><td>Upload das DAGs para bucket MWAA ou Airflow local<br><a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/dags/dag_pipeline_diario.py" target="_blank">📄 dag_pipeline_diario.py</a> · <a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/dags/dag_carga_redshift.py" target="_blank">📄 dag_carga_redshift.py</a></td><td>DAGs cc_pipeline_diario e cc_carga_redshift visíveis e sem erros</td></tr>
     <tr><td>16</td><td>Configurar Airflow Variables</td><td>UI Airflow → Admin → Variables</td><td>BUCKET_NAME, GLUE_ROLE_ARN, REDSHIFT_IAM_ROLE, ENV definidos</td></tr>
   </tbody>
 </table>
