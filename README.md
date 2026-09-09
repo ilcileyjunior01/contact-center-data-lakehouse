@@ -68,6 +68,7 @@ O projeto foi construído com foco em economia. Em modo de demonstração (sem p
 - [Pipeline Bronze → Silver](#pipeline-bronze--silver)
 - [Pipeline Silver → Gold](#pipeline-silver--gold)
 - [Modelo de Dados Gold](#modelo-de-dados-gold)
+- [Book de Variáveis](#book-de-variáveis)
 - [Redshift Serverless](#redshift-serverless)
 - [Airflow — Orquestração](#airflow--orquestração)
 - [Planos de Contingência](#planos-de-contingência)
@@ -446,6 +447,37 @@ Ler dimensões/fatos dependentes (spark.table)
 | `st_` | Status (texto) | `st_chamada`, `st_operador` |
 | `fl_` | Flag booleano (SMALLINT 0/1) | `fl_duracao_valida`, `fl_presente` |
 | `tp_` | Tipo / categoria | `tp_chamada` |
+
+---
+
+## Book de Variáveis
+
+O projeto inclui um **Book de Variáveis** (`docs/book_de_variaveis.md`) — documento centralizado que cataloga e governa todas as variáveis analíticas das camadas Silver e Gold.
+
+Para cada variável são documentados:
+
+| Seção | O que cobre |
+|---|---|
+| **Definição técnica** | Tipo de dado, unidade de medida, intervalo de valores, valores possíveis |
+| **Origem e lineage** | Tabela de origem (Bronze → Silver → Gold), campo original, transformações aplicadas, job responsável |
+| **Qualidade** | Completude esperada (%), nulos permitidos, regras de validação, outliers esperados |
+| **Governança** | Owner, criticidade, SLA de disponibilidade, política de retenção, conformidade LGPD |
+| **Exemplos** | Valores típicos, uso analítico (views KPI, notebooks) |
+
+### Variáveis documentadas (26 campos analíticos em 7 domínios)
+
+| Domínio | Tabela Gold | Variáveis |
+|---|---|---|
+| Chamadas (Voz) | `fato_chamada` | `nr_duracao_segundos`, `nr_duracao_minutos`, `fl_duracao_valida`, `fl_chamada_completa` |
+| Qualidade | `fato_qualidade` | `nr_nota`, `ds_faixa_nota`, `fl_aprovado`, `fl_critico` |
+| Métricas de Fila | `fato_metricas_operacionais` | `nr_nivel_servico`, `nr_taxa_atendimento`, `nr_taxa_abandono`, `nr_tma_*`, `nr_tme_*`, `fl_meta_nivel_servico`, `fl_alto_abandono` |
+| Tickets | `fato_ticket` | `nr_tempo_resolucao_min`, `fl_ticket_resolvido`, `fl_dentro_sla` |
+| URA / IVR | `fato_ura_navegacao` | `ds_faixa_espera`, `fl_abandonou_ura` |
+| Jornada do Operador | `fato_jornada_operador` | `nr_horas_trabalhadas`, `fl_presente` |
+| Dimensão Data | `dim_data` | `fl_fim_semana`, `fl_feriado`, `fl_dia_util` |
+| Dimensão Operador | `dim_operador` | `nr_dias_casa`, `ds_faixa_tempo_casa`, `fl_supervisor` |
+
+> **Nota sobre campos derivados:** variáveis como `nr_nivel_servico`, `nr_taxa_atendimento` e `nr_taxa_abandono` **não existem no Bronze** — são calculadas integralmente na camada Silver. O Book de Variáveis documenta exatamente onde e como cada derivação acontece.
 
 ---
 
@@ -846,6 +878,7 @@ contact-center-data-lakehouse/
 │
 ├── docs/
 │   ├── architecture.md               ← Decisões técnicas e trade-offs
+│   ├── book_de_variaveis.md          ← Catálogo de variáveis Silver/Gold: lineage, qualidade, governança
 │   ├── cost-guide.md                 ← Estratégia de custo mínimo AWS
 │   ├── manual-provisionamento-aws.md ← Passo a passo de setup (11 etapas)
 │   └── quicksight_guide.md           ← Setup QuickSight: datasource, datasets, 5 páginas BI
