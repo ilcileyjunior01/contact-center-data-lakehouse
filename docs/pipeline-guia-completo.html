@@ -236,13 +236,181 @@
   .card h4 { margin-top:0; color:#232f3e; }
   ul li, ol li { margin: 4px 0; color: #2d3748; }
   ul, ol { padding-left: 20px; margin-bottom: 10px; }
+
+  /* ── GitHub Links ──────────────────────────────────────────────── */
+  .gh-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: #f6f8fa;
+    border: 1px solid #d0d7de;
+    border-radius: 6px;
+    padding: 3px 10px;
+    font-size: 11px;
+    font-family: 'Fira Code', monospace;
+    color: #0969da;
+    text-decoration: none;
+    margin: 2px 0;
+    transition: background .15s, border-color .15s;
+  }
+  .gh-link:hover { background: #dbeafe; border-color: #0969da; text-decoration: none; }
+  .gh-link svg { flex-shrink: 0; }
+  .gh-links-block {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 8px 0 4px;
+    align-items: center;
+  }
+  .gh-links-label {
+    font-size: 11px;
+    color: #718096;
+    font-weight: 600;
+    letter-spacing: .3px;
+  }
+
+  /* ── Service Icons ───────────────────────────────────────────── */
+  .cover-icon-bar {
+    display: flex; gap: 14px; margin-top: 22px; flex-wrap: wrap; align-items: center;
+  }
+  .cover-icon-item {
+    display: flex; align-items: center; gap: 6px;
+    color: rgba(255,255,255,.75); font-size: 11px; font-weight: 500;
+  }
+  .step-service-icons {
+    display: flex; gap: 5px; align-items: center; margin-bottom: 6px;
+  }
+  .svc-badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    border-radius: 6px; padding: 3px 9px; font-size: 11px; font-weight: 600; margin: 2px;
+    vertical-align: middle;
+  }
+  .svc-badge svg { flex-shrink: 0; }
 </style>
 </head>
 <body>
 
+<!-- ═══════════════════════════════════════════════ ICON DEFS (hidden) -->
+<svg style="display:none" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <!-- CONTACT CENTER ICONS -->
+  <symbol id="ico-headset" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M12 2C6.48 2 2 6.48 2 12v4c0 1.1.9 2 2 2h1c.55 0 1-.45 1-1v-4c0-.55-.45-1-1-1H4v-1c0-4.42 3.58-8 8-8s8 3.58 8 8v1h-1c-.55 0-1 .45-1 1v4c0 .55.45 1 1 1h1c1.1 0 2-.9 2-2v-4c0-5.52-4.48-10-10-10z"/>
+  </symbol>
+  <symbol id="ico-phone" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/>
+  </symbol>
+  <symbol id="ico-chat" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z"/>
+  </symbol>
+  <symbol id="ico-ticket" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M22 10V6c0-1.11-.9-2-2-2H4c-1.1 0-2 .9-2 2v4c1.1 0 2 .9 2 2s-.9 2-2 2v4c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2v-4c-1.1 0-2-.9-2-2s.9-2 2-2zm-2-1.46c-1.19.69-2 1.99-2 3.46s.81 2.77 2 3.46V18H4v-2.54c1.19-.69 2-1.99 2-3.46s-.81-2.77-2-3.46V6h16v2.54z"/>
+  </symbol>
+  <symbol id="ico-metrics" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M5 9.2h3V19H5V9.2zM10.6 5h2.8v14h-2.8V5zm5.6 8H19v6h-2.8v-6z"/>
+  </symbol>
+  <symbol id="ico-agent" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+  </symbol>
+  <symbol id="ico-clock" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/>
+  </symbol>
+  <symbol id="ico-quality" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
+  </symbol>
+  <symbol id="ico-etl" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>
+  </symbol>
+  <!-- AWS SERVICE ICONS (rounded-rect background + white symbol) -->
+  <symbol id="aws-s3" viewBox="0 0 40 40">
+    <rect width="40" height="40" rx="7" fill="#3F8624"/>
+    <path fill="#fff" d="M20 8l9 4.5V20l-9 4.5L11 20v-7.5L20 8zm0 2.8l-6 3 6 3 6-3-6-3zm-7 4.6v5.2l6 3v-5.2l-6-3zm8 8.2l6-3v-5.2l-6 3v5.2z"/>
+  </symbol>
+  <symbol id="aws-glue" viewBox="0 0 40 40">
+    <rect width="40" height="40" rx="7" fill="#8C4FFF"/>
+    <path fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" d="M11 14h18M11 20h18M11 26h18"/>
+    <path fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M8 14l3 6-3 6M32 14l-3 6 3 6"/>
+  </symbol>
+  <symbol id="aws-lambda" viewBox="0 0 40 40">
+    <rect width="40" height="40" rx="7" fill="#ED7100"/>
+    <text x="20" y="27" text-anchor="middle" font-size="20" font-weight="700" fill="#fff" font-family="Georgia,serif">λ</text>
+  </symbol>
+  <symbol id="aws-kinesis" viewBox="0 0 40 40">
+    <rect width="40" height="40" rx="7" fill="#8C4FFF"/>
+    <path fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M8 20h6M26 20h6M16 14l8 6-8 6"/>
+  </symbol>
+  <symbol id="aws-dms" viewBox="0 0 40 40">
+    <rect width="40" height="40" rx="7" fill="#8C4FFF"/>
+    <rect x="7" y="12" width="10" height="16" rx="2" fill="none" stroke="#fff" stroke-width="2"/>
+    <rect x="23" y="12" width="10" height="16" rx="2" fill="none" stroke="#fff" stroke-width="2"/>
+    <path fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round" d="M17 17h6M17 20h6M17 23h6"/>
+    <path fill="#fff" d="M21 15.5l2.5 1.5-2.5 1.5zM19 22l-2.5 1.5 2.5 1.5z"/>
+  </symbol>
+  <symbol id="aws-athena" viewBox="0 0 40 40">
+    <rect width="40" height="40" rx="7" fill="#8C4FFF"/>
+    <circle cx="18" cy="18" r="8" fill="none" stroke="#fff" stroke-width="2.5"/>
+    <path fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" d="M24 24l8 8"/>
+  </symbol>
+  <symbol id="aws-redshift" viewBox="0 0 40 40">
+    <rect width="40" height="40" rx="7" fill="#8C4FFF"/>
+    <ellipse cx="20" cy="13" rx="10" ry="4" fill="none" stroke="#fff" stroke-width="2"/>
+    <path fill="none" stroke="#fff" stroke-width="2" d="M10 13v14c0 2.2 4.5 4 10 4s10-1.8 10-4V13"/>
+    <path fill="none" stroke="#fff" stroke-width="2" d="M10 20c0 2.2 4.5 4 10 4s10-1.8 10-4"/>
+  </symbol>
+  <symbol id="aws-eventbridge" viewBox="0 0 40 40">
+    <rect width="40" height="40" rx="7" fill="#E7157B"/>
+    <path fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" d="M8 20h24"/>
+    <path fill="#fff" d="M28 13l7 7-7 7V13zM12 13l-7 7 7 7V13z"/>
+  </symbol>
+  <symbol id="aws-cloudwatch" viewBox="0 0 40 40">
+    <rect width="40" height="40" rx="7" fill="#E7157B"/>
+    <circle cx="20" cy="19" r="9" fill="none" stroke="#fff" stroke-width="2"/>
+    <path fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M14 19l4 4 8-8"/>
+  </symbol>
+  <symbol id="aws-airflow" viewBox="0 0 40 40">
+    <rect width="40" height="40" rx="7" fill="#017cee"/>
+    <path fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" d="M20 9v22M9 20h22M13.5 13.5l13 13M26.5 13.5l-13 13"/>
+    <circle cx="20" cy="20" r="4" fill="#fff"/>
+  </symbol>
+  <symbol id="aws-postgres" viewBox="0 0 40 40">
+    <rect width="40" height="40" rx="7" fill="#336791"/>
+    <ellipse cx="20" cy="12" rx="9" ry="4" fill="none" stroke="#fff" stroke-width="2"/>
+    <path fill="none" stroke="#fff" stroke-width="2" d="M11 12v16c0 2.2 4 4 9 4s9-1.8 9-4V12"/>
+    <path fill="none" stroke="#fff" stroke-width="2" d="M11 19c0 2.2 4 4 9 4s9-1.8 9-4"/>
+  </symbol>
+  <symbol id="aws-iceberg" viewBox="0 0 40 40">
+    <rect width="40" height="40" rx="7" fill="#0d47a1"/>
+    <path fill="#fff" d="M20 8l7 7H13l7-7z"/>
+    <path fill="#fff" opacity=".6" d="M20 18l10 14H10L20 18z"/>
+  </symbol>
+  <symbol id="aws-quicksight" viewBox="0 0 40 40">
+    <rect width="40" height="40" rx="7" fill="#8C4FFF"/>
+    <path fill="#fff" d="M20 8l5 9h-10l5-9z"/>
+    <path fill="#fff" opacity=".7" d="M20 30l-8-11h16l-8 11z"/>
+  </symbol>
+  <symbol id="aws-mwaa" viewBox="0 0 40 40">
+    <rect width="40" height="40" rx="7" fill="#232f3e"/>
+    <rect x="9" y="14" width="22" height="12" rx="3" fill="none" stroke="#FF9900" stroke-width="2"/>
+    <path fill="none" stroke="#FF9900" stroke-width="1.5" stroke-linecap="round" d="M14 18h12M14 22h8"/>
+    <circle cx="28" cy="22" r="2" fill="#FF9900"/>
+  </symbol>
+</defs>
+</svg>
+
 <!-- ═══════════════════════════════════════════════════════ CAPA -->
 <div class="cover">
-  <div class="cover-badge">Guia Técnico Completo</div>
+  <!-- Headset decoration -->
+  <div style="position:absolute; right:44px; top:50%; transform:translateY(-50%); opacity:.07; pointer-events:none;">
+    <svg width="170" height="170" viewBox="0 0 24 24" fill="white">
+      <path d="M12 2C6.48 2 2 6.48 2 12v4c0 1.1.9 2 2 2h1c.55 0 1-.45 1-1v-4c0-.55-.45-1-1-1H4v-1c0-4.42 3.58-8 8-8s8 3.58 8 8v1h-1c-.55 0-1 .45-1 1v4c0 .55.45 1 1 1h1c1.1 0 2-.9 2-2v-4c0-5.52-4.48-10-10-10z"/>
+    </svg>
+  </div>
+  <div class="cover-badge">
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle;margin-right:4px;">
+      <path d="M12 2C6.48 2 2 6.48 2 12v4c0 1.1.9 2 2 2h1c.55 0 1-.45 1-1v-4c0-.55-.45-1-1-1H4v-1c0-4.42 3.58-8 8-8s8 3.58 8 8v1h-1c-.55 0-1 .45-1 1v4c0 .55.45 1 1 1h1c1.1 0 2-.9 2-2v-4c0-5.52-4.48-10-10-10z"/>
+    </svg>
+    Guia Técnico Completo
+  </div>
   <h1>Contact Center Data Lakehouse</h1>
   <p class="subtitle">Passo a passo de cada ação do pipeline — do dado bruto ao KPI analítico</p>
   <div class="cover-tags">
@@ -253,13 +421,27 @@
     <span class="cover-tag">Star Schema</span>
     <span class="cover-tag">CDC / LGPD</span>
   </div>
+  <div class="cover-icon-bar">
+    <div class="cover-icon-item"><svg width="24" height="24"><use href="#aws-postgres"/></svg> PostgreSQL</div>
+    <div class="cover-icon-item"><svg width="24" height="24"><use href="#aws-dms"/></svg> DMS</div>
+    <div class="cover-icon-item"><svg width="24" height="24"><use href="#aws-kinesis"/></svg> Kinesis</div>
+    <div class="cover-icon-item"><svg width="24" height="24"><use href="#aws-s3"/></svg> S3</div>
+    <div class="cover-icon-item"><svg width="24" height="24"><use href="#aws-glue"/></svg> Glue</div>
+    <div class="cover-icon-item"><svg width="24" height="24"><use href="#aws-athena"/></svg> Athena</div>
+    <div class="cover-icon-item"><svg width="24" height="24"><use href="#aws-airflow"/></svg> Airflow</div>
+    <div class="cover-icon-item"><svg width="24" height="24"><use href="#aws-redshift"/></svg> Redshift</div>
+    <div class="cover-icon-item"><svg width="24" height="24"><use href="#aws-quicksight"/></svg> QuickSight</div>
+  </div>
 </div>
 
 <!-- ═══════════════════════════════════════════════════════ SUMÁRIO -->
 <div class="toc">
-  <h2>📋 Sumário</h2>
+  <h2 style="display:flex;align-items:center;gap:8px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="#232f3e"><use href="#ico-metrics"/></svg> Sumário</h2>
   <ol>
+    <li><a href="#glossario-icones">Glossário de Ícones</a></li>
+    <li><a href="#glossario-negocio">Glossário de Termos de Negócio</a></li>
     <li><a href="#visao">Visão Geral da Arquitetura</a></li>
+    <li><a href="#erd">Modelo de Dados — Star Schema (ERD)</a></li>
     <li><a href="#etapa0">Etapa 0 — Geração dos Dados Sintéticos</a></li>
     <li><a href="#etapa1">Etapa 1 — Carga no Bronze (S3)</a></li>
     <li><a href="#etapa2">Etapa 2 — Glue Crawler cataloga o Bronze</a></li>
@@ -279,9 +461,270 @@
     <li><a href="#etapa4">Etapa 4 — Job Silver → Gold (Dimensões)</a></li>
     <li><a href="#etapa5">Etapa 5 — Job Silver → Gold (Fatos)</a></li>
     <li><a href="#etapa6">Etapa 6 — Consulta Analítica (Athena)</a></li>
+    <li><a href="#etapa7">Etapa 7 — Orquestração (Apache Airflow)</a></li>
+    <li><a href="#etapa8">Etapa 8 — Carga Redshift Serverless</a></li>
+    <li><a href="#book-variaveis">Book de Variáveis Analíticas</a></li>
+    <li><a href="#seguranca">Segurança e Governança LGPD</a></li>
+    <li><a href="#custos">Estimativa de Custos AWS</a></li>
+    <li><a href="#comparativo">Comparativo de Decisões Arquiteturais</a></li>
+    <li><a href="#checklist">Checklist de Implantação</a></li>
+    <li><a href="#troubleshooting">Guia de Troubleshooting</a></li>
+    <li><a href="#roadmap">Roadmap — Próximos Passos</a></li>
     <li><a href="#resumo">Resumo do Caminho Percorrido</a></li>
     <li><a href="#entrevista">Perguntas Frequentes em Entrevista</a></li>
   </ol>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ GLOSSÁRIO DE ÍCONES -->
+<div id="glossario-icones" style="background:#f7fafc;border:1px solid #e2e8f0;border-radius:10px;padding:20px 24px;margin-bottom:32px;">
+  <h2 style="font-size:14px;margin:0 0 16px;border:none;padding:0;color:#232f3e;display:flex;align-items:center;gap:8px;">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="#FF9900"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+    Glossário de Ícones
+  </h2>
+
+  <!-- Ícones de Contact Center -->
+  <p style="font-size:11px;font-weight:700;color:#718096;text-transform:uppercase;letter-spacing:.5px;margin:0 0 10px;">Contact Center</p>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;margin-bottom:18px;">
+
+    <div style="display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #e2e8f0;border-radius:7px;padding:8px 10px;">
+      <div style="background:#FF9900;border-radius:6px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="#232f3e"><use href="#ico-headset"/></svg>
+      </div>
+      <div><div style="font-size:11px;font-weight:600;color:#232f3e;">Headset</div><div style="font-size:10px;color:#718096;">Agente / Contact Center</div></div>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #e2e8f0;border-radius:7px;padding:8px 10px;">
+      <div style="background:#38b2ac;border-radius:6px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff"><use href="#ico-phone"/></svg>
+      </div>
+      <div><div style="font-size:11px;font-weight:600;color:#232f3e;">Telefone</div><div style="font-size:10px;color:#718096;">Chamadas de voz</div></div>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #e2e8f0;border-radius:7px;padding:8px 10px;">
+      <div style="background:#4299e1;border-radius:6px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff"><use href="#ico-chat"/></svg>
+      </div>
+      <div><div style="font-size:11px;font-weight:600;color:#232f3e;">Chat / WhatsApp</div><div style="font-size:10px;color:#718096;">Canais digitais</div></div>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #e2e8f0;border-radius:7px;padding:8px 10px;">
+      <div style="background:#805ad5;border-radius:6px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff"><use href="#ico-ticket"/></svg>
+      </div>
+      <div><div style="font-size:11px;font-weight:600;color:#232f3e;">Ticket</div><div style="font-size:10px;color:#718096;">Suporte / CRM</div></div>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #e2e8f0;border-radius:7px;padding:8px 10px;">
+      <div style="background:#e53e3e;border-radius:6px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff"><use href="#ico-metrics"/></svg>
+      </div>
+      <div><div style="font-size:11px;font-weight:600;color:#232f3e;">Métricas / KPI</div><div style="font-size:10px;color:#718096;">Indicadores analíticos</div></div>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #e2e8f0;border-radius:7px;padding:8px 10px;">
+      <div style="background:#2b6cb0;border-radius:6px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff"><use href="#ico-agent"/></svg>
+      </div>
+      <div><div style="font-size:11px;font-weight:600;color:#232f3e;">Operador</div><div style="font-size:10px;color:#718096;">Agente de atendimento</div></div>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #e2e8f0;border-radius:7px;padding:8px 10px;">
+      <div style="background:#718096;border-radius:6px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff"><use href="#ico-clock"/></svg>
+      </div>
+      <div><div style="font-size:11px;font-weight:600;color:#232f3e;">Tempo / TMA</div><div style="font-size:10px;color:#718096;">TMA, TME, SLA</div></div>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #e2e8f0;border-radius:7px;padding:8px 10px;">
+      <div style="background:#d4af37;border-radius:6px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff"><use href="#ico-quality"/></svg>
+      </div>
+      <div><div style="font-size:11px;font-weight:600;color:#232f3e;">Qualidade</div><div style="font-size:10px;color:#718096;">Avaliação / nota</div></div>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #e2e8f0;border-radius:7px;padding:8px 10px;">
+      <div style="background:#38b2ac;border-radius:6px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff"><use href="#ico-etl"/></svg>
+      </div>
+      <div><div style="font-size:11px;font-weight:600;color:#232f3e;">Pipeline / ETL</div><div style="font-size:10px;color:#718096;">Transformação de dados</div></div>
+    </div>
+
+  </div>
+
+  <!-- Ícones AWS -->
+  <p style="font-size:11px;font-weight:700;color:#718096;text-transform:uppercase;letter-spacing:.5px;margin:0 0 10px;">Serviços AWS</p>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;">
+
+    <div style="display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #e2e8f0;border-radius:7px;padding:8px 10px;">
+      <svg width="30" height="30" style="flex-shrink:0;border-radius:6px;"><use href="#aws-postgres"/></svg>
+      <div><div style="font-size:11px;font-weight:600;color:#232f3e;">PostgreSQL</div><div style="font-size:10px;color:#718096;">Banco de dados fonte</div></div>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #e2e8f0;border-radius:7px;padding:8px 10px;">
+      <svg width="30" height="30" style="flex-shrink:0;border-radius:6px;"><use href="#aws-dms"/></svg>
+      <div><div style="font-size:11px;font-weight:600;color:#232f3e;">AWS DMS</div><div style="font-size:10px;color:#718096;">Change Data Capture (CDC)</div></div>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #e2e8f0;border-radius:7px;padding:8px 10px;">
+      <svg width="30" height="30" style="flex-shrink:0;border-radius:6px;"><use href="#aws-kinesis"/></svg>
+      <div><div style="font-size:11px;font-weight:600;color:#232f3e;">Amazon Kinesis</div><div style="font-size:10px;color:#718096;">Streaming de dados</div></div>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #e2e8f0;border-radius:7px;padding:8px 10px;">
+      <svg width="30" height="30" style="flex-shrink:0;border-radius:6px;"><use href="#aws-s3"/></svg>
+      <div><div style="font-size:11px;font-weight:600;color:#232f3e;">Amazon S3</div><div style="font-size:10px;color:#718096;">Data Lake — Bronze/Silver/Gold</div></div>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #e2e8f0;border-radius:7px;padding:8px 10px;">
+      <svg width="30" height="30" style="flex-shrink:0;border-radius:6px;"><use href="#aws-eventbridge"/></svg>
+      <div><div style="font-size:11px;font-weight:600;color:#232f3e;">Amazon EventBridge</div><div style="font-size:10px;color:#718096;">Eventos S3 → trigger Lambda</div></div>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #e2e8f0;border-radius:7px;padding:8px 10px;">
+      <svg width="30" height="30" style="flex-shrink:0;border-radius:6px;"><use href="#aws-lambda"/></svg>
+      <div><div style="font-size:11px;font-weight:600;color:#232f3e;">AWS Lambda</div><div style="font-size:10px;color:#718096;">Aciona o Glue Crawler</div></div>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #e2e8f0;border-radius:7px;padding:8px 10px;">
+      <svg width="30" height="30" style="flex-shrink:0;border-radius:6px;"><use href="#aws-glue"/></svg>
+      <div><div style="font-size:11px;font-weight:600;color:#232f3e;">AWS Glue 4.0</div><div style="font-size:10px;color:#718096;">40 jobs PySpark — ETL</div></div>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #e2e8f0;border-radius:7px;padding:8px 10px;">
+      <svg width="30" height="30" style="flex-shrink:0;border-radius:6px;"><use href="#aws-iceberg"/></svg>
+      <div><div style="font-size:11px;font-weight:600;color:#232f3e;">Apache Iceberg v2</div><div style="font-size:10px;color:#718096;">ACID · MERGE · Time Travel</div></div>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #e2e8f0;border-radius:7px;padding:8px 10px;">
+      <svg width="30" height="30" style="flex-shrink:0;border-radius:6px;"><use href="#aws-cloudwatch"/></svg>
+      <div><div style="font-size:11px;font-weight:600;color:#232f3e;">Amazon CloudWatch</div><div style="font-size:10px;color:#718096;">Logs estruturados dos jobs</div></div>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #e2e8f0;border-radius:7px;padding:8px 10px;">
+      <svg width="30" height="30" style="flex-shrink:0;border-radius:6px;"><use href="#aws-athena"/></svg>
+      <div><div style="font-size:11px;font-weight:600;color:#232f3e;">Amazon Athena</div><div style="font-size:10px;color:#718096;">SQL serverless sobre S3</div></div>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #e2e8f0;border-radius:7px;padding:8px 10px;">
+      <svg width="30" height="30" style="flex-shrink:0;border-radius:6px;"><use href="#aws-airflow"/></svg>
+      <div><div style="font-size:11px;font-weight:600;color:#232f3e;">Apache Airflow</div><div style="font-size:10px;color:#718096;">Orquestração das DAGs</div></div>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #e2e8f0;border-radius:7px;padding:8px 10px;">
+      <svg width="30" height="30" style="flex-shrink:0;border-radius:6px;"><use href="#aws-mwaa"/></svg>
+      <div><div style="font-size:11px;font-weight:600;color:#232f3e;">AWS MWAA</div><div style="font-size:10px;color:#718096;">Airflow gerenciado na AWS</div></div>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #e2e8f0;border-radius:7px;padding:8px 10px;">
+      <svg width="30" height="30" style="flex-shrink:0;border-radius:6px;"><use href="#aws-redshift"/></svg>
+      <div><div style="font-size:11px;font-weight:600;color:#232f3e;">Amazon Redshift</div><div style="font-size:10px;color:#718096;">Data Warehouse serverless</div></div>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #e2e8f0;border-radius:7px;padding:8px 10px;">
+      <svg width="30" height="30" style="flex-shrink:0;border-radius:6px;"><use href="#aws-quicksight"/></svg>
+      <div><div style="font-size:11px;font-weight:600;color:#232f3e;">Amazon QuickSight</div><div style="font-size:10px;color:#718096;">BI · Dashboards analíticos</div></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ GLOSSÁRIO NEGÓCIO -->
+<div class="page-break"></div>
+<div id="glossario-negocio">
+<h2>2. Glossário de Termos de Negócio — Contact Center</h2>
+<p>Antes de mergulhar no pipeline técnico, entenda o vocabulário do domínio. Um engenheiro de dados que não conhece os termos de negócio não consegue modelar os dados corretamente nem conversar com os stakeholders.</p>
+
+<div class="grid2">
+
+  <div class="card">
+    <h4 style="display:flex;align-items:center;gap:6px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="#FF9900"><use href="#ico-clock"/></svg> TMA — Tempo Médio de Atendimento</h4>
+    <p>Duração média das chamadas efetivamente atendidas. Principal indicador de eficiência operacional do operador.</p>
+    <code>AVG(nr_duracao_minutos) WHERE fl_duracao_valida = 1</code>
+    <div class="highlight" style="margin-top:8px;">Meta típica: 3–6 min (varia por segmento)</div>
+  </div>
+
+  <div class="card">
+    <h4 style="display:flex;align-items:center;gap:6px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="#FF9900"><use href="#ico-clock"/></svg> TME — Tempo Médio de Espera</h4>
+    <p>Tempo médio que o cliente aguarda na fila antes de ser atendido. Alta correlação com taxa de abandono — quanto maior o TME, mais clientes desligam.</p>
+    <div class="highlight" style="margin-top:8px;">Meta típica: &lt; 60 segundos</div>
+  </div>
+
+  <div class="card">
+    <h4 style="display:flex;align-items:center;gap:6px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="#38a169"><use href="#ico-metrics"/></svg> Nível de Serviço</h4>
+    <p>Percentual de chamadas atendidas sobre o total que entrou na fila (atendidas + abandonadas). Indicador primário do contact center.</p>
+    <code>atendidas / (atendidas + abandonadas) × 100</code>
+    <div class="highlight" style="margin-top:8px;">Meta padrão: ≥ 80% · <code>fl_meta_nivel_servico</code></div>
+  </div>
+
+  <div class="card">
+    <h4 style="display:flex;align-items:center;gap:6px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="#e53e3e"><use href="#ico-phone"/></svg> Taxa de Abandono</h4>
+    <p>Percentual de clientes que desligaram <em>antes</em> de serem atendidos. Inversamente proporcional ao Nível de Serviço. Acima de 15% dispara alerta operacional.</p>
+    <code>fl_alto_abandono = 1 quando &gt; 15%</code>
+  </div>
+
+  <div class="card">
+    <h4 style="display:flex;align-items:center;gap:6px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="#805ad5"><use href="#ico-phone"/></svg> URA / IVR</h4>
+    <p><strong>U</strong>nidade de <strong>R</strong>esposta <strong>A</strong>udível. Sistema automatizado que atende o cliente antes do operador, oferecendo menu de opções. Cada interação do cliente com o menu é um registro em <code>fato_ura_navegacao</code>.</p>
+  </div>
+
+  <div class="card">
+    <h4 style="display:flex;align-items:center;gap:6px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="#4299e1"><use href="#ico-phone"/></svg> Discagem Outbound / Preditiva</h4>
+    <p>O contact center liga <em>proativamente</em> para o cliente (cobrança, venda, pesquisa). O sistema disca e transfere ao operador só quando o cliente atende. Registrado em <code>fato_discagem</code> + <code>dim_campanha</code>.</p>
+  </div>
+
+  <div class="card">
+    <h4 style="display:flex;align-items:center;gap:6px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="#d4af37"><use href="#ico-ticket"/></svg> SLA — Service Level Agreement</h4>
+    <p>Prazo contratual para resolução de um ticket. No pipeline, o padrão é 480 minutos (8h). Configurável por categoria e prioridade.</p>
+    <code>fl_dentro_sla = 1 se resolvido ≤ 480 min</code>
+  </div>
+
+  <div class="card">
+    <h4 style="display:flex;align-items:center;gap:6px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="#38a169"><use href="#ico-quality"/></svg> FCR — First Call Resolution</h4>
+    <p>Percentual de problemas resolvidos no <em>primeiro</em> contato, sem recontato. Mede qualidade e eficiência. Quanto maior o FCR, menor o volume de chamadas repetidas e menor o custo operacional.</p>
+  </div>
+
+  <div class="card">
+    <h4 style="display:flex;align-items:center;gap:6px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="#38b2ac"><use href="#ico-etl"/></svg> CDC — Change Data Capture</h4>
+    <p>Técnica que captura todas as mudanças (INSERT/UPDATE/DELETE) em um banco sem impactar as queries da aplicação. Lê o WAL do PostgreSQL. No pipeline: AWS DMS → Kinesis Firehose → S3 Bronze com coluna <code>Op</code> (I/U/D).</p>
+  </div>
+
+  <div class="card">
+    <h4 style="display:flex;align-items:center;gap:6px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="#336791"><use href="#ico-etl"/></svg> WAL — Write-Ahead Log</h4>
+    <p>Arquivo de log interno do PostgreSQL que registra <em>todas</em> as modificações antes de aplicá-las ao banco. O DMS lê esse log para capturar mudanças sem fazer queries nas tabelas de produção — impacto zero na aplicação.</p>
+  </div>
+
+  <div class="card">
+    <h4 style="display:flex;align-items:center;gap:6px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="#d4af37"><use href="#ico-quality"/></svg> Medallion Architecture</h4>
+    <p>Padrão de Data Lake em três camadas com qualidade crescente: <strong>Bronze</strong> (raw), <strong>Silver</strong> (limpo + validado), <strong>Gold</strong> (modelado para análise). Qualquer camada pode ser reprocessada a partir da anterior sem acessar a fonte original.</p>
+  </div>
+
+  <div class="card">
+    <h4 style="display:flex;align-items:center;gap:6px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="#d4af37"><use href="#ico-quality"/></svg> Star Schema — Esquema Estrela</h4>
+    <p>Modelo dimensional com uma tabela fato central e tabelas de dimensão ao redor. Otimizado para queries analíticas (GROUP BY + aggregations). Alternativa: Snowflake Schema (dimensões normalizadas — mais complexo, menos performático para BI).</p>
+  </div>
+
+  <div class="card">
+    <h4 style="display:flex;align-items:center;gap:6px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="#718096"><use href="#ico-etl"/></svg> Surrogate Key vs Natural Key</h4>
+    <p><strong>Natural Key (nk_)</strong>: id do sistema fonte — pode mudar ou ser reutilizado.<br>
+    <strong>Surrogate Key (sk_)</strong>: gerada pelo pipeline, imutável, permite registro sentinela <code>sk = -1</code> para "DESCONHECIDO" garantindo integridade referencial sem NULLs.</p>
+  </div>
+
+  <div class="card">
+    <h4 style="display:flex;align-items:center;gap:6px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="#38b2ac"><use href="#ico-clock"/></svg> Watermark</h4>
+    <p>Registro do maior <code>_timestamp</code> já processado por tabela. Garante leitura incremental — o job só lê registros mais novos que o watermark. Armazenado em <code>s3://bucket/checkpoints/tb_*/watermark.json</code>.</p>
+  </div>
+
+  <div class="card">
+    <h4 style="display:flex;align-items:center;gap:6px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="#805ad5"><use href="#ico-agent"/></svg> Skill / Habilidade do Operador</h4>
+    <p>Competência do operador (ex.: "Suporte Técnico N2", "Inglês + Português", "Produto X"). O roteamento inteligente direciona o cliente para o operador com o skill adequado. Modelado em <code>dim_skill</code>.</p>
+  </div>
+
+  <div class="card">
+    <h4 style="display:flex;align-items:center;gap:6px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="#e53e3e"><use href="#ico-metrics"/></svg> Quarentena</h4>
+    <p>Registros que falharam nas regras de qualidade são isolados em path separado com <code>_motivo_quarentena</code> explicando o problema. O job <em>não falha</em> — dados válidos continuam sendo processados. Analistas revisam e corrigem a quarentena posteriormente.</p>
+  </div>
+
+</div>
 </div>
 
 <!-- ═══════════════════════════════════════════════════════ VISÃO GERAL -->
@@ -474,14 +917,149 @@
 </div>
 </div>
 
+<!-- ═══════════════════════════════════════════════════════ ERD -->
+<div class="page-break"></div>
+<div id="erd">
+<h2>3. Modelo de Dados — Star Schema</h2>
+<p>A camada Gold implementa um <strong>esquema estrela</strong> com 11 dimensões e 11 fatos. As tabelas fato registram eventos do contact center; as dimensões contextualizam cada evento. Todos os JOINs usam surrogate keys (<code>sk_</code>).</p>
+
+<h3>3.1 — Diagrama Principal: fato_chamada</h3>
+<div class="diagram-wrap">
+<svg width="780" height="480" viewBox="0 0 780 480" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="arr-erd" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#8C4FFF"/>
+    </marker>
+  </defs>
+
+  <!-- FATO CHAMADA - center -->
+  <rect x="280" y="180" width="220" height="120" rx="8" fill="#232f3e" stroke="#FF9900" stroke-width="2"/>
+  <text x="390" y="204" text-anchor="middle" font-size="12" font-weight="700" fill="#FF9900">fato_chamada</text>
+  <line x1="285" y1="210" x2="495" y2="210" stroke="#4a5568" stroke-width="1"/>
+  <text x="290" y="224" font-size="9" fill="#7dcfff">sk_chamada   BIGINT (PK)</text>
+  <text x="290" y="236" font-size="9" fill="#9ece6a">sk_cliente   INT → dim_cliente</text>
+  <text x="290" y="248" font-size="9" fill="#9ece6a">sk_operador  INT → dim_operador</text>
+  <text x="290" y="260" font-size="9" fill="#9ece6a">sk_fila      INT → dim_fila</text>
+  <text x="290" y="272" font-size="9" fill="#9ece6a">sk_data_ini  INT → dim_data</text>
+  <text x="290" y="284" font-size="9" fill="#9ece6a">sk_status    INT → dim_status</text>
+  <text x="290" y="296" font-size="9" fill="#e0af68">nr_duracao_segundos, fl_*</text>
+
+  <!-- DIM DATA - top center -->
+  <rect x="305" y="30" width="170" height="60" rx="6" fill="#ebf8ff" stroke="#3182ce" stroke-width="1.5"/>
+  <text x="390" y="52" text-anchor="middle" font-size="11" font-weight="700" fill="#1a365d">dim_data</text>
+  <text x="390" y="66" text-anchor="middle" font-size="9" fill="#4a5568">sk_data (INT yyyyMMdd)</text>
+  <text x="390" y="78" text-anchor="middle" font-size="9" fill="#718096">dt_completa · fl_dia_util · fl_feriado</text>
+  <line x1="390" y1="90" x2="390" y2="178" stroke="#8C4FFF" stroke-width="1.5" marker-end="url(#arr-erd)" stroke-dasharray="4,3"/>
+
+  <!-- DIM CLIENTE - top left -->
+  <rect x="60" y="60" width="170" height="60" rx="6" fill="#f0fff4" stroke="#38a169" stroke-width="1.5"/>
+  <text x="145" y="82" text-anchor="middle" font-size="11" font-weight="700" fill="#1a3a2a">dim_cliente</text>
+  <text x="145" y="96" text-anchor="middle" font-size="9" fill="#4a5568">sk_cliente (INT)</text>
+  <text x="145" y="108" text-anchor="middle" font-size="9" fill="#718096">nk_cliente · nm_cliente (PII mascarado)</text>
+  <line x1="220" y1="100" x2="286" y2="210" stroke="#8C4FFF" stroke-width="1.5" marker-end="url(#arr-erd)" stroke-dasharray="4,3"/>
+
+  <!-- DIM OPERADOR - top right -->
+  <rect x="545" y="60" width="185" height="60" rx="6" fill="#fff7ed" stroke="#FF9900" stroke-width="1.5"/>
+  <text x="637" y="82" text-anchor="middle" font-size="11" font-weight="700" fill="#744210">dim_operador</text>
+  <text x="637" y="96" text-anchor="middle" font-size="9" fill="#4a5568">sk_operador (INT)</text>
+  <text x="637" y="108" text-anchor="middle" font-size="9" fill="#718096">nm_operador · ds_faixa_tempo_casa · fl_supervisor</text>
+  <line x1="552" y1="110" x2="496" y2="210" stroke="#8C4FFF" stroke-width="1.5" marker-end="url(#arr-erd)" stroke-dasharray="4,3"/>
+
+  <!-- DIM FILA - left -->
+  <rect x="30" y="210" width="170" height="60" rx="6" fill="#fce4ec" stroke="#880e4f" stroke-width="1.5"/>
+  <text x="115" y="232" text-anchor="middle" font-size="11" font-weight="700" fill="#4a0027">dim_fila</text>
+  <text x="115" y="246" text-anchor="middle" font-size="9" fill="#4a5568">sk_fila (INT)</text>
+  <text x="115" y="258" text-anchor="middle" font-size="9" fill="#718096">nm_fila · ds_tipo_canal · fl_fila_ativa</text>
+  <line x1="200" y1="240" x2="279" y2="240" stroke="#8C4FFF" stroke-width="1.5" marker-end="url(#arr-erd)" stroke-dasharray="4,3"/>
+
+  <!-- DIM CANAL - right -->
+  <rect x="580" y="210" width="170" height="60" rx="6" fill="#f3e5f5" stroke="#6a1b9a" stroke-width="1.5"/>
+  <text x="665" y="232" text-anchor="middle" font-size="11" font-weight="700" fill="#4a0080">dim_canal</text>
+  <text x="665" y="246" text-anchor="middle" font-size="9" fill="#4a5568">sk_canal (INT)</text>
+  <text x="665" y="258" text-anchor="middle" font-size="9" fill="#718096">ds_canal · ds_tipo (VOZ/CHAT/EMAIL)</text>
+  <line x1="580" y1="240" x2="501" y2="240" stroke="#8C4FFF" stroke-width="1.5" marker-end="url(#arr-erd)" stroke-dasharray="4,3"/>
+
+  <!-- DIM STATUS CHAMADA - bottom left -->
+  <rect x="60" y="360" width="185" height="60" rx="6" fill="#fffbeb" stroke="#d69e2e" stroke-width="1.5"/>
+  <text x="152" y="382" text-anchor="middle" font-size="11" font-weight="700" fill="#744210">dim_status_chamada</text>
+  <text x="152" y="396" text-anchor="middle" font-size="9" fill="#4a5568">sk_status (INT) · sk=-1 "DESCONHECIDO"</text>
+  <text x="152" y="408" text-anchor="middle" font-size="9" fill="#718096">ds_status · fl_chamada_concluida</text>
+  <line x1="245" y1="380" x2="320" y2="303" stroke="#8C4FFF" stroke-width="1.5" marker-end="url(#arr-erd)" stroke-dasharray="4,3"/>
+
+  <!-- DIM SKILL - bottom right -->
+  <rect x="535" y="360" width="185" height="60" rx="6" fill="#e6fffa" stroke="#319795" stroke-width="1.5"/>
+  <text x="627" y="382" text-anchor="middle" font-size="11" font-weight="700" fill="#1a4a47">dim_skill</text>
+  <text x="627" y="396" text-anchor="middle" font-size="9" fill="#4a5568">sk_skill (INT)</text>
+  <text x="627" y="408" text-anchor="middle" font-size="9" fill="#718096">nm_skill · ds_descricao · fl_skill_ativo</text>
+  <line x1="535" y1="380" x2="460" y2="303" stroke="#8C4FFF" stroke-width="1.5" marker-end="url(#arr-erd)" stroke-dasharray="4,3"/>
+
+  <!-- Labels FK -->
+  <text x="365" y="140" font-size="8" fill="#8C4FFF" text-anchor="middle">sk_data_inicio</text>
+  <text x="240" y="160" font-size="8" fill="#8C4FFF" text-anchor="middle">sk_cliente</text>
+  <text x="540" y="160" font-size="8" fill="#8C4FFF" text-anchor="middle">sk_operador</text>
+  <text x="235" y="235" font-size="8" fill="#8C4FFF" text-anchor="middle">sk_fila</text>
+  <text x="545" y="235" font-size="8" fill="#8C4FFF" text-anchor="middle">sk_canal</text>
+  <text x="270" y="348" font-size="8" fill="#8C4FFF" text-anchor="middle">sk_status_chamada</text>
+  <text x="510" y="348" font-size="8" fill="#8C4FFF" text-anchor="middle">sk_skill</text>
+
+  <!-- Legend -->
+  <rect x="10" y="446" width="760" height="26" rx="4" fill="#f7fafc" stroke="#e2e8f0"/>
+  <line x1="20" y1="459" x2="50" y2="459" stroke="#8C4FFF" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arr-erd)"/>
+  <text x="56" y="463" font-size="9" fill="#4a5568">FK → SK resolve JOIN com dimensão · </text>
+  <rect x="220" y="452" width="10" height="10" rx="2" fill="#232f3e" stroke="#FF9900"/>
+  <text x="235" y="462" font-size="9" fill="#4a5568">Fato (métricas + FKs) · </text>
+  <rect x="360" y="452" width="10" height="10" rx="2" fill="#ebf8ff" stroke="#3182ce"/>
+  <text x="375" y="462" font-size="9" fill="#4a5568">Dimensão (contexto) · sk=-1 = registro "DESCONHECIDO"</text>
+</svg>
+</div>
+
+<h3>3.2 — Todas as Tabelas Fato e suas Dimensões Compartilhadas</h3>
+<table>
+  <thead>
+    <tr><th>Tabela Fato</th><th>Evento</th><th>Dimensões (FKs)</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>fato_chamada</code></td><td>Chamada de voz</td><td>dim_data, dim_cliente, dim_operador, dim_fila, dim_canal, dim_status_chamada, dim_skill</td></tr>
+    <tr><td><code>fato_ticket</code></td><td>Ticket de suporte</td><td>dim_data, dim_cliente, dim_operador, dim_status_ticket, dim_categoria_ticket, dim_prioridade_ticket</td></tr>
+    <tr><td><code>fato_discagem</code></td><td>Discagem outbound</td><td>dim_data, dim_cliente, dim_operador, dim_campanha, dim_fila</td></tr>
+    <tr><td><code>fato_chat</code></td><td>Atendimento via chat</td><td>dim_data, dim_cliente, dim_operador, dim_fila, dim_canal</td></tr>
+    <tr><td><code>fato_whatsapp</code></td><td>Atendimento WhatsApp</td><td>dim_data, dim_cliente, dim_operador, dim_canal</td></tr>
+    <tr><td><code>fato_ura_navegacao</code></td><td>Interação com URA/IVR</td><td>dim_data, dim_cliente, dim_fila</td></tr>
+    <tr><td><code>fato_jornada_operador</code></td><td>Jornada de trabalho</td><td>dim_data, dim_operador, dim_fila</td></tr>
+    <tr><td><code>fato_qualidade</code></td><td>Avaliação de monitoria</td><td>dim_data, dim_operador (avaliado + avaliador)</td></tr>
+    <tr><td><code>fato_metricas_operacionais</code></td><td>Métricas de fila (diário)</td><td>dim_data, dim_fila</td></tr>
+    <tr><td><code>fato_interacao_ticket</code></td><td>Interação em ticket</td><td>dim_data, dim_operador, fato_ticket (NK)</td></tr>
+    <tr><td><code>fato_mensagem_chat</code></td><td>Mensagem individual de chat</td><td>dim_data, dim_operador, fato_chat (NK)</td></tr>
+  </tbody>
+</table>
+
+<div class="callout info">
+  <span class="callout-icon">ℹ️</span>
+  <p><strong>Dimensões compartilhadas (Conformed Dimensions):</strong> <code>dim_data</code>, <code>dim_operador</code> e <code>dim_cliente</code> são usadas por múltiplas tabelas fato. Isso permite queries cross-fact como "qual operador tem melhor TMA em chamadas E melhor nota de qualidade?" com um único JOIN na dimensão compartilhada.</p>
+</div>
+</div>
+
 <!-- ═══════════════════════════════════════════════════════ ETAPA 0 -->
 <div class="page-break"></div>
 <div id="etapa0">
 <div class="step-header">
   <div class="step-number">0</div>
   <div>
+    <div class="step-service-icons">
+  <svg width="22" height="22"><use href="#aws-postgres"/></svg>
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="#2d3748"><use href="#ico-agent"/></svg>
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="#2d3748"><use href="#ico-phone"/></svg>
+</div>
     <div class="step-title">Geração dos Dados Sintéticos</div>
-    <div class="step-sub">Script: <code>data/synthetic/generate_data.py</code></div>
+    <div class="step-sub">
+      <div class="gh-links-block">
+        <span class="gh-links-label">GitHub:</span>
+        <a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/data/synthetic/generate_data.py" target="_blank">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+          data/synthetic/generate_data.py
+        </a>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -550,8 +1128,29 @@
 <div class="step-header">
   <div class="step-number">1</div>
   <div>
+    <div class="step-service-icons">
+  <svg width="22" height="22"><use href="#aws-s3"/></svg>
+  <svg width="22" height="22"><use href="#aws-kinesis"/></svg>
+  <svg width="22" height="22"><use href="#aws-dms"/></svg>
+</div>
     <div class="step-title">Carga no Bronze (S3)</div>
-    <div class="step-sub">Script: <code>pipeline/ingestion/s3_data_loader.py</code></div>
+    <div class="step-sub">
+      <div class="gh-links-block">
+        <span class="gh-links-label">GitHub:</span>
+        <a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/src/ingestion/s3_data_loader.py" target="_blank">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+          s3_data_loader.py
+        </a>
+        <a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/src/ingestion/s3_data_loader.py#L130-L181" target="_blank">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+          upload_parquet_to_s3() · L130–L181
+        </a>
+        <a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/src/ingestion/s3_data_loader.py#L145-L149" target="_blank">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+          particionamento ano/mes/dia · L145–L149
+        </a>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -594,8 +1193,26 @@
 <div class="step-header">
   <div class="step-number">2</div>
   <div>
+    <div class="step-service-icons">
+  <svg width="22" height="22"><use href="#aws-eventbridge"/></svg>
+  <svg width="22" height="22"><use href="#aws-lambda"/></svg>
+  <svg width="22" height="22"><use href="#aws-glue"/></svg>
+</div>
     <div class="step-title">Glue Crawler Cataloga o Bronze</div>
-    <div class="step-sub">Serviço: <span class="aws-badge badge-glue">AWS Glue Crawler</span> + <span class="aws-badge badge-eb">EventBridge</span> + <span class="aws-badge badge-lambda">Lambda</span></div>
+    <div class="step-sub">
+      Serviço: <span class="aws-badge badge-glue"><svg width="14" height="14" style="vertical-align:middle;margin-right:3px;"><use href="#aws-glue"/></svg>AWS Glue Crawler</span> + <span class="aws-badge badge-eb"><svg width="14" height="14" style="vertical-align:middle;margin-right:3px;"><use href="#aws-eventbridge"/></svg>EventBridge</span> + <span class="aws-badge badge-lambda"><svg width="14" height="14" style="vertical-align:middle;margin-right:3px;"><use href="#aws-lambda"/></svg>Lambda</span>
+      <div class="gh-links-block" style="margin-top:6px">
+        <span class="gh-links-label">GitHub:</span>
+        <a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/lambda/fn_start_glue_crawler/lambda_function.py" target="_blank">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+          lambda/fn_start_glue_crawler/lambda_function.py
+        </a>
+        <a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/infrastructure/02_setup_glue.py" target="_blank">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+          infrastructure/02_setup_glue.py (Crawlers)
+        </a>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -657,8 +1274,26 @@
 <div class="step-header">
   <div class="step-number">3</div>
   <div>
+    <div class="step-service-icons">
+  <svg width="22" height="22"><use href="#aws-glue"/></svg>
+  <svg width="22" height="22"><use href="#aws-iceberg"/></svg>
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="#38b2ac"><use href="#ico-etl"/></svg>
+</div>
     <div class="step-title">Job Bronze → Silver (passo a passo)</div>
-    <div class="step-sub">Script: <code>pipeline/bronze_to_silver/job_tb_chamada_bronze_to_silver.py</code> — <span class="aws-badge badge-glue">AWS Glue 4.0</span> G.1X · 2 workers</div>
+    <div class="step-sub">
+      <span class="aws-badge badge-glue"><svg width="14" height="14" style="vertical-align:middle;margin-right:3px;"><use href="#aws-glue"/></svg>AWS Glue 4.0</span> G.1X · 2 workers
+      <div class="gh-links-block" style="margin-top:6px">
+        <span class="gh-links-label">GitHub:</span>
+        <a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/src/bronze_to_silver/job_tb_chamada_bronze_to_silver.py" target="_blank">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+          job_tb_chamada_bronze_to_silver.py (arquivo completo)
+        </a>
+        <a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/tree/master/src/bronze_to_silver" target="_blank">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+          todos os 18 jobs Bronze→Silver
+        </a>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -666,7 +1301,12 @@
 
 <!-- 3.1 Watermark -->
 <div id="e3-1">
-<h3>3.1 — Ler o Watermark</h3>
+<h3>3.1 — Ler o Watermark / Glue Job Bookmark
+  <a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/src/bronze_to_silver/job_tb_chamada_bronze_to_silver.py#L100-L125" target="_blank" style="font-size:11px;font-weight:normal;vertical-align:middle;margin-left:8px">
+    <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+    ver L100–L125 no GitHub
+  </a>
+</h3>
 <p>Antes de ler qualquer dado, o job pergunta: <em>"Qual foi o último registro que já processei?"</em></p>
 
 <pre><code><span class="kw">def</span> <span class="fn">get_watermark</span>():
@@ -693,7 +1333,12 @@ last_watermark = get_watermark()
 
 <!-- 3.2 Leitura Incremental -->
 <div id="e3-2">
-<h3>3.2 — Leitura Incremental do Bronze</h3>
+<h3>3.2 — Leitura Incremental do Bronze
+  <a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/src/bronze_to_silver/job_tb_chamada_bronze_to_silver.py#L111-L126" target="_blank" style="font-size:11px;font-weight:normal;vertical-align:middle;margin-left:8px">
+    <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+    ver L111–L126 no GitHub
+  </a>
+</h3>
 
 <pre><code>df_bronze = (
     spark.read.parquet(f<span class="str">"s3://{BUCKET}/bronze/operacao/chamada/"</span>)
@@ -709,7 +1354,12 @@ last_watermark = get_watermark()
 
 <!-- 3.3 CDC -->
 <div id="e3-3">
-<h3>3.3 — Interpretação do CDC</h3>
+<h3>3.3 — Interpretação do CDC
+  <a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/src/bronze_to_silver/job_tb_chamada_bronze_to_silver.py#L134-L156" target="_blank" style="font-size:11px;font-weight:normal;vertical-align:middle;margin-left:8px">
+    <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+    ver L134–L156 no GitHub
+  </a>
+</h3>
 <p>Transforma a coluna <code>Op</code> (letra bruta do DMS) em texto legível:</p>
 
 <pre><code>df_cdc = (
@@ -722,9 +1372,9 @@ last_watermark = get_watermark()
          .otherwise(F.lit(<span class="str">"UNKNOWN"</span>)))
 )</code></pre>
 
-<div class="callout warning">
-  <span class="callout-icon">🐛</span>
-  <p><strong>Bug crítico corrigido:</strong> O DMS gera a coluna como <code>"Op"</code> (O maiúsculo). Um job usava <code>F.col("op")</code> (minúsculo) — o Spark não encontrava a coluna e todos os registros viravam <code>"UNKNOWN"</code>, quebrando silenciosamente o pipeline. Corrigido no <code>job_tb_jornada_operador_bronze_to_silver.py</code>.</p>
+<div class="callout info">
+  <span class="callout-icon">ℹ️</span>
+  <p><strong>Atenção ao case-sensitivity:</strong> O DMS gera a coluna como <code>"Op"</code> (O maiúsculo). Sempre referencie a coluna com o case exato — <code>F.col("Op")</code> — pois o Spark diferencia maiúsculas de minúsculas e um mismatch faz todos os registros caírem em <code>"UNKNOWN"</code> silenciosamente.</p>
 </div>
 
 <table>
@@ -740,7 +1390,12 @@ last_watermark = get_watermark()
 
 <!-- 3.4 Dedup -->
 <div id="e3-4">
-<h3>3.4 — Deduplicação CDC</h3>
+<h3>3.4 — Deduplicação CDC
+  <a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/src/bronze_to_silver/job_tb_chamada_bronze_to_silver.py#L145-L156" target="_blank" style="font-size:11px;font-weight:normal;vertical-align:middle;margin-left:8px">
+    <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+    ver L145–L156 no GitHub
+  </a>
+</h3>
 <p>Um mesmo registro pode ter múltiplos eventos CDC. Precisamos ficar com <strong>o mais recente</strong>.</p>
 
 <div class="diagram-wrap">
@@ -794,7 +1449,12 @@ df_dedup = (
 
 <!-- 3.5 Transformações -->
 <div id="e3-5">
-<h3>3.5 — Transformações de Negócio</h3>
+<h3>3.5 — Transformações de Negócio
+  <a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/src/bronze_to_silver/job_tb_chamada_bronze_to_silver.py#L166-L249" target="_blank" style="font-size:11px;font-weight:normal;vertical-align:middle;margin-left:8px">
+    <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+    ver L166–L249 no GitHub
+  </a>
+</h3>
 
 <pre><code>df_transformed = (
     df_dedup
@@ -832,7 +1492,12 @@ df_dedup = (
 
 <!-- 3.6 Hash -->
 <div id="e3-6">
-<h3>3.6 — Hash MD5 (Idempotência)</h3>
+<h3>3.6 — Hash MD5 (Idempotência)
+  <a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/src/bronze_to_silver/job_tb_chamada_bronze_to_silver.py#L228-L239" target="_blank" style="font-size:11px;font-weight:normal;vertical-align:middle;margin-left:8px">
+    <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+    ver L228–L239 no GitHub
+  </a>
+</h3>
 <p>Gera uma "impressão digital" do registro para detectar mudanças:</p>
 
 <pre><code>.withColumn(<span class="str">"hash_registro"</span>,
@@ -869,7 +1534,12 @@ df_dedup = (
 
 <!-- 3.7 Quarentena -->
 <div id="e3-7">
-<h3>3.7 — Validação e Quarentena</h3>
+<h3>3.7 — Validação e Quarentena
+  <a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/src/bronze_to_silver/job_tb_chamada_bronze_to_silver.py#L255-L285" target="_blank" style="font-size:11px;font-weight:normal;vertical-align:middle;margin-left:8px">
+    <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+    ver L255–L285 no GitHub
+  </a>
+</h3>
 
 <pre><code>df_transformed = df_transformed.withColumn(
     <span class="str">"_motivo_quarentena"</span>,
@@ -918,7 +1588,12 @@ df_quarantine = df_transformed.filter(F.col(<span class="str">"_motivo_quarenten
 
 <!-- 3.8 MERGE -->
 <div id="e3-8">
-<h3>3.8 — MERGE INTO Iceberg (Silver)</h3>
+<h3>3.8 — MERGE INTO Iceberg (Silver)
+  <a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/src/bronze_to_silver/job_tb_chamada_bronze_to_silver.py#L348-L358" target="_blank" style="font-size:11px;font-weight:normal;vertical-align:middle;margin-left:8px">
+    <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+    ver L348–L358 no GitHub
+  </a>
+</h3>
 
 <pre><code>spark.sql(<span class="str">"""
     MERGE INTO glue_catalog.db_silver.chamada AS target
@@ -957,7 +1632,12 @@ df_quarantine = df_transformed.filter(F.col(<span class="str">"_motivo_quarenten
 
 <!-- 3.9 Watermark update -->
 <div id="e3-9">
-<h3>3.9 — Atualizar Watermark</h3>
+<h3>3.9 — Atualizar Watermark / job.commit()
+  <a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/src/bronze_to_silver/job_tb_chamada_bronze_to_silver.py#L364-L371" target="_blank" style="font-size:11px;font-weight:normal;vertical-align:middle;margin-left:8px">
+    <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+    ver L364–L371 no GitHub
+  </a>
+</h3>
 
 <pre><code>new_watermark = df_bronze.agg(F.max(<span class="str">"_timestamp"</span>).alias(<span class="str">"max_ts"</span>)).collect()[<span class="num">0</span>][<span class="str">"max_ts"</span>]
 save_watermark(new_watermark)
@@ -977,8 +1657,26 @@ save_watermark(new_watermark)
 <div class="step-header">
   <div class="step-number">4</div>
   <div>
+    <div class="step-service-icons">
+  <svg width="22" height="22"><use href="#aws-glue"/></svg>
+  <svg width="22" height="22"><use href="#aws-iceberg"/></svg>
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="#d4af37"><use href="#ico-quality"/></svg>
+</div>
     <div class="step-title">Job Silver → Gold (Dimensões)</div>
-    <div class="step-sub">11 jobs de dimensões — todos independentes entre si, rodam em paralelo</div>
+    <div class="step-sub">
+      11 jobs de dimensões — todos independentes entre si, rodam em paralelo
+      <div class="gh-links-block" style="margin-top:6px">
+        <span class="gh-links-label">GitHub:</span>
+        <a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/src/silver_to_gold/job_dim_status_chamada_gold.py#L56-L93" target="_blank">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+          job_dim_status_chamada_gold.py · L56–L93 (exemplo)
+        </a>
+        <a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/tree/master/src/silver_to_gold" target="_blank">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+          todos os 22 jobs Silver→Gold
+        </a>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -1031,8 +1729,33 @@ df_dim = df_unknown.union(df_dim)</code></pre>
 <div class="step-header">
   <div class="step-number">5</div>
   <div>
+    <div class="step-service-icons">
+  <svg width="22" height="22"><use href="#aws-glue"/></svg>
+  <svg width="22" height="22"><use href="#aws-iceberg"/></svg>
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="#e53e3e"><use href="#ico-metrics"/></svg>
+</div>
     <div class="step-title">Job Silver → Gold (Fatos)</div>
-    <div class="step-sub">Script: <code>pipeline/silver_to_gold/job_fato_chamada_gold.py</code></div>
+    <div class="step-sub">
+      <div class="gh-links-block">
+        <span class="gh-links-label">GitHub:</span>
+        <a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/src/silver_to_gold/job_fato_chamada_gold.py" target="_blank">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+          job_fato_chamada_gold.py (arquivo completo)
+        </a>
+        <a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/src/silver_to_gold/job_fato_chamada_gold.py#L96-L167" target="_blank">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+          resolução surrogate keys + JOINs · L96–L167
+        </a>
+        <a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/src/silver_to_gold/job_fato_chamada_gold.py#L145-L146" target="_blank">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+          monotonically_increasing_id() · L145–L146
+        </a>
+        <a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/src/silver_to_gold/job_fato_chamada_gold.py#L202-L208" target="_blank">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+          MERGE INTO fato · L202–L208
+        </a>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -1111,8 +1834,26 @@ df_dim = df_unknown.union(df_dim)</code></pre>
 <div class="step-header">
   <div class="step-number">6</div>
   <div>
+    <div class="step-service-icons">
+  <svg width="22" height="22"><use href="#aws-athena"/></svg>
+  <svg width="22" height="22"><use href="#aws-quicksight"/></svg>
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="#e53e3e"><use href="#ico-metrics"/></svg>
+</div>
     <div class="step-title">Consulta Analítica (Athena)</div>
-    <div class="step-sub"><span class="aws-badge badge-athena">Amazon Athena</span> — SQL serverless sobre S3 + Iceberg</div>
+    <div class="step-sub">
+      <span class="aws-badge badge-athena"><svg width="14" height="14" style="vertical-align:middle;margin-right:3px;"><use href="#aws-athena"/></svg>Amazon Athena</span> — SQL serverless sobre S3 + Iceberg
+      <div class="gh-links-block" style="margin-top:6px">
+        <span class="gh-links-label">GitHub:</span>
+        <a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/sql/athena_kpis/01_volume_desempenho_chamadas.sql#L24" target="_blank">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+          01_volume_desempenho_chamadas.sql · L24 (WITH clause)
+        </a>
+        <a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/tree/master/sql/athena_kpis" target="_blank">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+          todos os 12 KPIs SQL
+        </a>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -1148,10 +1889,1287 @@ df_dim = df_unknown.union(df_dim)</code></pre>
 </table>
 </div>
 
+<!-- ═══════════════════════════════════════════════════════ ETAPA 7 -->
+<div class="page-break"></div>
+<div id="etapa7">
+<div class="step-header">
+  <div class="step-number">7</div>
+  <div>
+    <div class="step-service-icons">
+  <svg width="22" height="22"><use href="#aws-airflow"/></svg>
+  <svg width="22" height="22"><use href="#aws-mwaa"/></svg>
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="#805ad5"><use href="#ico-etl"/></svg>
+</div>
+    <div class="step-title">Orquestração — Apache Airflow</div>
+    <div class="step-sub">
+      <span class="aws-badge" style="background:#017cee;color:#fff;">Apache Airflow 2.9</span>
+      <span class="aws-badge" style="background:#232f3e;color:#FF9900;">AWS MWAA</span> — DAG `cc_pipeline_diario` orquestra os 40 Glue Jobs
+      <div class="gh-links-block" style="margin-top:6px">
+        <span class="gh-links-label">GitHub:</span>
+        <a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/dags/dag_pipeline_diario.py" target="_blank">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+          dag_pipeline_diario.py (arquivo completo)
+        </a>
+        <a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/dags/dag_pipeline_diario.py#L162-L167" target="_blank">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+          _gate() · L162–L167
+        </a>
+        <a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/dags/dag_pipeline_diario.py#L124-L148" target="_blank">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+          make_glue_task() + --REPROCESS_DATE · L124–L148
+        </a>
+        <a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/dags/dag_pipeline_diario.py#L281-L307" target="_blank">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+          TriggerDagRunOperator + dependências · L281–L307
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<p>O Airflow é o maestro do pipeline. A DAG <code>cc_pipeline_diario</code> executa diariamente às <strong>02:00 UTC</strong>, orquestrando os 40 Glue Jobs em 4 waves sequenciais e acionando a carga do Redshift ao final.</p>
+
+<h3>7.1 — Arquitetura das 4 Waves</h3>
+
+<div class="diagram-wrap">
+<svg width="820" height="280" viewBox="0 0 820 280">
+  <defs>
+    <marker id="arr-air" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#4a5568"/>
+    </marker>
+  </defs>
+
+  <!-- Wave 1: Bronze → Silver -->
+  <rect x="10" y="10" width="160" height="60" rx="8" fill="#fff7ed" stroke="#FF9900" stroke-width="2"/>
+  <text x="90" y="32" text-anchor="middle" font-size="11" font-weight="700" fill="#c05621">Wave 1</text>
+  <text x="90" y="48" text-anchor="middle" font-size="10" fill="#4a5568">Bronze → Silver</text>
+  <text x="90" y="62" text-anchor="middle" font-size="10" fill="#718096">18 jobs em paralelo</text>
+
+  <!-- gate_silver -->
+  <polygon points="185,40 205,20 225,40 205,60" fill="#e9d8fd" stroke="#805ad5" stroke-width="1.5"/>
+  <text x="205" y="43" text-anchor="middle" font-size="8" font-weight="700" fill="#553c9a">gate</text>
+  <text x="205" y="54" text-anchor="middle" font-size="7" fill="#553c9a">silver</text>
+
+  <!-- Wave 2: Gold Dims -->
+  <rect x="235" y="10" width="160" height="60" rx="8" fill="#fffff0" stroke="#d4af37" stroke-width="2"/>
+  <text x="315" y="32" text-anchor="middle" font-size="11" font-weight="700" fill="#744210">Wave 2</text>
+  <text x="315" y="48" text-anchor="middle" font-size="10" fill="#4a5568">Gold Dimensões</text>
+  <text x="315" y="62" text-anchor="middle" font-size="10" fill="#718096">11 jobs em paralelo</text>
+
+  <!-- gate_gold -->
+  <polygon points="410,40 430,20 450,40 430,60" fill="#e9d8fd" stroke="#805ad5" stroke-width="1.5"/>
+  <text x="430" y="43" text-anchor="middle" font-size="8" font-weight="700" fill="#553c9a">gate</text>
+  <text x="430" y="54" text-anchor="middle" font-size="7" fill="#553c9a">gold</text>
+
+  <!-- Wave 3: Gold Fatos 1 -->
+  <rect x="460" y="10" width="155" height="60" rx="8" fill="#fefcbf" stroke="#d4af37" stroke-width="2"/>
+  <text x="537" y="32" text-anchor="middle" font-size="11" font-weight="700" fill="#744210">Wave 3</text>
+  <text x="537" y="48" text-anchor="middle" font-size="10" fill="#4a5568">Gold Fatos (I)</text>
+  <text x="537" y="62" text-anchor="middle" font-size="10" fill="#718096">7 jobs em paralelo</text>
+
+  <!-- Wave 4: Gold Fatos 2 -->
+  <rect x="460" y="90" width="155" height="60" rx="8" fill="#fefcbf" stroke="#d4af37" stroke-width="1.5"/>
+  <text x="537" y="112" text-anchor="middle" font-size="11" font-weight="700" fill="#744210">Wave 4</text>
+  <text x="537" y="128" text-anchor="middle" font-size="10" fill="#4a5568">Gold Fatos (II)</text>
+  <text x="537" y="142" text-anchor="middle" font-size="10" fill="#718096">4 jobs em paralelo</text>
+
+  <!-- Redshift trigger -->
+  <rect x="645" y="50" width="165" height="60" rx="8" fill="#e6f0ff" stroke="#0969da" stroke-width="2"/>
+  <text x="727" y="72" text-anchor="middle" font-size="11" font-weight="700" fill="#0550ae">TriggerDagRun</text>
+  <text x="727" y="88" text-anchor="middle" font-size="10" fill="#4a5568">cc_carga_redshift</text>
+  <text x="727" y="102" text-anchor="middle" font-size="9" fill="#718096">trigger_rule=ALL_DONE</text>
+
+  <!-- Arrows -->
+  <line x1="170" y1="40" x2="183" y2="40" stroke="#4a5568" stroke-width="1.5" marker-end="url(#arr-air)"/>
+  <line x1="227" y1="40" x2="233" y2="40" stroke="#4a5568" stroke-width="1.5" marker-end="url(#arr-air)"/>
+  <line x1="395" y1="40" x2="408" y2="40" stroke="#4a5568" stroke-width="1.5" marker-end="url(#arr-air)"/>
+  <line x1="452" y1="40" x2="458" y2="40" stroke="#4a5568" stroke-width="1.5" marker-end="url(#arr-air)"/>
+  <!-- wave3 -> wave4 (down) -->
+  <line x1="537" y1="70" x2="537" y2="88" stroke="#4a5568" stroke-width="1.5" marker-end="url(#arr-air)"/>
+  <!-- wave4 -> redshift -->
+  <line x1="615" y1="120" x2="643" y2="100" stroke="#4a5568" stroke-width="1.5" marker-end="url(#arr-air)"/>
+
+  <!-- Legend Gates -->
+  <rect x="10" y="175" width="800" height="90" rx="6" fill="#f8f4ff" stroke="#e9d8fd" stroke-width="1"/>
+  <text x="20" y="195" font-size="10" font-weight="700" fill="#553c9a">Gates (ShortCircuitOperator) — controlam o ponto de entrada do reprocessamento:</text>
+  <text x="20" y="212" font-size="10" fill="#4a5568">gate_bronze   — executa Wave 1 apenas se start_layer = "bronze"</text>
+  <text x="20" y="227" font-size="10" fill="#4a5568">gate_silver   — executa Waves 2+ se start_layer in ("bronze", "silver") · trigger_rule=ALL_DONE</text>
+  <text x="20" y="242" font-size="10" fill="#4a5568">gate_gold     — executa Waves 3-4 se start_layer in ("bronze", "silver", "gold") · trigger_rule=ALL_DONE</text>
+  <text x="20" y="257" font-size="10" fill="#4a5568">start_layer="redshift" → todas as waves puladas; TriggerDagRun (ALL_DONE) aciona carga Redshift diretamente</text>
+</svg>
+</div>
+
+<h3>7.2 — Gate de Reprocessamento: ShortCircuitOperator</h3>
+
+<p>O parâmetro <code>start_layer</code> permite entrar no pipeline em qualquer camada — sem buscar dados na origem. A função <code>_gate()</code> decide se a wave executa ou é pulada:</p>
+
+<pre><code><span class="cmt"># L162–L167 — dag_pipeline_diario.py</span>
+<span class="kw">def</span> _gate(layers: list[str], **context) -> bool:
+    <span class="str">"""
+    Retorna True se a camada atual está inclusa nas camadas permitidas.
+    Usado pelos ShortCircuitOperators para pular waves desnecessárias.
+    """</span>
+    <span class="kw">return</span> context[<span class="str">"params"</span>][<span class="str">"start_layer"</span>] <span class="kw">in</span> layers
+
+<span class="cmt"># gate_bronze: só executa se start_layer = "bronze"</span>
+gate_bronze = ShortCircuitOperator(
+    task_id=<span class="str">"gate_bronze"</span>,
+    python_callable=_gate,
+    op_kwargs={<span class="str">"layers"</span>: [<span class="str">"bronze"</span>]},
+    ignore_downstream_trigger_rules=<span class="kw">False</span>,
+)
+
+<span class="cmt"># gate_silver: executa mesmo com bronze SKIPPED (trigger_rule=ALL_DONE)</span>
+gate_silver = ShortCircuitOperator(
+    task_id=<span class="str">"gate_silver"</span>,
+    python_callable=_gate,
+    op_kwargs={<span class="str">"layers"</span>: [<span class="str">"bronze"</span>, <span class="str">"silver"</span>]},
+    trigger_rule=TriggerRule.ALL_DONE,
+    ignore_downstream_trigger_rules=<span class="kw">False</span>,
+)
+
+<span class="cmt"># gate_gold: executa mesmo com bronze+silver SKIPPED</span>
+gate_gold = ShortCircuitOperator(
+    task_id=<span class="str">"gate_gold"</span>,
+    python_callable=_gate,
+    op_kwargs={<span class="str">"layers"</span>: [<span class="str">"bronze"</span>, <span class="str">"silver"</span>, <span class="str">"gold"</span>]},
+    trigger_rule=TriggerRule.ALL_DONE,
+    ignore_downstream_trigger_rules=<span class="kw">False</span>,
+)</code></pre>
+
+<div class="callout info">
+  <span class="callout-icon">ℹ️</span>
+  <p><strong>Por que <code>ignore_downstream_trigger_rules=False</code>?</strong> Quando o gate retorna <code>False</code>, as tasks downstream com <code>trigger_rule=ALL_SUCCESS</code> ficam SKIPPED. As tasks com <code>trigger_rule=ALL_DONE</code> (os próximos gates) continuam executando normalmente — status SKIPPED conta como "done".</p>
+</div>
+
+<div class="grid2">
+  <div class="card">
+    <h4>Cenários de uso</h4>
+    <table>
+      <thead><tr><th>start_layer</th><th>Comportamento</th></tr></thead>
+      <tbody>
+        <tr><td><code>"bronze"</code></td><td>Pipeline completo (padrão diário)</td></tr>
+        <tr><td><code>"silver"</code></td><td>Pula Wave 1; usa Bronze já no S3</td></tr>
+        <tr><td><code>"gold"</code></td><td>Pula Waves 1-2; usa Silver já no S3</td></tr>
+        <tr><td><code>"redshift"</code></td><td>Só recarga Redshift; usa Gold já no S3</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Trigger manual via CLI</h4>
+    <pre style="margin:0;font-size:11px;"><code><span class="cmt"># Reprocessar só Gold + Redshift</span>
+airflow dags trigger cc_pipeline_diario \
+  --conf '{
+    "reprocess_date": "2024-06-15",
+    "start_layer": "gold"
+  }'</code></pre>
+  </div>
+</div>
+
+<h3>7.3 — Parâmetro --REPROCESS_DATE nos Glue Jobs</h3>
+
+<p>Todos os Glue Jobs recebem o parâmetro <code>--REPROCESS_DATE</code> via template Jinja. Se vazio, usa a data lógica da execução (<code>ds</code>):</p>
+
+<pre><code><span class="cmt"># L124–L148 — make_glue_task() em dag_pipeline_diario.py</span>
+<span class="kw">def</span> make_glue_task(dag: DAG, job_name: str, task_id: str | None = None) -> GlueJobOperator:
+    tid = task_id <span class="kw">or</span> f<span class="str">"run_{job_name.replace('-', '_')}"</span>
+    <span class="kw">return</span> GlueJobOperator(
+        task_id=tid,
+        job_name=job_name,
+        script_args={
+            <span class="str">"--BUCKET_NAME"</span>:          BUCKET,
+            <span class="str">"--ENV"</span>:                  ENV,
+            <span class="str">"--enable-job-insights"</span>:  <span class="str">"true"</span>,
+            <span class="str">"--REPROCESS_DATE"</span>:       <span class="str">"{{ params.reprocess_date or ds }}"</span>,
+        },
+        aws_conn_id=AWS_CONN,
+        region_name=GLUE_REGION,
+        wait_for_completion=<span class="kw">True</span>,
+        dag=dag,
+    )</code></pre>
+
+<div class="callout success">
+  <span class="callout-icon">✅</span>
+  <p>O job Glue usa <code>--REPROCESS_DATE</code> para filtrar apenas a partição da data solicitada na tabela Iceberg e reescreve somente aquela partição com <code>overwritePartitions()</code> — sem impactar datas anteriores.</p>
+</div>
+
+<h3>7.4 — TriggerDagRunOperator: Acionar Carga Redshift</h3>
+
+<p>Ao final de todas as waves, a DAG aciona automaticamente <code>cc_carga_redshift</code>:</p>
+
+<pre><code><span class="cmt"># L281–L288 — dag_pipeline_diario.py</span>
+trigger_redshift = TriggerDagRunOperator(
+    task_id=<span class="str">"acionar_carga_redshift"</span>,
+    trigger_dag_id=<span class="str">"cc_carga_redshift"</span>,
+    conf={<span class="str">"reprocess_date"</span>: <span class="str">"{{ params.reprocess_date or ds }}"</span>},
+    wait_for_completion=<span class="kw">True</span>,
+    poke_interval=<span class="num">60</span>,
+    trigger_rule=TriggerRule.ALL_DONE,  <span class="cmt"># executa mesmo com waves puladas</span>
+)</code></pre>
+
+<h3>7.5 — Cadeia de Dependências Completa</h3>
+
+<pre><code><span class="cmt"># L303–L307 — grafo de dependências</span>
+inicio >> gate_bronze >> bronze_tasks >> fim_bronze
+fim_bronze >> gate_silver >> dim_tasks >> fim_dims
+fim_dims >> gate_gold >> wave1_tasks >> fim_wave1
+fim_wave1 >> wave2_tasks >> fim_pipeline
+fim_pipeline >> trigger_redshift</code></pre>
+
+<div class="data-box">
+<span class="title">Resumo: DAG cc_pipeline_diario</span>
+<span class="label">schedule</span>       <span class="value">0 2 * * *</span>  <span class="cmt">← 02:00 UTC diariamente</span><br>
+<span class="label">dagrun_timeout</span> <span class="value">3 horas</span><br>
+<span class="label">Wave 1</span>         <span class="value">18 jobs</span>  <span class="cmt">← Bronze → Silver (todas as 18 entidades)</span><br>
+<span class="label">Wave 2</span>         <span class="value">11 jobs</span>  <span class="cmt">← Silver → Gold Dimensões</span><br>
+<span class="label">Wave 3</span>         <span class="value">7 jobs</span>   <span class="cmt">← Silver → Gold Fatos independentes</span><br>
+<span class="label">Wave 4</span>         <span class="value">4 jobs</span>   <span class="cmt">← Silver → Gold Fatos dependentes (requerem fatos da wave 3)</span><br>
+<span class="label">Total</span>          <span class="new">40 Glue Jobs</span>  <span class="cmt">+ TriggerDagRunOperator → cc_carga_redshift</span>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ ETAPA 8 -->
+<div class="page-break"></div>
+<div id="etapa8">
+<div class="step-header">
+  <div class="step-number">8</div>
+  <div>
+    <div class="step-service-icons">
+  <svg width="22" height="22"><use href="#aws-redshift"/></svg>
+  <svg width="22" height="22"><use href="#aws-quicksight"/></svg>
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="#e53e3e"><use href="#ico-metrics"/></svg>
+</div>
+    <div class="step-title">Carga Redshift Serverless</div>
+    <div class="step-sub">
+      <span class="aws-badge" style="background:#8C4FFF;color:#fff;">Amazon Redshift Serverless</span> — TRUNCATE + COPY · 22 tabelas · 9 views KPI
+      <div class="gh-links-block" style="margin-top:6px">
+        <span class="gh-links-label">GitHub:</span>
+        <a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/dags/dag_carga_redshift.py" target="_blank">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+          dag_carga_redshift.py (arquivo completo)
+        </a>
+        <a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/dags/dag_carga_redshift.py#L61-L77" target="_blank">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+          copy_sql() TRUNCATE + COPY · L61–L77
+        </a>
+        <a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/infrastructure/redshift/ddl/create_tables.sql" target="_blank">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+          create_tables.sql (DDL + DISTSTYLE)
+        </a>
+        <a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/infrastructure/redshift/ddl/create_views.sql" target="_blank">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+          create_views.sql (9 KPI views)
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<p>A DAG <code>cc_carga_redshift</code> é acionada ao final do pipeline (ou manualmente) e realiza um <strong>full-refresh</strong> de todas as 22 tabelas Gold no Redshift Serverless via <strong>TRUNCATE + COPY</strong>.</p>
+
+<h3>8.1 — Estratégia: TRUNCATE + COPY (Full Refresh)</h3>
+
+<pre><code><span class="cmt"># L61–L77 — copy_sql() em dag_carga_redshift.py</span>
+<span class="kw">def</span> copy_sql(table: str, s3_prefix: str) -> str:
+    <span class="kw">return</span> f<span class="str">"""
+        TRUNCATE TABLE {SCHEMA}.{table};
+
+        COPY {SCHEMA}.{table}
+        FROM '{GOLD_S3}/{s3_prefix}/'
+        IAM_ROLE '{IAM_ROLE}'
+        FORMAT AS PARQUET
+        SERIALIZETOJSON;
+    """</span></code></pre>
+
+<div class="grid2">
+  <div class="card" style="border-left: 4px solid #38a169;">
+    <h4 style="color:#276749;">✅ Por que TRUNCATE + COPY?</h4>
+    <ul style="font-size:13px; padding-left:16px;">
+      <li><strong>Idempotência:</strong> pode rodar N vezes com os mesmos dados Gold no S3 e o Redshift terá sempre o mesmo estado</li>
+      <li><strong>Simplicidade:</strong> sem lógica de UPSERT no Redshift — toda a complexidade de deduplicação foi resolvida na camada Gold</li>
+      <li><strong>Performance:</strong> COPY Parquet é o método mais rápido de carga em massa no Redshift</li>
+      <li><strong>SERIALIZETOJSON:</strong> permite colunas SUPER para campos semi-estruturados</li>
+    </ul>
+  </div>
+  <div class="card" style="border-left: 4px solid #e53e3e;">
+    <h4 style="color:#c53030;">⚠️ Trade-off</h4>
+    <p style="font-size:13px;">O TRUNCATE gera um breve período de indisponibilidade dos dados (<strong>downtime da tabela</strong>). Para dashboards com SLA de disponibilidade contínua, a alternativa é usar tabelas de staging + SWAP (renomear tabelas atomicamente).</p>
+    <p style="font-size:13px; margin-top:8px;">Em escala de demonstração, o TRUNCATE + COPY é aceitável e simples de operar.</p>
+  </div>
+</div>
+
+<h3>8.2 — Tabelas Carregadas: 11 Dimensões + 11 Fatos</h3>
+
+<div class="grid2">
+  <div class="card">
+    <h4>Dimensões (carregadas em paralelo)</h4>
+    <table>
+      <thead><tr><th>Tabela</th><th>Prefixo S3</th></tr></thead>
+      <tbody>
+        <tr><td><code>dim_data</code></td><td>dimensoes/dim_data</td></tr>
+        <tr><td><code>dim_cliente</code></td><td>dimensoes/dim_cliente</td></tr>
+        <tr><td><code>dim_operador</code></td><td>dimensoes/dim_operador</td></tr>
+        <tr><td><code>dim_fila</code></td><td>dimensoes/dim_fila</td></tr>
+        <tr><td><code>dim_canal</code></td><td>dimensoes/dim_canal</td></tr>
+        <tr><td><code>dim_status_chamada</code></td><td>dimensoes/dim_status_chamada</td></tr>
+        <tr><td><code>dim_status_ticket</code></td><td>dimensoes/dim_status_ticket</td></tr>
+        <tr><td><code>dim_campanha</code></td><td>dimensoes/dim_campanha</td></tr>
+        <tr><td><code>dim_categoria_ticket</code></td><td>dimensoes/dim_categoria_ticket</td></tr>
+        <tr><td><code>dim_prioridade_ticket</code></td><td>dimensoes/dim_prioridade_ticket</td></tr>
+        <tr><td><code>dim_skill</code></td><td>dimensoes/dim_skill</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Fatos (após todas as dimensões)</h4>
+    <table>
+      <thead><tr><th>Tabela</th><th>Prefixo S3</th></tr></thead>
+      <tbody>
+        <tr><td><code>fato_chamada</code></td><td>fatos/fato_chamada</td></tr>
+        <tr><td><code>fato_ticket</code></td><td>fatos/fato_ticket</td></tr>
+        <tr><td><code>fato_discagem</code></td><td>fatos/fato_discagem</td></tr>
+        <tr><td><code>fato_chat</code></td><td>fatos/fato_chat</td></tr>
+        <tr><td><code>fato_whatsapp</code></td><td>fatos/fato_whatsapp</td></tr>
+        <tr><td><code>fato_ura_navegacao</code></td><td>fatos/fato_ura_navegacao</td></tr>
+        <tr><td><code>fato_jornada_operador</code></td><td>fatos/fato_jornada_operador</td></tr>
+        <tr><td><code>fato_qualidade</code></td><td>fatos/fato_qualidade</td></tr>
+        <tr><td><code>fato_metricas_operacionais</code></td><td>fatos/fato_metricas_operacionais</td></tr>
+        <tr><td><code>fato_interacao_ticket</code></td><td>fatos/fato_interacao_ticket</td></tr>
+        <tr><td><code>fato_mensagem_chat</code></td><td>fatos/fato_mensagem_chat</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<h3>8.3 — DDL: DISTSTYLE, DISTKEY e SORTKEY</h3>
+
+<p>O Redshift distribui e ordena fisicamente os dados no disco para otimizar JOINs e filtros frequentes:</p>
+
+<pre><code><span class="cmt">-- dim_data: DISTSTYLE ALL (tabela pequena — cópia em todos os nós)</span>
+<span class="kw">CREATE TABLE IF NOT EXISTS</span> gold.dim_data (
+    sk_data           INT          <span class="kw">NOT NULL</span>,   <span class="cmt">-- ex: 20240110</span>
+    dt_completa       DATE,
+    nr_ano            SMALLINT,
+    nr_mes            SMALLINT,
+    nr_dia            SMALLINT,
+    ds_dia_semana     VARCHAR(20),
+    fl_fim_semana     SMALLINT,
+    ds_trimestre      VARCHAR(6)
+)
+DISTSTYLE ALL          <span class="cmt">-- copiada para todos os nós → JOINs sem shuffle de rede</span>
+SORTKEY(sk_data);      <span class="cmt">-- range scan eficiente no filtro por data</span>
+
+<span class="cmt">-- fato_chamada: DISTKEY no sk_operador (coluna mais usada em JOINs)</span>
+<span class="kw">CREATE TABLE IF NOT EXISTS</span> gold.fato_chamada (
+    sk_chamada           BIGINT       <span class="kw">NOT NULL</span>,
+    nk_chamada           BIGINT,
+    sk_cliente           INT          <span class="kw">DEFAULT</span> -1,
+    sk_operador          INT          <span class="kw">DEFAULT</span> -1,
+    sk_fila              INT          <span class="kw">DEFAULT</span> -1,
+    sk_status_chamada    INT          <span class="kw">DEFAULT</span> -1,
+    sk_data_inicio       INT,
+    nr_duracao_segundos  INT,
+    nr_duracao_minutos   DECIMAL(10,2),
+    fl_chamada_completa  SMALLINT,
+    fl_duracao_valida    SMALLINT
+)
+DISTSTYLE KEY DISTKEY(sk_operador)   <span class="cmt">-- operador é a dimensão mais usada em GROUP BY</span>
+SORTKEY(sk_data_inicio, sk_operador); <span class="cmt">-- filtros por data + operador são os mais comuns</span></code></pre>
+
+<div class="callout info">
+  <span class="callout-icon">ℹ️</span>
+  <p><strong>DISTSTYLE ALL vs KEY:</strong> Dimensões pequenas (centenas de linhas) usam <code>DISTSTYLE ALL</code> — o Redshift mantém uma cópia em cada nó, eliminando o shuffle de rede durante os JOINs. Tabelas fato (milhões de linhas) usam <code>DISTSTYLE KEY</code> com a coluna de JOIN mais frequente como <code>DISTKEY</code> — dados co-localizam nos nós e o JOIN ocorre localmente.</p>
+</div>
+
+<h3>8.4 — 9 Views KPI no Redshift</h3>
+
+<p>Após a carga, 9 views analíticas pré-calculadas ficam disponíveis para ferramentas de BI (QuickSight, Power BI, Tableau):</p>
+
+<pre><code><span class="cmt">-- vw_kpi_01_volume_chamadas: volume, TMA e taxa de atendimento por mês/status</span>
+<span class="kw">CREATE OR REPLACE VIEW</span> gold.vw_kpi_01_volume_chamadas <span class="kw">AS</span>
+<span class="kw">SELECT</span>
+    d.nr_ano,
+    d.nr_mes,
+    d.ds_mes,
+    sc.ds_status,
+    <span class="fn">COUNT</span>(c.sk_chamada)                              <span class="kw">AS</span> nr_total_chamadas,
+    <span class="fn">SUM</span>(c.fl_chamada_completa)                       <span class="kw">AS</span> nr_chamadas_completas,
+    <span class="fn">ROUND</span>(<span class="fn">AVG</span>(c.nr_duracao_minutos), <span class="num">2</span>)              <span class="kw">AS</span> nr_tma_medio_minutos,
+    <span class="fn">ROUND</span>(
+        <span class="num">100.0</span> * <span class="fn">SUM</span>(c.fl_chamada_completa) / <span class="fn">NULLIF</span>(<span class="fn">COUNT</span>(c.sk_chamada), <span class="num">0</span>),
+        <span class="num">2</span>
+    )                                                <span class="kw">AS</span> pct_taxa_atendimento
+<span class="kw">FROM</span> gold.fato_chamada c
+<span class="kw">JOIN</span> gold.dim_data            d  <span class="kw">ON</span> c.sk_data_inicio    = d.sk_data
+<span class="kw">JOIN</span> gold.dim_status_chamada  sc <span class="kw">ON</span> c.sk_status_chamada = sc.sk_status
+<span class="kw">GROUP BY</span> d.nr_ano, d.nr_mes, d.ds_mes, sc.ds_status;</code></pre>
+
+<table>
+  <thead>
+    <tr><th>View</th><th>KPI</th><th>Métricas Principais</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>vw_kpi_01_volume_chamadas</code></td><td>Volume e TMA</td><td>total_chamadas, tma_medio, pct_taxa_atendimento</td></tr>
+    <tr><td><code>vw_kpi_02_performance_operadores</code></td><td>Performance Operadores</td><td>chamadas_atendidas, tma_medio, pct_conclusao</td></tr>
+    <tr><td><code>vw_kpi_03_qualidade</code></td><td>Qualidade de Atendimento</td><td>nota_media, nr_aprovados, pct_aprovacao</td></tr>
+    <tr><td><code>vw_kpi_04_volume_tickets</code></td><td>Volume Tickets</td><td>total_tickets, nr_resolvidos, nr_dentro_sla</td></tr>
+    <tr><td><code>vw_kpi_05_eficiencia_tickets</code></td><td>Eficiência SLA</td><td>trt_medio_horas, pct_sla_cumprido</td></tr>
+    <tr><td><code>vw_kpi_06_volume_digital</code></td><td>Chat + WhatsApp</td><td>atendimentos, duracao_media, nr_completos</td></tr>
+    <tr><td><code>vw_kpi_08_campanhas</code></td><td>Campanhas Outbound</td><td>total_discagens, nr_atendidas, pct_taxa_atendimento</td></tr>
+    <tr><td><code>vw_kpi_09_metricas_fila</code></td><td>Métricas de Fila</td><td>nivel_servico, tma_medio, taxa_abandono</td></tr>
+    <tr><td><code>vw_kpi_12_ura</code></td><td>Efetividade da URA</td><td>nr_navegacoes, pct_abandono, duracao_media</td></tr>
+  </tbody>
+</table>
+
+<h3>8.5 — Cadeia de Dependências da DAG de Carga</h3>
+
+<pre><code><span class="cmt"># L184 — dag_carga_redshift.py</span>
+inicio_carga >> log_reprocess >> dim_tasks >> dims_carregadas >> fato_tasks >> carga_concluida</code></pre>
+
+<div class="data-box">
+<span class="title">Fluxo: cc_carga_redshift</span>
+<span class="label">inicio_carga</span>     <span class="cmt">← EmptyOperator</span><br>
+<span class="label">log_reprocess</span>    <span class="cmt">← PythonOperator: loga reprocess_date para rastreabilidade</span><br>
+<span class="new">dim_tasks (x11)</span>  <span class="cmt">← RedshiftSQLOperator · TRUNCATE + COPY · execução PARALELA</span><br>
+<span class="label">dims_carregadas</span>  <span class="cmt">← EmptyOperator: barreira de sincronização</span><br>
+<span class="new">fato_tasks (x11)</span> <span class="cmt">← RedshiftSQLOperator · TRUNCATE + COPY · execução PARALELA</span><br>
+<span class="label">carga_concluida</span>  <span class="cmt">← EmptyOperator: sinaliza fim da carga</span>
+</div>
+
+<div class="callout success">
+  <span class="callout-icon">✅</span>
+  <p><strong>Reprocessamento manual (só Redshift, sem Glue):</strong> se os dados Gold já estão no S3 e só o Redshift precisa ser recarregado, acione diretamente:</p>
+  <pre style="margin-top:8px; font-size:12px;"><code>airflow dags trigger cc_carga_redshift \
+  --conf '{"reprocess_date": "2024-06-15"}'</code></pre>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ BOOK VARIAVEIS -->
+<div class="page-break"></div>
+<div id="book-variaveis">
+<h2>9. Book de Variáveis Analíticas</h2>
+
+<p>Catálogo centralizado das variáveis das camadas <strong>Silver</strong> e <strong>Gold</strong> — definição técnica, origem, lineage, regras de qualidade, governança LGPD e exemplos de valores. Referência para engenheiros, analistas e cientistas de dados.</p>
+
+<div class="gh-links-block" style="margin-bottom:16px">
+  <span class="gh-links-label">GitHub:</span>
+  <a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/docs/book_de_variaveis.md" target="_blank">
+    <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+    book_de_variaveis.md (documento completo)
+  </a>
+</div>
+
+<!-- Convenções -->
+<h3>9.1 — Convenções de Nomenclatura</h3>
+
+<table>
+  <thead><tr><th>Prefixo</th><th>Tipo</th><th>Camada</th></tr></thead>
+  <tbody>
+    <tr><td><code>sk_</code></td><td>Surrogate Key — gerada pelo pipeline Gold</td><td>Gold</td></tr>
+    <tr><td><code>nk_</code></td><td>Natural Key — vinda do sistema fonte</td><td>Silver / Gold</td></tr>
+    <tr><td><code>id_</code></td><td>Identificador técnico</td><td>Bronze / Silver</td></tr>
+    <tr><td><code>nm_</code></td><td>Nome / label descritivo</td><td>Silver / Gold</td></tr>
+    <tr><td><code>ds_</code></td><td>Descrição textual ou categórica</td><td>Silver / Gold</td></tr>
+    <tr><td><code>nr_</code></td><td>Valor numérico, quantidade ou taxa</td><td>Silver / Gold</td></tr>
+    <tr><td><code>dt_</code></td><td>Data ou timestamp</td><td>Todas</td></tr>
+    <tr><td><code>st_</code></td><td>Status (texto livre normalizado)</td><td>Silver</td></tr>
+    <tr><td><code>fl_</code></td><td>Flag booleano — <code>SMALLINT</code> 0/1</td><td>Silver / Gold</td></tr>
+    <tr><td><code>tp_</code></td><td>Tipo / categoria</td><td>Silver</td></tr>
+  </tbody>
+</table>
+
+<div class="callout info" style="margin-top:12px">
+  <span class="callout-icon">ℹ️</span>
+  <p>Flags <code>fl_</code> são sempre <code>SMALLINT</code> (0/1) em vez de <code>BOOLEAN</code> para compatibilidade com Redshift Serverless e Athena.</p>
+</div>
+
+<!-- Domínio Chamadas -->
+<h3>9.2 — Domínio: Chamadas (Voz) — <code>fato_chamada</code></h3>
+<p style="font-size:12px; color:#718096;">Silver: <code>db_silver.chamada</code> · Jobs: <code>job_tb_chamada_bronze_to_silver.py</code> → <code>job_fato_chamada.py</code> · Frequência: Diária</p>
+
+<div class="grid2">
+  <div class="card">
+    <h4><code>nr_duracao_segundos</code></h4>
+    <table>
+      <tr><td><strong>Descrição</strong></td><td>Duração total da chamada em segundos (<code>dt_fim - dt_inicio</code>)</td></tr>
+      <tr><td><strong>Tipo</strong></td><td><code>INT</code> · 0–86.400</td></tr>
+      <tr><td><strong>Nulos</strong></td><td>Sim (chamada sem <code>dt_fim</code>)</td></tr>
+      <tr><td><strong>Validação</strong></td><td><code>&gt;= 0</code></td></tr>
+      <tr><td><strong>Criticidade</strong></td><td>Alta</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4><code>nr_duracao_minutos</code></h4>
+    <table>
+      <tr><td><strong>Descrição</strong></td><td>Versão derivada: <code>nr_duracao_segundos / 60.0</code></td></tr>
+      <tr><td><strong>Tipo</strong></td><td><code>DOUBLE</code> · 0,0–1.440,0</td></tr>
+      <tr><td><strong>Nulos</strong></td><td>Sim</td></tr>
+      <tr><td><strong>Uso analítico</strong></td><td>TMA em minutos nos KPIs e views</td></tr>
+      <tr><td><strong>Criticidade</strong></td><td>Alta</td></tr>
+    </table>
+  </div>
+</div>
+
+<div class="grid2">
+  <div class="card">
+    <h4><code>fl_duracao_valida</code></h4>
+    <table>
+      <tr><td><strong>Descrição</strong></td><td>Duração válida para cálculo de TMA</td></tr>
+      <tr><td><strong>Tipo</strong></td><td><code>SMALLINT</code> · 0 / 1</td></tr>
+      <tr><td><strong>Regra</strong></td><td><code>nr_duracao_segundos &gt; 0 AND NOT NULL → 1</code></td></tr>
+      <tr><td><strong>Uso analítico</strong></td><td><code>WHERE fl_duracao_valida = 1</code> nos cálculos de TMA</td></tr>
+      <tr><td><strong>Criticidade</strong></td><td>Alta</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4><code>fl_chamada_completa</code></h4>
+    <table>
+      <tr><td><strong>Descrição</strong></td><td>Chamada com <code>dt_inicio</code> e <code>dt_fim</code> preenchidos</td></tr>
+      <tr><td><strong>Tipo</strong></td><td><code>SMALLINT</code> · 0 (abandonada) / 1 (atendida)</td></tr>
+      <tr><td><strong>Regra</strong></td><td><code>dt_inicio IS NOT NULL AND dt_fim IS NOT NULL → 1</code></td></tr>
+      <tr><td><strong>Uso analítico</strong></td><td>KPI taxa de atendimento: <code>SUM(fl_chamada_completa) / COUNT(*)</code></td></tr>
+      <tr><td><strong>Criticidade</strong></td><td>Alta</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- Domínio Qualidade -->
+<h3>9.3 — Domínio: Qualidade de Atendimento — <code>fato_qualidade</code></h3>
+<p style="font-size:12px; color:#718096;">Silver: <code>db_silver.avaliacao_qualidade</code> · Jobs: <code>job_tb_avaliacao_qualidade_bronze_to_silver.py</code> → <code>job_fato_qualidade.py</code></p>
+
+<div class="grid2">
+  <div class="card">
+    <h4><code>nr_nota</code></h4>
+    <table>
+      <tr><td><strong>Descrição</strong></td><td>Nota de monitoria de qualidade (0–10), atribuída por supervisor</td></tr>
+      <tr><td><strong>Tipo</strong></td><td><code>DOUBLE</code> · Média esperada ~7,0</td></tr>
+      <tr><td><strong>Transformação</strong></td><td>Cast + <code>coalesce(0)</code> quando nulo no Bronze</td></tr>
+      <tr><td><strong>Validação</strong></td><td><code>BETWEEN 0 AND 10</code></td></tr>
+      <tr><td><strong>Criticidade</strong></td><td>Crítica</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4><code>ds_faixa_nota</code></h4>
+    <table>
+      <tr><td><strong>Descrição</strong></td><td>Categorização da nota em faixas de desempenho</td></tr>
+      <tr><td><strong>Tipo</strong></td><td><code>STRING</code></td></tr>
+      <tr><td><strong>Valores</strong></td><td><code>CRITICO</code> (&lt;3) · <code>RUIM</code> (&lt;5) · <code>REGULAR</code> (&lt;7) · <code>BOM</code> (&lt;9) · <code>EXCELENTE</code> (≥9)</td></tr>
+      <tr><td><strong>Criticidade</strong></td><td>Alta</td></tr>
+    </table>
+  </div>
+</div>
+
+<div class="grid2">
+  <div class="card">
+    <h4><code>fl_aprovado</code></h4>
+    <table>
+      <tr><td><strong>Descrição</strong></td><td>Operador aprovado na avaliação (nota ≥ 7,0)</td></tr>
+      <tr><td><strong>Tipo</strong></td><td><code>SMALLINT</code> · 0 / 1</td></tr>
+      <tr><td><strong>Uso analítico</strong></td><td><code>vw_kpi_03_qualidade</code>: <code>pct_aprovacao</code></td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4><code>fl_critico</code></h4>
+    <table>
+      <tr><td><strong>Descrição</strong></td><td>Atendimento com nota crítica (&lt; 5,0) — exige coaching imediato</td></tr>
+      <tr><td><strong>Tipo</strong></td><td><code>SMALLINT</code> · 0 / 1</td></tr>
+      <tr><td><strong>Uso analítico</strong></td><td>Alertas operacionais; dashboard de supervisão; fila de coaching prioritário</td></tr>
+      <tr><td><strong>Criticidade</strong></td><td>Crítica</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- Domínio Métricas Operacionais -->
+<h3>9.4 — Domínio: Métricas Operacionais de Fila — <code>fato_metricas_operacionais</code></h3>
+<p style="font-size:12px; color:#718096;">Silver: <code>db_silver.metricas_operacionais</code> · <strong>Nota:</strong> <code>nr_nivel_servico</code> não existe no Bronze — calculado inteiramente na Silver</p>
+
+<table>
+  <thead><tr><th>Variável</th><th>Tipo</th><th>Regra / Derivação</th><th>Meta</th><th>Criticidade</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><code>nr_taxa_atendimento</code></td>
+      <td><code>DOUBLE</code> (0–100%)</td>
+      <td><code>(nr_chamadas_atendidas * 100.0) / nr_chamadas_recebidas</code></td>
+      <td>≥ 80%</td>
+      <td>Crítica</td>
+    </tr>
+    <tr>
+      <td><code>nr_taxa_abandono</code></td>
+      <td><code>DOUBLE</code> (0–100%)</td>
+      <td><code>(nr_chamadas_abandonadas * 100.0) / nr_chamadas_recebidas</code></td>
+      <td>&lt; 15%</td>
+      <td>Crítica</td>
+    </tr>
+    <tr>
+      <td><code>nr_nivel_servico</code></td>
+      <td><code>DOUBLE</code> (0–100%)</td>
+      <td><code>atendidas * 100.0 / (atendidas + abandonadas)</code> — <strong>derivado na Silver</strong></td>
+      <td>≥ 80%</td>
+      <td>Crítica</td>
+    </tr>
+    <tr>
+      <td><code>nr_tma_segundos / nr_tma_minutos</code></td>
+      <td><code>INT</code> / <code>DOUBLE</code></td>
+      <td>Cast do Bronze; minutos = segundos / 60</td>
+      <td>—</td>
+      <td>Alta</td>
+    </tr>
+    <tr>
+      <td><code>nr_tme_segundos / nr_tme_minutos</code></td>
+      <td><code>INT</code> / <code>DOUBLE</code></td>
+      <td>TME — tempo médio de espera na fila</td>
+      <td>—</td>
+      <td>Alta</td>
+    </tr>
+    <tr>
+      <td><code>fl_meta_nivel_servico</code></td>
+      <td><code>SMALLINT</code></td>
+      <td><code>nr_nivel_servico &gt;= 80 → 1</code></td>
+      <td>—</td>
+      <td>Crítica</td>
+    </tr>
+    <tr>
+      <td><code>fl_alto_abandono</code></td>
+      <td><code>SMALLINT</code></td>
+      <td><code>nr_taxa_abandono &gt; 15 → 1</code> · aciona alerta de escalation</td>
+      <td>—</td>
+      <td>Alta</td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- Domínio Tickets -->
+<h3>9.5 — Domínio: Tickets de Suporte — <code>fato_ticket</code></h3>
+
+<div class="grid2">
+  <div class="card">
+    <h4><code>nr_tempo_resolucao_min</code></h4>
+    <table>
+      <tr><td><strong>Descrição</strong></td><td>Tempo de resolução em minutos (<code>dt_fechamento - dt_abertura</code>)</td></tr>
+      <tr><td><strong>Tipo</strong></td><td><code>DOUBLE</code> · Lognormal (maioria em horas, outliers em dias)</td></tr>
+      <tr><td><strong>Nulos</strong></td><td>Sim (ticket em aberto sem <code>dt_fechamento</code>)</td></tr>
+      <tr><td><strong>Completude</strong></td><td>70% (tickets abertos não têm valor)</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4><code>fl_dentro_sla</code></h4>
+    <table>
+      <tr><td><strong>Descrição</strong></td><td>Ticket resolvido dentro do SLA (480 min / 8 h padrão)</td></tr>
+      <tr><td><strong>Tipo</strong></td><td><code>SMALLINT</code> · 0 / 1</td></tr>
+      <tr><td><strong>Regra</strong></td><td><code>fl_ticket_resolvido = 1 AND nr_tempo_resolucao_min &lt;= 480</code></td></tr>
+      <tr><td><strong>Uso analítico</strong></td><td><code>vw_kpi_05_eficiencia_tickets</code>: <code>pct_sla_cumprido</code></td></tr>
+      <tr><td><strong>Criticidade</strong></td><td>Crítica</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- Domínio URA -->
+<h3>9.6 — Domínio: URA / IVR — <code>fato_ura_navegacao</code></h3>
+
+<div class="grid2">
+  <div class="card">
+    <h4><code>ds_faixa_espera</code></h4>
+    <table>
+      <tr><td><strong>Valores</strong></td><td><code>IMEDIATO</code> (0 s) · <code>CURTO</code> (1–30 s) · <code>MEDIO</code> (31–120 s) · <code>LONGO</code> (&gt;120 s)</td></tr>
+      <tr><td><strong>Uso analítico</strong></td><td>Identificação de gargalos no fluxo da URA por opção de menu</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4><code>fl_abandonou_ura</code></h4>
+    <table>
+      <tr><td><strong>Descrição</strong></td><td>Cliente desligou durante a URA sem chegar a um operador</td></tr>
+      <tr><td><strong>Tipo</strong></td><td><code>SMALLINT</code> · 0 / 1</td></tr>
+      <tr><td><strong>Uso analítico</strong></td><td><code>vw_kpi_12_ura</code>: <code>pct_abandono</code> por opção de menu</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- Domínio Jornada Operador -->
+<h3>9.7 — Domínio: Jornada do Operador — <code>fato_jornada_operador</code></h3>
+
+<div class="grid2">
+  <div class="card">
+    <h4><code>nr_horas_trabalhadas</code></h4>
+    <table>
+      <tr><td><strong>Derivação</strong></td><td><code>(nr_duracao_turno_min - nr_tempo_pausa_min) / 60.0</code></td></tr>
+      <tr><td><strong>Tipo</strong></td><td><code>DOUBLE</code> · 0,0–12,0 horas</td></tr>
+      <tr><td><strong>LGPD</strong></td><td>Dado vinculado a pessoa física — acesso controlado por IAM + Lake Formation</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4><code>fl_presente</code></h4>
+    <table>
+      <tr><td><strong>Descrição</strong></td><td>Operador fez login e realizou o turno no dia de referência</td></tr>
+      <tr><td><strong>Tipo</strong></td><td><code>SMALLINT</code> · 0 (falta) / 1 (presente)</td></tr>
+      <tr><td><strong>Uso analítico</strong></td><td>Taxa de absenteísmo; produtividade por operador</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- Domínio dim_data -->
+<h3>9.8 — Domínio: Dimensão Data — <code>dim_data</code></h3>
+<p style="font-size:12px; color:#718096;">Gerada por range sintético 2015–2030 · 5.845 linhas · não depende de Silver</p>
+
+<table>
+  <thead><tr><th>Variável</th><th>Valores</th><th>Uso principal</th></tr></thead>
+  <tbody>
+    <tr><td><code>fl_fim_semana</code></td><td>0 / 1</td><td>Segmentação de volume útil vs. fim de semana</td></tr>
+    <tr><td><code>fl_feriado</code></td><td>0 / 1</td><td>Feriados nacionais (fixos + móveis) — municipais não incluídos</td></tr>
+    <tr><td><code>fl_dia_util</code></td><td>0 / 1</td><td><code>fl_fim_semana = 0 AND fl_feriado = 0 → 1</code> · filtro padrão em SLAs</td></tr>
+  </tbody>
+</table>
+
+<!-- Domínio dim_operador -->
+<h3>9.9 — Domínio: Dimensão Operador — <code>dim_operador</code></h3>
+
+<table>
+  <thead><tr><th>Variável</th><th>Tipo</th><th>Derivação / Valores</th><th>LGPD</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><code>nr_dias_casa</code></td>
+      <td><code>INT</code></td>
+      <td><code>datediff(current_date(), dt_admissao)</code></td>
+      <td>Sim¹</td>
+    </tr>
+    <tr>
+      <td><code>ds_faixa_tempo_casa</code></td>
+      <td><code>STRING</code></td>
+      <td><code>ATE_3_MESES</code> · <code>3_A_6_MESES</code> · <code>6_A_12_MESES</code> · <code>1_A_2_ANOS</code> · <code>ACIMA_2_ANOS</code></td>
+      <td>Não²</td>
+    </tr>
+    <tr>
+      <td><code>fl_supervisor</code></td>
+      <td><code>SMALLINT</code></td>
+      <td>Auto-join: verifica se <code>nk_operador</code> aparece como <code>id_supervisor</code> em outro registro</td>
+      <td>Não</td>
+    </tr>
+  </tbody>
+</table>
+
+<p style="font-size:11px; color:#718096;">¹ Dado vinculado a pessoa física — acesso controlado por IAM + Lake Formation. &nbsp; ² Dado agregado/categorizado — não identifica individualmente.</p>
+
+<!-- Lineage -->
+<h3>9.10 — Lineage Cross-Layer</h3>
+
+<pre><code>SISTEMA FONTE (PostgreSQL)
+│
+├─ tb_chamada.nr_duracao_segundos
+│       ▼ Bronze → Silver
+│   chamada.nr_duracao_segundos       [cast]
+│   chamada.nr_duracao_minutos        [derivado: / 60]
+│   chamada.fl_duracao_valida         [derivado: > 0 AND NOT NULL]
+│   chamada.fl_chamada_completa       [derivado: dt_inicio AND dt_fim NOT NULL]
+│       ▼ Silver → Gold
+│   fato_chamada.*                    [propagados]
+│
+├─ tb_avaliacao_qualidade.nr_nota
+│       ▼ Bronze → Silver
+│   avaliacao_qualidade.nr_nota       [cast + coalesce 0]
+│   avaliacao_qualidade.ds_faixa_nota [derivado: CASE WHEN]
+│   avaliacao_qualidade.fl_aprovado   [derivado: >= 7]
+│   avaliacao_qualidade.fl_critico    [derivado: < 5]
+│       ▼ Silver → Gold
+│   fato_qualidade.*                  [propagados]
+│
+├─ tb_metricas_operacionais.[chamadas + tempos]
+│       ▼ Bronze → Silver
+│   metricas_operacionais.nr_nivel_servico    [DERIVADO NA SILVER — não existe no Bronze]
+│   metricas_operacionais.nr_taxa_atendimento [derivado: 100 - taxa_abandono]
+│   metricas_operacionais.nr_taxa_abandono    [derivado: abandonadas / recebidas]
+│   metricas_operacionais.fl_meta_nivel_servico [derivado: nivel_servico >= 80]
+│   metricas_operacionais.fl_alto_abandono    [derivado: taxa_abandono > 15]
+│       ▼ Silver → Gold
+│   fato_metricas_operacionais.*      [propagados]
+│
+└─ tb_ticket.[dt_abertura, dt_fechamento, st_ticket]
+        ▼ Bronze → Silver
+    ticket.nr_tempo_resolucao_min     [derivado: datediff em minutos]
+    ticket.fl_ticket_resolvido        [derivado: st_ticket IN ('RESOLVIDO','FECHADO')]
+    ticket.fl_dentro_sla              [derivado: resolvido AND tempo &lt;= 480 min]
+        ▼ Silver → Gold
+    fato_ticket.*                     [propagados]</code></pre>
+
+<!-- Matriz de Governança -->
+<h3>9.11 — Matriz de Governança</h3>
+
+<table>
+  <thead>
+    <tr><th>Variável</th><th>Tabela Gold</th><th>Criticidade</th><th>LGPD</th><th>SLA Disp.</th><th>Retenção</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>nr_duracao_segundos</code></td><td>fato_chamada</td><td>Alta</td><td>Não</td><td>6 h</td><td>2 anos</td></tr>
+    <tr><td><code>nr_duracao_minutos</code></td><td>fato_chamada</td><td>Alta</td><td>Não</td><td>6 h</td><td>2 anos</td></tr>
+    <tr><td><code>fl_duracao_valida</code></td><td>fato_chamada</td><td>Alta</td><td>Não</td><td>6 h</td><td>2 anos</td></tr>
+    <tr><td><code>fl_chamada_completa</code></td><td>fato_chamada</td><td>Alta</td><td>Não</td><td>6 h</td><td>2 anos</td></tr>
+    <tr><td><code>nr_nota</code></td><td>fato_qualidade</td><td>Crítica</td><td>Não</td><td>6 h</td><td>5 anos</td></tr>
+    <tr><td><code>ds_faixa_nota</code></td><td>fato_qualidade</td><td>Alta</td><td>Não</td><td>6 h</td><td>5 anos</td></tr>
+    <tr><td><code>fl_aprovado</code></td><td>fato_qualidade</td><td>Alta</td><td>Não</td><td>6 h</td><td>5 anos</td></tr>
+    <tr><td><code>fl_critico</code></td><td>fato_qualidade</td><td>Crítica</td><td>Não</td><td>4 h</td><td>5 anos</td></tr>
+    <tr><td><code>nr_nivel_servico</code></td><td>fato_metricas_operacionais</td><td>Crítica</td><td>Não</td><td>4 h</td><td>3 anos</td></tr>
+    <tr><td><code>nr_taxa_atendimento</code></td><td>fato_metricas_operacionais</td><td>Crítica</td><td>Não</td><td>4 h</td><td>3 anos</td></tr>
+    <tr><td><code>nr_taxa_abandono</code></td><td>fato_metricas_operacionais</td><td>Crítica</td><td>Não</td><td>4 h</td><td>3 anos</td></tr>
+    <tr><td><code>fl_meta_nivel_servico</code></td><td>fato_metricas_operacionais</td><td>Crítica</td><td>Não</td><td>4 h</td><td>3 anos</td></tr>
+    <tr><td><code>fl_alto_abandono</code></td><td>fato_metricas_operacionais</td><td>Alta</td><td>Não</td><td>4 h</td><td>3 anos</td></tr>
+    <tr><td><code>nr_tempo_resolucao_min</code></td><td>fato_ticket</td><td>Alta</td><td>Não</td><td>6 h</td><td>3 anos</td></tr>
+    <tr><td><code>fl_dentro_sla</code></td><td>fato_ticket</td><td>Crítica</td><td>Não</td><td>6 h</td><td>3 anos</td></tr>
+    <tr><td><code>ds_faixa_espera</code></td><td>fato_ura_navegacao</td><td>Média</td><td>Não</td><td>6 h</td><td>1 ano</td></tr>
+    <tr><td><code>fl_abandonou_ura</code></td><td>fato_ura_navegacao</td><td>Alta</td><td>Não</td><td>6 h</td><td>1 ano</td></tr>
+    <tr><td><code>nr_horas_trabalhadas</code></td><td>fato_jornada_operador</td><td>Alta</td><td>Sim¹</td><td>6 h</td><td>5 anos</td></tr>
+    <tr><td><code>fl_presente</code></td><td>fato_jornada_operador</td><td>Alta</td><td>Sim¹</td><td>6 h</td><td>5 anos</td></tr>
+    <tr><td><code>nr_dias_casa</code></td><td>dim_operador</td><td>Média</td><td>Sim¹</td><td>6 h</td><td>Enquanto ativo</td></tr>
+    <tr><td><code>ds_faixa_tempo_casa</code></td><td>dim_operador</td><td>Média</td><td>Não²</td><td>6 h</td><td>Enquanto ativo</td></tr>
+    <tr><td><code>fl_supervisor</code></td><td>dim_operador</td><td>Média</td><td>Não</td><td>6 h</td><td>Enquanto ativo</td></tr>
+    <tr><td><code>fl_fim_semana</code></td><td>dim_data</td><td>Baixa</td><td>Não</td><td>24 h</td><td>Permanente</td></tr>
+    <tr><td><code>fl_feriado</code></td><td>dim_data</td><td>Baixa</td><td>Não</td><td>24 h</td><td>Permanente</td></tr>
+    <tr><td><code>fl_dia_util</code></td><td>dim_data</td><td>Média</td><td>Não</td><td>24 h</td><td>Permanente</td></tr>
+    <tr><td><code>fl_meta_nivel_servico</code></td><td>fato_metricas_operacionais</td><td>Crítica</td><td>Não</td><td>4 h</td><td>3 anos</td></tr>
+  </tbody>
+</table>
+
+<p style="font-size:11px; color:#718096; margin-top:8px;">¹ Dado vinculado a pessoa física — acesso controlado via IAM + Lake Formation com controle de coluna. &nbsp; ² Dado agregado — não identifica individualmente.</p>
+
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ SEGURANÇA -->
+<div class="page-break"></div>
+<div id="seguranca">
+<h2>12. Segurança e Governança LGPD</h2>
+<p>A LGPD (Lei Geral de Proteção de Dados) exige que dados pessoais sejam protegidos, minimizados e processados com finalidade definida. O pipeline implementa controles em cada camada.</p>
+
+<h3>12.1 — PII por Camada: o que está onde</h3>
+<table>
+  <thead><tr><th>Campo</th><th>Bronze (raw)</th><th>Silver (mascarado)</th><th>Gold (agregado)</th></tr></thead>
+  <tbody>
+    <tr><td><code>nr_documento</code> (CPF)</td><td>123.456.789-00</td><td><code>123*****00</code></td><td>Não existe</td></tr>
+    <tr><td><code>ds_email</code></td><td>joao@gmail.com</td><td><code>***@gmail.com</code></td><td>Não existe</td></tr>
+    <tr><td><code>nr_telefone</code></td><td>(11) 99999-9876</td><td><code>******9876</code></td><td>Não existe</td></tr>
+    <tr><td><code>nr_cep</code></td><td>01310-100</td><td><code>01310***</code></td><td>Não existe</td></tr>
+    <tr><td><code>nm_cliente</code></td><td>João da Silva</td><td>João da Silva</td><td>Não existe (só SK)</td></tr>
+    <tr><td><code>nr_horas_trabalhadas</code></td><td>Raw</td><td>Dados do operador</td><td>Controlado por IAM</td></tr>
+  </tbody>
+</table>
+
+<h3>12.2 — IAM Roles e Permissões</h3>
+<table>
+  <thead><tr><th>Role</th><th>Serviço</th><th>Permissões</th><th>Restrições</th></tr></thead>
+  <tbody>
+    <tr><td><code>role-glue-etl</code></td><td>AWS Glue</td><td>S3 read/write (bronze+silver+gold), Glue Catalog read/write, CloudWatch logs</td><td>Sem acesso ao Redshift</td></tr>
+    <tr><td><code>role-lambda-crawler</code></td><td>AWS Lambda</td><td>Glue:StartCrawler, CloudWatch logs</td><td>Sem acesso ao S3 ou dados</td></tr>
+    <tr><td><code>role-airflow-mwaa</code></td><td>MWAA</td><td>Glue:StartJobRun, Glue:GetJobRun, S3 read (apenas checkpoints)</td><td>Sem acesso a dados PII</td></tr>
+    <tr><td><code>role-redshift-s3</code></td><td>Redshift Serverless</td><td>S3 read (apenas gold/)</td><td>Sem acesso a bronze (PII raw)</td></tr>
+    <tr><td><code>role-analyst-read</code></td><td>Athena / Redshift</td><td>S3 read (silver + gold), Athena queries</td><td>Lake Formation bloqueia colunas PII na Bronze</td></tr>
+  </tbody>
+</table>
+
+<h3>12.3 — AWS Lake Formation: Controle de Coluna</h3>
+<pre><code><span class="cmt">-- Bloqueio de colunas PII na camada Bronze via Lake Formation</span>
+<span class="cmt">-- Apenas roles com permissão explícita lêem nr_documento, ds_email, nr_telefone</span>
+
+<span class="cmt"># Colunas liberadas para role-analyst-read na tabela db_bronze.cliente:</span>
+GRANT SELECT (id_cliente, nm_cliente, nr_cep, dt_nascimento, fl_ativo)
+ON TABLE db_bronze.cliente
+TO ROLE role-analyst-read;
+
+<span class="cmt"># nr_documento, ds_email, nr_telefone: NEGADO para role-analyst-read</span>
+<span class="cmt"># Apenas role-glue-etl (que faz o mascaramento) tem acesso completo</span></code></pre>
+
+<h3>12.4 — Checklist de Conformidade LGPD</h3>
+<div class="grid2">
+  <div>
+    <div class="callout success" style="margin-bottom:8px;">
+      <span class="callout-icon">✅</span>
+      <div>
+        <strong>Minimização</strong>
+        <p>Gold não armazena PII — apenas surrogate keys que não identificam o titular diretamente.</p>
+      </div>
+    </div>
+    <div class="callout success" style="margin-bottom:8px;">
+      <span class="callout-icon">✅</span>
+      <div>
+        <strong>Mascaramento</strong>
+        <p>CPF, e-mail, telefone e CEP mascarados na Silver antes de qualquer análise.</p>
+      </div>
+    </div>
+    <div class="callout success" style="margin-bottom:8px;">
+      <span class="callout-icon">✅</span>
+      <div>
+        <strong>Controle de Acesso</strong>
+        <p>Lake Formation com controle de coluna garante que analistas não acessam PII raw na Bronze.</p>
+      </div>
+    </div>
+  </div>
+  <div>
+    <div class="callout success" style="margin-bottom:8px;">
+      <span class="callout-icon">✅</span>
+      <div>
+        <strong>Rastreabilidade</strong>
+        <p>Logs CloudWatch registram todos os acessos. Bronze preserva dado original para eventual direito de portabilidade.</p>
+      </div>
+    </div>
+    <div class="callout success" style="margin-bottom:8px;">
+      <span class="callout-icon">✅</span>
+      <div>
+        <strong>Retenção e Exclusão</strong>
+        <p>Políticas de ciclo de vida S3 definem retenção por camada (Bronze: 2 anos, Gold: conforme Book de Variáveis).</p>
+      </div>
+    </div>
+    <div class="callout warning" style="margin-bottom:8px;">
+      <span class="callout-icon">⚠️</span>
+      <div>
+        <strong>Direito ao Esquecimento</strong>
+        <p>Requer DELETE físico nas tabelas Iceberg (suportado no v2) + reprocessamento da Silver e Gold para o cliente específico.</p>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ CUSTOS -->
+<div class="page-break"></div>
+<div id="custos">
+<h2>13. Estimativa de Custos AWS</h2>
+<p>Transparência de custo é fundamental em projetos cloud. Abaixo, os custos em escala de <strong>demonstração</strong> (dados sintéticos, execução diária) e uma estimativa para <strong>produção</strong> (volume real de contact center mid-size).</p>
+
+<h3>13.1 — Custo por Serviço</h3>
+<table>
+  <thead>
+    <tr><th>Serviço</th><th>Unidade de cobrança</th><th>Demo / mês</th><th>Produção / mês</th><th>Observação</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>Amazon S3</strong></td><td>GB armazenado + requisições</td><td>~$0,50</td><td>~$8–15</td><td>Parquet + Snappy reduz volume em 70% vs CSV</td></tr>
+    <tr><td><strong>AWS Glue 4.0</strong></td><td>DPU-hora por job</td><td>~$3,20</td><td>~$25–40</td><td>40 jobs × ~5 min × 2 DPU × $0,44/DPU-h</td></tr>
+    <tr><td><strong>AWS Lambda</strong></td><td>Invocações + GB-s</td><td>~$0,01</td><td>~$0,50</td><td>Praticamente gratuito em qualquer escala</td></tr>
+    <tr><td><strong>Amazon EventBridge</strong></td><td>Eventos publicados</td><td>~$0,01</td><td>~$0,20</td><td>$1/milhão de eventos</td></tr>
+    <tr><td><strong>Amazon Athena</strong></td><td>TB lido por query</td><td>~$0,30</td><td>~$5–10</td><td>$5/TB; partition pruning reduz custo em 80%+</td></tr>
+    <tr><td><strong>Amazon Redshift Serverless</strong></td><td>RPU-hora</td><td>~$3,00</td><td>~$15–30</td><td>Pause automático quando inativo</td></tr>
+    <tr><td><strong>Amazon CloudWatch</strong></td><td>GB de logs ingeridos</td><td>~$0,50</td><td>~$3–5</td><td>Logs estruturados JSON de todos os jobs</td></tr>
+    <tr><td><strong>AWS MWAA (Airflow)</strong></td><td>Ambiente por hora</td><td>~$0,00*</td><td>~$60–120</td><td>*Em demo: Airflow local ou ambiente mínimo</td></tr>
+    <tr style="background:#fff7ed;"><td><strong>AWS DMS</strong></td><td>Instância replication</td><td style="color:#c53030;">~$18 ❌ evitado</td><td>~$18–35</td><td>Substituído por <code>s3_data_loader.py</code> em demo</td></tr>
+    <tr style="background:#fff7ed;"><td><strong>Amazon Kinesis</strong></td><td>Shard-hora + PUT</td><td style="color:#c53030;">~$11 ❌ evitado</td><td>~$10–30</td><td>Substituído por ingestão direta S3 em demo</td></tr>
+  </tbody>
+</table>
+
+<div class="grid2" style="margin-top:16px;">
+  <div class="card" style="border-left:4px solid #38a169;">
+    <h4 style="color:#276749;">Demo — Total estimado</h4>
+    <p style="font-size:28px;font-weight:700;color:#276749;margin:8px 0;">~$7–8<span style="font-size:14px;font-weight:400;">/mês</span></p>
+    <p>S3 + Glue + Athena + Redshift Serverless + CloudWatch.<br>DMS e Kinesis substituídos pelo script Python.</p>
+  </div>
+  <div class="card" style="border-left:4px solid #FF9900;">
+    <h4 style="color:#c05621;">Produção (mid-size CC) — Estimativa</h4>
+    <p style="font-size:28px;font-weight:700;color:#c05621;margin:8px 0;">~$150–250<span style="font-size:14px;font-weight:400;">/mês</span></p>
+    <p>Inclui MWAA, DMS, Kinesis, volumes maiores de Glue e Redshift, retenção S3 maior.</p>
+  </div>
+</div>
+
+<h3>13.2 — Otimizações de Custo Implementadas</h3>
+<table>
+  <thead><tr><th>Técnica</th><th>Serviço</th><th>Economia estimada</th></tr></thead>
+  <tbody>
+    <tr><td>Parquet + Snappy (compressão)</td><td>S3 + Athena</td><td>~70% menos armazenamento e leitura vs CSV</td></tr>
+    <tr><td>Particionamento por ano/mês/dia</td><td>S3 + Athena + Glue</td><td>Partition pruning: Athena lê só a partição do WHERE</td></tr>
+    <tr><td>Glue Job Bookmark (incremental)</td><td>Glue</td><td>Evita reprocessar arquivos já processados</td></tr>
+    <tr><td>Watermark (incremental por timestamp)</td><td>Glue + Iceberg</td><td>Job processa só o delta diário, não o histórico</td></tr>
+    <tr><td>Redshift Serverless com pause</td><td>Redshift</td><td>Cobra apenas quando há queries ativas (RPU-hora)</td></tr>
+    <tr><td>s3_data_loader.py (demo)</td><td>DMS + Kinesis</td><td>Elimina ~$29/mês de infraestrutura de streaming em demo</td></tr>
+  </tbody>
+</table>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ COMPARATIVO -->
+<div class="page-break"></div>
+<div id="comparativo">
+<h2>14. Comparativo de Decisões Arquiteturais</h2>
+<p>Por que essas tecnologias e não outras? Cada escolha tem trade-offs. Entender o "porquê" é o que diferencia um engenheiro sênior de um júnior.</p>
+
+<h3>14.1 — Table Format: Iceberg vs Delta Lake vs Hudi</h3>
+<table>
+  <thead><tr><th>Critério</th><th style="color:#FF9900;">✅ Apache Iceberg v2</th><th>Delta Lake</th><th>Apache Hudi</th></tr></thead>
+  <tbody>
+    <tr><td>Integração AWS Glue 4.0</td><td><strong>Nativa</strong> (sem JARs extras)</td><td>Requer JARs Databricks</td><td>Parcial</td></tr>
+    <tr><td>Suporte Athena</td><td><strong>Nativo</strong></td><td>Limitado</td><td>Limitado</td></tr>
+    <tr><td>MERGE INTO (UPSERT)</td><td><strong>Sim</strong> (padrão SQL)</td><td>Sim (MERGE)</td><td>Sim (UPSERT)</td></tr>
+    <tr><td>Time Travel</td><td><strong>Sim</strong> (snapshots)</td><td>Sim</td><td>Limitado</td></tr>
+    <tr><td>Schema Evolution</td><td><strong>Sim</strong> (sem reescrever)</td><td>Sim</td><td>Parcial</td></tr>
+    <tr><td>Vendor lock-in</td><td><strong>Open Source</strong> (Apache)</td><td>Forte (Databricks)</td><td>Open Source</td></tr>
+    <tr><td>Maturidade na AWS</td><td><strong>Alta</strong> (S3 Tables nativo)</td><td>Média</td><td>Baixa</td></tr>
+  </tbody>
+</table>
+<div class="callout success"><span class="callout-icon">✅</span><p><strong>Escolha: Iceberg</strong> — integração nativa com toda a stack AWS sem dependências externas. Para projetos 100% AWS, é a escolha natural em 2024+.</p></div>
+
+<h3>14.2 — Processamento: AWS Glue 4.0 vs EMR vs Databricks</h3>
+<table>
+  <thead><tr><th>Critério</th><th style="color:#FF9900;">✅ AWS Glue 4.0</th><th>Amazon EMR</th><th>Databricks</th></tr></thead>
+  <tbody>
+    <tr><td>Gerenciamento de cluster</td><td><strong>Serverless</strong> (zero ops)</td><td>Manual (provisionamento)</td><td>Gerenciado (mas pago)</td></tr>
+    <tr><td>Custo quando inativo</td><td><strong>$0</strong> (paga por execução)</td><td>Alto (cluster ligado)</td><td>Alto (cluster ativo)</td></tr>
+    <tr><td>Cold start</td><td>~30–60s</td><td><strong>Cluster já quente</strong></td><td>~2–5min</td></tr>
+    <tr><td>Integração Glue Catalog</td><td><strong>Nativa</strong></td><td>Configuração manual</td><td>Via conector</td></tr>
+    <tr><td>Jobs longos (&gt;2h)</td><td>Limitado</td><td><strong>Ideal</strong></td><td><strong>Ideal</strong></td></tr>
+    <tr><td>Custo para 40 jobs/dia (5 min cada)</td><td><strong>~$3,20/mês</strong></td><td>~$30–50/mês</td><td>~$50–80/mês</td></tr>
+  </tbody>
+</table>
+<div class="callout info"><span class="callout-icon">ℹ️</span><p><strong>Quando migrar para EMR Serverless:</strong> jobs Spark &gt; 2h, uso intensivo de GPU para ML, ou quando o Glue atingir limites de workers. Para o volume atual do contact center (40 jobs × ~5 min), Glue é 10× mais barato.</p></div>
+
+<h3>14.3 — Orquestração: Airflow/MWAA vs AWS Step Functions vs EventBridge-only</h3>
+<table>
+  <thead><tr><th>Critério</th><th style="color:#FF9900;">✅ Apache Airflow (MWAA)</th><th>AWS Step Functions</th><th>EventBridge-only</th></tr></thead>
+  <tbody>
+    <tr><td>Visualização do pipeline</td><td><strong>UI rica</strong> (DAG graph, logs, retry)</td><td>Console AWS básico</td><td>Nenhuma</td></tr>
+    <tr><td>Retry com backoff</td><td><strong>Configurável por task</strong></td><td>Sim</td><td>Não</td></tr>
+    <tr><td>Reprocessamento manual</td><td><strong>Sim</strong> (params via UI)</td><td>Limitado</td><td>Não</td></tr>
+    <tr><td>Curva de aprendizado</td><td>Média (Python DAGs)</td><td>Baixa (JSON/YAML)</td><td><strong>Baixa</strong></td></tr>
+    <tr><td>Custo</td><td>~$60–120/mês (MWAA)</td><td><strong>Baixo</strong> (por execução)</td><td><strong>Mínimo</strong></td></tr>
+    <tr><td>Dependências complexas</td><td><strong>Excelente</strong></td><td>Bom</td><td>Limitado</td></tr>
+  </tbody>
+</table>
+<div class="callout success"><span class="callout-icon">✅</span><p><strong>Escolha: Airflow</strong> — 40 jobs com dependências entre waves, reprocessamento por camada e parâmetros dinâmicos exigem um orquestrador robusto. Step Functions seria mais barato mas menos observável; EventBridge-only não suporta a lógica de gates.</p></div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ CHECKLIST -->
+<div class="page-break"></div>
+<div id="checklist">
+<h2>15. Checklist de Implantação</h2>
+<p>Passo a passo para reproduzir o ambiente do zero em uma conta AWS. Siga a ordem — cada etapa depende da anterior.</p>
+
+<h3>Pré-requisitos</h3>
+<div class="callout warning"><span class="callout-icon">⚠️</span><p>Você precisa de: acesso AWS com permissões de Administrador (ou IAM, S3, Glue, Lambda, EventBridge, Redshift Serverless, CloudWatch); Python 3.9+; AWS CLI configurado (<code>aws configure</code>); git clone do repositório.</p></div>
+
+<h3>Fase 1 — Infraestrutura Base</h3>
+<table>
+  <thead><tr><th>#</th><th>Ação</th><th>Comando / Local</th><th>Validação</th></tr></thead>
+  <tbody>
+    <tr><td>1</td><td>Criar bucket S3 do lakehouse</td><td><code>aws s3 mb s3://act-cc-dev-lakehouse</code></td><td>Bucket aparece no console S3</td></tr>
+    <tr><td>2</td><td>Criar estrutura de pastas</td><td><code>python infrastructure/01_setup_s3.py</code></td><td>Pastas bronze/, silver/, gold/, checkpoints/, quarantine/</td></tr>
+    <tr><td>3</td><td>Criar IAM Roles</td><td><code>python infrastructure/00_setup_iam.py</code></td><td>Roles criados no IAM Console</td></tr>
+    <tr><td>4</td><td>Configurar Glue Data Catalog</td><td><code>python infrastructure/02_setup_glue.py</code></td><td>Databases db_bronze, db_silver, db_gold criados</td></tr>
+    <tr><td>5</td><td>Deploy da Lambda fn-start-glue-crawler</td><td><code>python infrastructure/03_setup_lambda.py</code></td><td>Lambda visível no console, test manual retorna 200</td></tr>
+    <tr><td>6</td><td>Criar regra EventBridge</td><td><code>python infrastructure/04_setup_eventbridge.py</code></td><td>Regra ativa no EventBridge Console</td></tr>
+  </tbody>
+</table>
+
+<h3>Fase 2 — Dados e Jobs Glue</h3>
+<table>
+  <thead><tr><th>#</th><th>Ação</th><th>Comando / Local</th><th>Validação</th></tr></thead>
+  <tbody>
+    <tr><td>7</td><td>Gerar dados sintéticos</td><td><code>python data/synthetic/generate_data.py</code></td><td>Arquivos CSV/Parquet em data/synthetic/output/</td></tr>
+    <tr><td>8</td><td>Carregar Bronze S3</td><td><code>python src/ingestion/s3_data_loader.py</code></td><td>Arquivos Parquet em s3://…/bronze/</td></tr>
+    <tr><td>9</td><td>Upload dos scripts Glue</td><td><code>aws s3 sync src/ s3://act-cc-dev-lakehouse/scripts/</code></td><td>Scripts visíveis no S3</td></tr>
+    <tr><td>10</td><td>Criar Glue Jobs (40 jobs)</td><td><code>python infrastructure/05_setup_glue_jobs.py</code></td><td>40 jobs listados no Glue Console</td></tr>
+    <tr><td>11</td><td>Executar Glue Crawlers (Bronze)</td><td>Trigger manual ou via Lambda</td><td>Tabelas db_bronze.* criadas no Catalog</td></tr>
+  </tbody>
+</table>
+
+<h3>Fase 3 — Redshift e Airflow</h3>
+<table>
+  <thead><tr><th>#</th><th>Ação</th><th>Comando / Local</th><th>Validação</th></tr></thead>
+  <tbody>
+    <tr><td>12</td><td>Criar Redshift Serverless namespace</td><td>Console AWS ou <code>infrastructure/06_setup_redshift.py</code></td><td>Namespace e workgroup ativos</td></tr>
+    <tr><td>13</td><td>Executar DDL das tabelas</td><td><code>psql -f infrastructure/redshift/ddl/create_tables.sql</code></td><td>22 tabelas em gold schema</td></tr>
+    <tr><td>14</td><td>Executar DDL das views</td><td><code>psql -f infrastructure/redshift/ddl/create_views.sql</code></td><td>9 views vw_kpi_* criadas</td></tr>
+    <tr><td>15</td><td>Configurar Airflow / MWAA</td><td>Upload das DAGs para bucket MWAA ou Airflow local</td><td>DAGs cc_pipeline_diario e cc_carga_redshift visíveis e sem erros</td></tr>
+    <tr><td>16</td><td>Configurar Airflow Variables</td><td>UI Airflow → Admin → Variables</td><td>BUCKET_NAME, GLUE_ROLE_ARN, REDSHIFT_IAM_ROLE, ENV definidos</td></tr>
+  </tbody>
+</table>
+
+<h3>Fase 4 — Validação End-to-End</h3>
+<table>
+  <thead><tr><th>#</th><th>Validação</th><th>Resultado esperado</th></tr></thead>
+  <tbody>
+    <tr><td>17</td><td>Trigger manual da DAG cc_pipeline_diario</td><td>Todas as 40 tasks SUCCESS (ou SKIPPED para gates não ativados)</td></tr>
+    <tr><td>18</td><td>Verificar Silver no Athena</td><td><code>SELECT COUNT(*) FROM db_silver.chamada</code> retorna &gt; 0</td></tr>
+    <tr><td>19</td><td>Verificar Gold no Athena</td><td><code>SELECT COUNT(*) FROM db_gold.fato_chamada</code> retorna &gt; 0</td></tr>
+    <tr><td>20</td><td>Verificar Redshift</td><td><code>SELECT COUNT(*) FROM gold.fato_chamada</code> retorna &gt; 0</td></tr>
+    <tr><td>21</td><td>Testar reprocessamento</td><td>Trigger cc_pipeline_diario com <code>start_layer=gold</code> → só waves 3-4 executam, Redshift recarregado</td></tr>
+    <tr><td>22</td><td>Verificar quarentena vazia</td><td><code>aws s3 ls s3://…/quarantine/ --recursive</code> retorna vazio (dados sintéticos válidos)</td></tr>
+  </tbody>
+</table>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ TROUBLESHOOTING -->
+<div class="page-break"></div>
+<div id="troubleshooting">
+<h2>16. Guia de Troubleshooting</h2>
+<p>Os erros mais comuns em produção, com causa raiz identificada e solução prática. Cada problema listado já foi encontrado (ou é previsível) neste pipeline.</p>
+
+<div class="callout warning" style="margin-bottom:16px;">
+  <span class="callout-icon">⚠️</span>
+  <p><strong>Regra de ouro:</strong> sempre verifique os logs do CloudWatch antes de tentar qualquer correção. O job emite logs JSON estruturados com <code>job_name</code>, <code>run_id</code>, <code>status</code> e <code>motivo_erro</code>.</p>
+</div>
+
+<h3>Problema 1 — Glue Job: OutOfMemoryError no Driver</h3>
+<table>
+  <thead><tr><th>Campo</th><th>Detalhe</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Sintoma</strong></td><td>Job falha com <code>java.lang.OutOfMemoryError: Java heap space</code> no CloudWatch</td></tr>
+    <tr><td><strong>Causa raiz</strong></td><td>Uso de <code>row_number().over(Window.orderBy(...))</code> sem <code>partitionBy</code> em tabela fato grande → força coleta de todos os dados no driver</td></tr>
+    <tr><td><strong>Solução</strong></td><td>Substituir por <code>monotonically_increasing_id()</code> nos fatos (já implementado). Para dimensões pequenas, <code>row_number()</code> é seguro. Aumentar <code>--driver-memory</code> no job é paliativo, não solução.</td></tr>
+    <tr><td><strong>Prevenção</strong></td><td>Evitar operações globais sem <code>partitionBy</code> em tabelas &gt; 1M linhas</td></tr>
+  </tbody>
+</table>
+
+<h3>Problema 2 — Watermark Corrompido ou Desatualizado</h3>
+<table>
+  <thead><tr><th>Campo</th><th>Detalhe</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Sintoma</strong></td><td>Job processa 0 registros mas dados novos existem no Bronze; ou job reprocessa todo o histórico</td></tr>
+    <tr><td><strong>Causa raiz</strong></td><td>Job falhou <em>após</em> escrever o watermark mas <em>antes</em> do MERGE INTO; ou watermark.json foi corrompido manualmente</td></tr>
+    <tr><td><strong>Solução</strong></td><td>1. Verificar conteúdo: <code>aws s3 cp s3://…/checkpoints/tb_chamada/watermark.json -</code><br>2. Corrigir o timestamp manualmente: <code>aws s3 cp watermark_correto.json s3://…/checkpoints/tb_chamada/watermark.json</code><br>3. Reprocessar: trigger com <code>start_layer=bronze, reprocess_date=data_afetada</code></td></tr>
+  </tbody>
+</table>
+
+<h3>Problema 3 — Quarentena Crescendo Sem Controle</h3>
+<table>
+  <thead><tr><th>Campo</th><th>Detalhe</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Sintoma</strong></td><td><code>qt_quarentena</code> nos logs aumenta a cada execução; tabelas Silver com poucos registros</td></tr>
+    <tr><td><strong>Causa raiz</strong></td><td>Regra de validação muito restritiva, ou mudança de schema na fonte não refletida no job</td></tr>
+    <tr><td><strong>Diagnóstico</strong></td><td>Ler arquivo de quarentena: <code>aws s3 cp s3://…/quarantine/tb_chamada/ano=.../arquivo.parquet . &amp;&amp; python -c "import pandas as pd; df=pd.read_parquet('arquivo.parquet'); print(df['_motivo_quarentena'].value_counts())"</code></td></tr>
+    <tr><td><strong>Solução</strong></td><td>Ajustar regra de validação no job se o dado for válido; ou corrigir o dado na fonte e reprocessar</td></tr>
+  </tbody>
+</table>
+
+<h3>Problema 4 — MERGE INTO Iceberg Muito Lento</h3>
+<table>
+  <thead><tr><th>Campo</th><th>Detalhe</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Sintoma</strong></td><td>Job Bronze→Silver demora &gt; 30 min para tabelas com poucos registros novos</td></tr>
+    <tr><td><strong>Causa raiz</strong></td><td>Tabela Iceberg com muitos small files após semanas de execução incremental; MERGE varre todos os arquivos</td></tr>
+    <tr><td><strong>Solução</strong></td><td>Executar compactação periódica (semanal): <code>spark.sql("CALL glue_catalog.system.rewrite_data_files('db_silver.chamada')")</code> ou habilitar <code>spark.sql.iceberg.expire.snapshots</code></td></tr>
+    <tr><td><strong>Prevenção</strong></td><td>Adicionar job de manutenção Iceberg (compactação + expirar snapshots) na DAG semanal</td></tr>
+  </tbody>
+</table>
+
+<h3>Problema 5 — DAG Airflow com Timeout (dagrun_timeout)</h3>
+<table>
+  <thead><tr><th>Campo</th><th>Detalhe</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Sintoma</strong></td><td>DAG marcada como FAILED com <code>DagRunTimeoutExpired</code> após 3 horas</td></tr>
+    <tr><td><strong>Causa raiz</strong></td><td>Um ou mais Glue Jobs demoraram mais que o esperado (compactação, volume maior, cold start)</td></tr>
+    <tr><td><strong>Solução imediata</strong></td><td>Identificar o job lento no log → trigger manual só daquela wave com <code>start_layer</code> adequado</td></tr>
+    <tr><td><strong>Solução definitiva</strong></td><td>Aumentar <code>dagrun_timeout</code> ou adicionar <code>execution_timeout</code> por task para isolar o gargalo</td></tr>
+  </tbody>
+</table>
+
+<h3>Problema 6 — Glue Crawler Não Detecta Novas Partições</h3>
+<table>
+  <thead><tr><th>Campo</th><th>Detalhe</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Sintoma</strong></td><td>Novos arquivos chegaram no S3 mas a tabela no Glue Catalog não foi atualizada; Athena retorna 0 para a nova data</td></tr>
+    <tr><td><strong>Causa raiz</strong></td><td>EventBridge não disparou (arquivo chegou sem evento S3); ou Lambda falhou silenciosamente; ou crawler configurado com modo de atualização errado</td></tr>
+    <tr><td><strong>Diagnóstico</strong></td><td>Verificar logs Lambda no CloudWatch → verificar se a regra EventBridge está ativa → executar crawler manualmente no console Glue</td></tr>
+    <tr><td><strong>Solução rápida</strong></td><td><code>MSCK REPAIR TABLE db_bronze.chamada</code> no Athena — detecta partições S3 sem precisar do crawler</td></tr>
+  </tbody>
+</table>
+
+<h3>Problema 7 — COPY Redshift Falha com Arquivo Vazio</h3>
+<table>
+  <thead><tr><th>Campo</th><th>Detalhe</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Sintoma</strong></td><td>DAG cc_carga_redshift falha com <code>S3ServiceException: The specified key does not exist</code> ou tabela zerada após TRUNCATE</td></tr>
+    <tr><td><strong>Causa raiz</strong></td><td>Job Glue Gold não escreveu nada no prefix S3 (ex.: nenhuma campanha ativa → <code>dim_campanha</code> vazia) mas o COPY tenta ler o prefix</td></tr>
+    <tr><td><strong>Solução</strong></td><td>Adicionar verificação no DAG antes do COPY: <code>S3KeySensor</code> ou <code>ShortCircuitOperator</code> que verifica se o prefix tem arquivos antes de executar o TRUNCATE + COPY</td></tr>
+  </tbody>
+</table>
+
+<h3>Problema 8 — Gate ShortCircuit Pula Wave Incorretamente</h3>
+<table>
+  <thead><tr><th>Campo</th><th>Detalhe</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Sintoma</strong></td><td>Trigger com <code>start_layer=silver</code> mas a Wave 2 (Gold Dims) também é pulada</td></tr>
+    <tr><td><strong>Causa raiz</strong></td><td><code>gate_silver</code> tem <code>trigger_rule=ALL_DONE</code> mas algum upstream ficou em estado inesperado; ou o parâmetro foi passado errado no <code>conf</code> do trigger</td></tr>
+    <tr><td><strong>Diagnóstico</strong></td><td>Verificar no Airflow UI o valor real do parâmetro: XCom do <code>gate_silver</code> → <code>return_value</code>. Deve ser <code>True</code> para <code>silver</code>.</td></tr>
+    <tr><td><strong>Solução</strong></td><td>Verificar que o conf do trigger usa aspas duplas no JSON: <code>{"start_layer": "silver"}</code> — aspas simples causam parsing silencioso como string vazia</td></tr>
+  </tbody>
+</table>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ ROADMAP -->
+<div class="page-break"></div>
+<div id="roadmap">
+<h2>17. Roadmap — Próximos Passos</h2>
+<p>O pipeline atual é a Fase 1 — a fundação. As fases seguintes adicionam maturidade de engenharia, capacidades analíticas avançadas e automação operacional.</p>
+
+<div style="position:relative; padding-left:28px; margin-top:16px;">
+  <!-- Linha vertical -->
+  <div style="position:absolute;left:10px;top:0;bottom:0;width:2px;background:#e2e8f0;border-radius:2px;"></div>
+
+  <!-- Fase 1 -->
+  <div style="position:relative;margin-bottom:24px;">
+    <div style="position:absolute;left:-23px;top:4px;width:14px;height:14px;border-radius:50%;background:#38a169;border:2px solid #fff;box-shadow:0 0 0 2px #38a169;"></div>
+    <div class="card" style="border-left:4px solid #38a169;">
+      <h4 style="color:#276749;margin:0 0 6px;">✅ Fase 1 — Fundação (Implementado)</h4>
+      <p>Pipeline Medallion Bronze→Silver→Gold completo · 40 Glue Jobs · 22 tabelas Redshift · 9 views KPI · Orquestração Airflow com reprocessamento por camada · Governança LGPD · Book de Variáveis</p>
+      <div class="tag">AWS Glue 4.0</div>
+      <div class="tag">Apache Iceberg v2</div>
+      <div class="tag">Airflow</div>
+      <div class="tag">Redshift Serverless</div>
+    </div>
+  </div>
+
+  <!-- Fase 2 -->
+  <div style="position:relative;margin-bottom:24px;">
+    <div style="position:absolute;left:-23px;top:4px;width:14px;height:14px;border-radius:50%;background:#FF9900;border:2px solid #fff;box-shadow:0 0 0 2px #FF9900;"></div>
+    <div class="card" style="border-left:4px solid #FF9900;">
+      <h4 style="color:#c05621;margin:0 0 6px;">🔄 Fase 2 — Qualidade e Contratos de Dados</h4>
+      <p>Migrar transformações Gold para <strong>dbt</strong> (SQL declarativo + testes automáticos + documentação de linhagem). Implementar <strong>Great Expectations</strong> ou <strong>dbt tests</strong> para contratos de qualidade em cada camada. Adicionar alertas SNS quando <code>qt_quarentena &gt; threshold</code>.</p>
+      <div class="tag">dbt Core</div>
+      <div class="tag">Great Expectations</div>
+      <div class="tag">Amazon SNS</div>
+      <div class="tag">BigQuery (alternativa multi-cloud)</div>
+    </div>
+  </div>
+
+  <!-- Fase 3 -->
+  <div style="position:relative;margin-bottom:24px;">
+    <div style="position:absolute;left:-23px;top:4px;width:14px;height:14px;border-radius:50%;background:#805ad5;border:2px solid #fff;box-shadow:0 0 0 2px #805ad5;"></div>
+    <div class="card" style="border-left:4px solid #805ad5;">
+      <h4 style="color:#553c9a;margin:0 0 6px;">🔮 Fase 3 — Machine Learning e Feature Store</h4>
+      <p>Criar camada <strong>Feature Store</strong> sobre o Gold para alimentar modelos preditivos: previsão de abandono em tempo real, previsão de volume de chamadas por hora, detecção de operadores em risco de burnout. Integrar com <strong>Amazon SageMaker Feature Store</strong>.</p>
+      <div class="tag">Amazon SageMaker</div>
+      <div class="tag">Feature Store</div>
+      <div class="tag">Previsão de Demanda</div>
+      <div class="tag">Detecção de Anomalias</div>
+    </div>
+  </div>
+
+  <!-- Fase 4 -->
+  <div style="position:relative;margin-bottom:24px;">
+    <div style="position:absolute;left:-23px;top:4px;width:14px;height:14px;border-radius:50%;background:#e53e3e;border:2px solid #fff;box-shadow:0 0 0 2px #e53e3e;"></div>
+    <div class="card" style="border-left:4px solid #e53e3e;">
+      <h4 style="color:#c53030;margin:0 0 6px;">⚡ Fase 4 — Near Real-Time (Lambda Architecture)</h4>
+      <p>Adicionar camada de processamento <strong>em tempo quase-real</strong> com Kinesis Data Streams direto para métricas operacionais ao vivo (nível de serviço a cada 5 min). Manter o batch diário para histórico e reconciliação. Dashboards QuickSight com refresh &lt; 5 min para supervisores de fila.</p>
+      <div class="tag">Kinesis Data Streams</div>
+      <div class="tag">Amazon Managed Flink</div>
+      <div class="tag">Lambda Architecture</div>
+      <div class="tag">QuickSight SPICE</div>
+    </div>
+  </div>
+
+  <!-- Fase 5 -->
+  <div style="position:relative;">
+    <div style="position:absolute;left:-23px;top:4px;width:14px;height:14px;border-radius:50%;background:#718096;border:2px solid #fff;box-shadow:0 0 0 2px #718096;"></div>
+    <div class="card" style="border-left:4px solid #718096;">
+      <h4 style="color:#4a5568;margin:0 0 6px;">🌐 Fase 5 — Multi-Cloud e Observabilidade Avançada</h4>
+      <p>Espelhar Gold para <strong>BigQuery</strong> (via Storage Transfer Service) para equipes que preferem SQL na GCP. Implementar <strong>OpenTelemetry</strong> para traces distribuídos entre Lambda, Glue e Airflow. <strong>Data Catalog</strong> unificado com Apache Atlas ou AWS Glue DataBrew.</p>
+      <div class="tag">Google BigQuery</div>
+      <div class="tag">OpenTelemetry</div>
+      <div class="tag">Apache Atlas</div>
+      <div class="tag">Data Mesh</div>
+    </div>
+  </div>
+</div>
+
+<div class="callout info" style="margin-top:20px;">
+  <span class="callout-icon">ℹ️</span>
+  <p><strong>Para o portfólio:</strong> a Fase 2 (dbt + BigQuery) é a próxima implementação planejada. dbt é uma das skills mais demandadas para engenheiros de dados em 2024–2025 e complementa diretamente o pipeline atual.</p>
+</div>
+</div>
+
 <!-- ═══════════════════════════════════════════════════════ RESUMO -->
 <div class="page-break"></div>
 <div id="resumo">
-<h2>9. Resumo: O Caminho Completo do Dado</h2>
+<h2>10. Resumo: O Caminho Completo do Dado</h2>
 
 <div class="diagram-wrap">
 <svg width="820" height="620" viewBox="0 0 820 620">
@@ -1259,7 +3277,7 @@ df_dim = df_unknown.union(df_dim)</code></pre>
 <!-- ═══════════════════════════════════════════════════════ ENTREVISTA -->
 <div class="page-break"></div>
 <div id="entrevista">
-<h2>10. Perguntas Frequentes em Entrevista</h2>
+<h2>11. Perguntas Frequentes em Entrevista</h2>
 
 <div style="margin-top: 16px;">
 
