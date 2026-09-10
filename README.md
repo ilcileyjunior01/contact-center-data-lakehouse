@@ -79,6 +79,7 @@ O projeto foi construído com foco em economia. Em modo de demonstração (sem p
 - [KPIs e Queries Athena](#kpis-e-queries-athena)
 - [Notebooks de Análise](#notebooks-de-análise)
 - [Custo AWS Estimado](#custo-aws-estimado)
+- [Glossário](#glossário)
 - [Autor](#autor)
 
 ---
@@ -880,6 +881,7 @@ contact-center-data-lakehouse/
 │   ├── architecture.md               ← Decisões técnicas e trade-offs
 │   ├── book_de_variaveis.md          ← Catálogo de variáveis Silver/Gold: lineage, qualidade, governança
 │   ├── cost-guide.md                 ← Estratégia de custo mínimo AWS
+│   ├── glossary.md                   ← Glossário: termos técnicos, siglas de contact center, prefixos
 │   ├── manual-provisionamento-aws.md ← Passo a passo de setup (11 etapas)
 │   └── quicksight_guide.md           ← Setup QuickSight: datasource, datasets, 5 páginas BI
 │
@@ -1219,6 +1221,42 @@ Resultados reais obtidos após execução completa do pipeline em 2026-07-10/14.
 | REGULAR | 522 | 5,49 |
 | RUIM | 496 | 3,52 |
 | CRITICO | 493 | 1,49 |
+
+---
+
+## Glossário
+
+Principais termos técnicos e siglas usados neste projeto — ver arquivo completo em [`docs/glossary.md`](docs/glossary.md).
+
+### Termos de Engenharia
+
+| Termo | Definição |
+|---|---|
+| **CDC** | *Change Data Capture* — captura de INSERT/UPDATE/DELETE via WAL do PostgreSQL |
+| **WAL** | *Write-Ahead Log* — log transacional do PostgreSQL lido pelo AWS DMS |
+| **Medallion** | Arquitetura em camadas: Bronze (raw) → Silver (limpo) → Gold (modelado) |
+| **Iceberg v2** | Formato de tabela open-source com ACID, `MERGE INTO`, Time Travel e Schema Evolution |
+| **Watermark** | Timestamp do último registro CDC processado, persistido em `checkpoints/{tabela}/watermark.json` |
+| **Job Bookmark** | Mecanismo nativo do Glue que rastreia arquivos S3 já processados |
+| **Quarentena** | Área onde registros inválidos são isolados sem quebrar o job |
+| **Surrogate Key (sk_)** | Chave técnica gerada pelo DW, independente do sistema fonte |
+| **Natural Key (nk_)** | Chave de negócio vinda do sistema fonte, usada como chave de join no MERGE |
+| **Star Schema** | Modelo dimensional: 11 fatos no centro ligados a 11 dimensões via surrogate keys |
+| **AQE** | *Adaptive Query Execution* — otimização automática de joins/partições no Spark |
+| **Time Travel** | Capacidade do Iceberg de consultar snapshots históricos de uma tabela |
+| **hash_registro** | MD5 dos campos de negócio — o MERGE só atualiza quando o hash muda (idempotência) |
+
+### Siglas de Contact Center
+
+| Sigla | Significado | Campo no projeto |
+|---|---|---|
+| **TMA** | Tempo Médio de Atendimento | `nr_tma_segundos / nr_tma_minutos` |
+| **TME** | Tempo Médio de Espera | `nr_tme_segundos / nr_tme_minutos` |
+| **SLA** | Service Level Agreement | `fl_meta_nivel_servico`, `fl_dentro_sla` |
+| **MTTR** | Mean Time To Resolution | `nr_tempo_resolucao_min` |
+| **FCR** | First Call Resolution | KPI `01`, notebooks `02` e `05` |
+| **URA / IVR** | Unidade de Resposta Audível | `fato_ura_navegacao`, KPI `12` |
+| **CSAT** | Customer Satisfaction Score | `fato_qualidade.nr_nota` |
 
 ---
 
