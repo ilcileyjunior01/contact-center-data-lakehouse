@@ -441,6 +441,7 @@
     <li><a href="#glossario-icones">Glossário de Ícones</a></li>
     <li><a href="#glossario-negocio">Glossário de Termos de Negócio</a></li>
     <li><a href="#visao">Visão Geral da Arquitetura</a></li>
+    <li><a href="#stack">Stack Tecnológica</a></li>
     <li><a href="#erd">Modelo de Dados — Star Schema (ERD)</a></li>
     <li><a href="#etapa0">Etapa 0 — Geração dos Dados Sintéticos</a></li>
     <li><a href="#etapa1">Etapa 1 — Carga no Bronze (S3)</a></li>
@@ -463,6 +464,7 @@
     <li><a href="#etapa6">Etapa 6 — Consulta Analítica (Athena)</a></li>
     <li><a href="#etapa7">Etapa 7 — Orquestração (Apache Airflow)</a></li>
     <li><a href="#etapa8">Etapa 8 — Carga Redshift Serverless</a></li>
+    <li><a href="#contingencia">Planos de Contingência — Matriz de Recuperação</a></li>
     <li><a href="#book-variaveis">Book de Variáveis Analíticas</a></li>
     <li><a href="#seguranca">Segurança e Governança LGPD</a></li>
     <li><a href="#custos">Estimativa de Custos AWS</a></li>
@@ -914,6 +916,28 @@
   <span class="callout-icon">💡</span>
   <p><strong>Por que Lakehouse?</strong> Data Lake (S3) = armazenamento barato, qualquer formato, qualquer escala. Data Warehouse (Iceberg) = ACID, MERGE INTO, schema, queries SQL. O Lakehouse usa os dois juntos: grava no S3 mas trata como banco de dados.</p>
 </div>
+
+<h3 id="stack">Stack Tecnológica</h3>
+<table>
+  <thead><tr><th>Categoria</th><th>Tecnologia</th><th>Finalidade no projeto</th></tr></thead>
+  <tbody>
+    <tr><td>Linguagem</td><td>Python 3.9+</td><td>Jobs Glue/PySpark, Lambda, scripts de infraestrutura (boto3)</td></tr>
+    <tr><td>Processamento</td><td>PySpark 3.3</td><td>Transformações ETL distribuídas em todos os 40 jobs</td></tr>
+    <tr><td>Orquestração</td><td>Apache Airflow 2.9.3</td><td>2 DAGs com <code>GlueJobOperator</code> + <code>TriggerDagRunOperator</code> + <code>ShortCircuitOperator</code></td></tr>
+    <tr><td>Orquestração (alt.)</td><td>AWS Glue Workflow</td><td>Pipeline event-driven com triggers encadeados (sem Airflow)</td></tr>
+    <tr><td>Formato de tabela</td><td>Apache Iceberg v2</td><td>ACID, MERGE INTO, time travel, schema evolution nas camadas Silver/Gold</td></tr>
+    <tr><td>Formato de arquivo</td><td>Parquet + Snappy</td><td>Compressão e leitura colunar eficiente em todas as camadas</td></tr>
+    <tr><td>Ingestão CDC</td><td>AWS DMS + Kinesis</td><td>Captura de mudanças via WAL do PostgreSQL (produção)</td></tr>
+    <tr><td>Metadados</td><td>Glue Data Catalog</td><td>Catálogo único compartilhado entre Bronze/Silver/Gold, Athena e Redshift Spectrum</td></tr>
+    <tr><td>Query engine</td><td>Amazon Athena</td><td>SQL serverless sobre S3/Iceberg; usado para UNLOAD → staging Redshift</td></tr>
+    <tr><td>Data Warehouse</td><td>Redshift Serverless</td><td>DW com 22 tabelas + 9 views KPI; auto-pause de 30 min para economia</td></tr>
+    <tr><td>Spark alternativo</td><td>EMR Serverless</td><td>Jobs Spark sem gerenciar cluster; usado quando Glue atinge limites</td></tr>
+    <tr><td>Governança PII</td><td>AWS Lake Formation</td><td>Controle de acesso por coluna aos dados PII originais na Bronze</td></tr>
+    <tr><td>Monitoramento</td><td>CloudWatch + SNS</td><td>Logs estruturados em JSON e alertas de falha por e-mail/SMS</td></tr>
+    <tr><td>Auditoria</td><td>CloudTrail</td><td>Rastreabilidade de todo acesso aos dados no S3</td></tr>
+    <tr><td>IaC</td><td>Terraform</td><td>Provisiona S3, IAM, Glue, Lambda, EventBridge, CloudWatch, Redshift</td></tr>
+  </tbody>
+</table>
 </div>
 
 <!-- ═══════════════════════════════════════════════════════ ERD -->
@@ -1036,6 +1060,43 @@
   <span class="callout-icon">ℹ️</span>
   <p><strong>Dimensões compartilhadas (Conformed Dimensions):</strong> <code>dim_data</code>, <code>dim_operador</code> e <code>dim_cliente</code> são usadas por múltiplas tabelas fato. Isso permite queries cross-fact como "qual operador tem melhor TMA em chamadas E melhor nota de qualidade?" com um único JOIN na dimensão compartilhada.</p>
 </div>
+
+<h3 id="dims-gold">3.3 — 11 Dimensões Gold: Natural Key e Geração do SK</h3>
+<p>Todas as dimensões incluem um registro padrão <code>sk = -1</code> ("DESCONHECIDO") para garantir integridade referencial quando a chave não é localizada no JOIN.</p>
+<table>
+  <thead><tr><th>Dimensão</th><th>Natural Key</th><th>Geração do SK</th><th>GitHub</th></tr></thead>
+  <tbody>
+    <tr><td><code>dim_data</code></td><td><code>dt_completa</code></td><td><code>sk_data = yyyyMMdd</code> (INT determinístico)</td><td><a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/src/silver_to_gold/job_dim_data_gold.py" target="_blank">📄 job</a></td></tr>
+    <tr><td><code>dim_cliente</code></td><td><code>nk_cliente</code></td><td><code>row_number()</code></td><td><a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/src/silver_to_gold/job_dim_cliente_gold.py" target="_blank">📄 job</a></td></tr>
+    <tr><td><code>dim_operador</code></td><td><code>nk_operador</code></td><td><code>row_number()</code> (auto-referência para <code>sk_supervisor</code>)</td><td><a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/src/silver_to_gold/job_dim_operador_gold.py" target="_blank">📄 job</a></td></tr>
+    <tr><td><code>dim_fila</code></td><td><code>nk_fila</code></td><td><code>row_number()</code></td><td><a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/src/silver_to_gold/job_dim_fila_gold.py" target="_blank">📄 job</a></td></tr>
+    <tr><td><code>dim_campanha</code></td><td><code>nk_campanha</code></td><td><code>row_number()</code></td><td><a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/src/silver_to_gold/job_dim_campanha_gold.py" target="_blank">📄 job</a></td></tr>
+    <tr><td><code>dim_canal</code></td><td><code>sk_canal</code> fixo</td><td>Hardcoded: TELEFONE=1, CHAT=2, WHATSAPP=3, EMAIL=4</td><td><a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/src/silver_to_gold/job_dim_canal_gold.py" target="_blank">📄 job</a></td></tr>
+    <tr><td><code>dim_skill</code></td><td><code>ds_skill + nr_nivel</code></td><td><code>row_number()</code></td><td><a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/src/silver_to_gold/job_dim_skill_gold.py" target="_blank">📄 job</a></td></tr>
+    <tr><td><code>dim_status_chamada</code></td><td><code>ds_status</code></td><td><code>row_number()</code> (derivada de distinct)</td><td><a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/src/silver_to_gold/job_dim_status_chamada_gold.py" target="_blank">📄 job</a></td></tr>
+    <tr><td><code>dim_status_ticket</code></td><td><code>ds_status</code></td><td><code>row_number()</code> (derivada de distinct)</td><td><a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/src/silver_to_gold/job_dim_status_ticket_gold.py" target="_blank">📄 job</a></td></tr>
+    <tr><td><code>dim_categoria_ticket</code></td><td><code>nm_categoria</code></td><td><code>row_number()</code> (derivada de distinct)</td><td><a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/src/silver_to_gold/job_dim_categoria_ticket_gold.py" target="_blank">📄 job</a></td></tr>
+    <tr><td><code>dim_prioridade_ticket</code></td><td><code>nm_prioridade</code></td><td><code>row_number()</code> (por <code>nr_ordem_prioridade</code>)</td><td><a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/src/silver_to_gold/job_dim_prioridade_ticket_gold.py" target="_blank">📄 job</a></td></tr>
+  </tbody>
+</table>
+
+<h3 id="fatos-gold">3.4 — 11 Tabelas Fato Gold: Métricas e Particionamento</h3>
+<table>
+  <thead><tr><th>Fato</th><th>Métricas principais</th><th>Partição</th><th>GitHub</th></tr></thead>
+  <tbody>
+    <tr><td><code>fato_chamada</code></td><td><code>nr_duracao_segundos/minutos</code>, <code>fl_duracao_valida</code>, <code>fl_chamada_completa</code></td><td><code>sk_data_inicio</code></td><td><a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/src/silver_to_gold/job_fato_chamada_gold.py" target="_blank">📄 job</a></td></tr>
+    <tr><td><code>fato_chat</code></td><td><code>nr_duracao_segundos/minutos</code>, <code>fl_chat_completo</code></td><td><code>sk_data_inicio</code></td><td><a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/src/silver_to_gold/job_fato_chat_gold.py" target="_blank">📄 job</a></td></tr>
+    <tr><td><code>fato_ticket</code></td><td><code>nr_tempo_resolucao_min</code>, <code>fl_ticket_resolvido</code>, <code>fl_dentro_sla</code></td><td><code>sk_data_abertura</code></td><td><a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/src/silver_to_gold/job_fato_ticket_gold.py" target="_blank">📄 job</a></td></tr>
+    <tr><td><code>fato_whatsapp</code></td><td><code>nr_duracao_segundos/minutos</code>, <code>fl_atendimento_completo</code></td><td><code>sk_data_inicio</code></td><td><a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/src/silver_to_gold/job_fato_whatsapp_gold.py" target="_blank">📄 job</a></td></tr>
+    <tr><td><code>fato_discagem</code></td><td><code>fl_discagem_atendida</code>, <code>fl_discagem_nao_atendida</code></td><td><code>sk_data</code></td><td><a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/src/silver_to_gold/job_fato_discagem_gold.py" target="_blank">📄 job</a></td></tr>
+    <tr><td><code>fato_jornada_operador</code></td><td><code>nr_horas_trabalhadas</code>, <code>nr_chamadas_atendidas</code>, <code>fl_presente</code></td><td><code>sk_data</code></td><td><a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/src/silver_to_gold/job_fato_jornada_operador_gold.py" target="_blank">📄 job</a></td></tr>
+    <tr><td><code>fato_metricas_operacionais</code></td><td><code>nr_tma/tme</code>, <code>nr_nivel_servico</code>, <code>nr_taxa_atendimento/abandono</code></td><td><code>sk_data</code></td><td><a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/src/silver_to_gold/job_fato_metricas_operacionais_gold.py" target="_blank">📄 job</a></td></tr>
+    <tr><td><code>fato_qualidade</code></td><td><code>nr_nota</code>, <code>fl_aprovado</code>, <code>fl_critico</code></td><td><code>sk_data</code></td><td><a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/src/silver_to_gold/job_fato_qualidade_gold.py" target="_blank">📄 job</a></td></tr>
+    <tr><td><code>fato_mensagem_chat</code></td><td><code>nr_tamanho_chars</code>, <code>fl_mensagem_cliente/operador</code></td><td><code>sk_data</code></td><td><a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/src/silver_to_gold/job_fato_mensagem_chat_gold.py" target="_blank">📄 job</a></td></tr>
+    <tr><td><code>fato_interacao_ticket</code></td><td><code>nr_tamanho_observacao_chars</code>, <code>fl_tem_observacao</code></td><td><code>sk_data</code></td><td><a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/src/silver_to_gold/job_fato_interacao_ticket_gold.py" target="_blank">📄 job</a></td></tr>
+    <tr><td><code>fato_ura_navegacao</code></td><td><code>ds_opcao_selecionada</code>, <code>fl_abandonou_ura</code></td><td><code>sk_data</code></td><td><a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/src/silver_to_gold/job_fato_ura_navegacao_gold.py" target="_blank">📄 job</a></td></tr>
+  </tbody>
+</table>
 </div>
 
 <!-- ═══════════════════════════════════════════════════════ ETAPA 0 -->
@@ -1647,6 +1708,33 @@ save_watermark(new_watermark)
   <span class="callout-icon">✅</span>
   <p><strong>Ciclo completo:</strong> Bronze → Watermark → Filtro incremental → CDC → Dedup → Transformações → Hash → Validação → MERGE Iceberg → Novo Watermark. Tudo automatizado e idempotente.</p>
 </div>
+
+<h3 id="catalogo-18-jobs">Catálogo dos 18 Jobs Bronze → Silver</h3>
+<p>Todos os jobs seguem o mesmo esqueleto dos 9 passos acima. A tabela abaixo resume as transformações específicas de cada entidade.</p>
+<table>
+  <thead><tr><th>Job</th><th>Principais transformações</th><th>GitHub</th></tr></thead>
+  <tbody>
+    <tr><td><code>tb_chamada</code></td><td>Cast timestamps dt_inicio/dt_fim; normalização st_chamada/tp_chamada; coalesce id_operador/id_fila → -1; <code>fl_duracao_valida</code>, <code>fl_chamada_completa</code>, <code>nr_duracao_minutos</code></td><td><a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/src/bronze_to_silver/job_tb_chamada_bronze_to_silver.py" target="_blank">📄 job</a></td></tr>
+    <tr><td><code>tb_gravacao_chamada</code></td><td>Cast dt_expiracao; <code>fl_tem_gravacao</code>, <code>fl_expirada</code>, <code>nr_dias_para_expirar</code>; remove ds_url_arquivo (segurança)</td><td><a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/src/bronze_to_silver/job_tb_gravacao_chamada_bronze_to_silver.py" target="_blank">📄 job</a></td></tr>
+    <tr><td><code>tb_ura_navegacao</code></td><td>Normalização upper ds_opcao; <code>fl_abandonou_ura</code>; <code>ds_faixa_espera</code> (IMEDIATO/CURTO/MEDIO/LONGO)</td><td><a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/src/bronze_to_silver/job_tb_ura_navegacao_bronze_to_silver.py" target="_blank">📄 job</a></td></tr>
+    <tr><td><code>tb_chat</code></td><td><code>nr_duracao_minutos</code>, <code>fl_chat_completo</code>; coalesce id_operador → -1</td><td><a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/src/bronze_to_silver/job_tb_chat_bronze_to_silver.py" target="_blank">📄 job</a></td></tr>
+    <tr><td><code>tb_mensagem_chat</code></td><td><code>nr_tamanho_chars</code> via len(conteúdo); drop ds_mensagem (LGPD); <code>fl_mensagem_cliente/operador</code></td><td><a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/src/bronze_to_silver/job_tb_mensagem_chat_bronze_to_silver.py" target="_blank">📄 job</a></td></tr>
+    <tr><td><code>tb_whatsapp_atendimento</code></td><td>Mascaramento nr_telefone; <code>nr_duracao_minutos</code>; <code>fl_atendimento_completo</code></td><td><a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/src/bronze_to_silver/job_tb_whatsapp_atendimento_bronze_to_silver.py" target="_blank">📄 job</a></td></tr>
+    <tr><td><code>tb_ticket</code></td><td><code>nr_tempo_resolucao_min</code>, <code>fl_ticket_resolvido</code>, <code>fl_dentro_sla</code> (SLA = 480 min)</td><td><a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/src/bronze_to_silver/job_tb_ticket_bronze_to_silver.py" target="_blank">📄 job</a></td></tr>
+    <tr><td><code>tb_interacao_ticket</code></td><td><code>nr_tamanho_observacao_chars</code>; drop ds_observacao (LGPD); <code>fl_tem_observacao</code></td><td><a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/src/bronze_to_silver/job_tb_interacao_ticket_bronze_to_silver.py" target="_blank">📄 job</a></td></tr>
+    <tr><td><code>tb_campanha</code></td><td><code>nr_duracao_dias</code>, <code>fl_campanha_ativa</code>, <code>fl_campanha_vigente</code></td><td><a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/src/bronze_to_silver/job_tb_campanha_bronze_to_silver.py" target="_blank">📄 job</a></td></tr>
+    <tr><td><code>tb_discagem</code></td><td>Mascaramento nr_telefone; <code>fl_discagem_atendida</code> / <code>fl_discagem_nao_atendida</code></td><td><a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/src/bronze_to_silver/job_tb_discagem_bronze_to_silver.py" target="_blank">📄 job</a></td></tr>
+    <tr><td><code>tb_cliente</code></td><td>Mascaramento CPF/e-mail/telefone; remove PII original; <code>fl_cliente_ativo</code>, <code>fl_tem_email</code></td><td><a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/src/bronze_to_silver/job_tb_cliente_bronze_to_silver.py" target="_blank">📄 job</a></td></tr>
+    <tr><td><code>tb_endereco_cliente</code></td><td>Upper case; <code>nr_cep_mascarado</code> (5 primeiros dígitos)</td><td><a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/src/bronze_to_silver/job_tb_endereco_cliente_bronze_to_silver.py" target="_blank">📄 job</a></td></tr>
+    <tr><td><code>tb_operador</code></td><td>Mascaramento e-mail/login; <code>nr_dias_casa</code>, <code>ds_faixa_tempo_casa</code>, <code>fl_supervisor</code></td><td><a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/src/bronze_to_silver/job_tb_operador_bronze_to_silver.py" target="_blank">📄 job</a></td></tr>
+    <tr><td><code>tb_skill_operador</code></td><td>Chave composta (skill+operador); <code>ds_faixa_nivel</code></td><td><a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/src/bronze_to_silver/job_tb_skill_operador_bronze_to_silver.py" target="_blank">📄 job</a></td></tr>
+    <tr><td><code>tb_jornada_operador</code></td><td><code>nr_horas_trabalhadas</code>, <code>nr_chamadas_atendidas</code>, <code>fl_presente</code>, <code>ds_turno</code></td><td><a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/src/bronze_to_silver/job_tb_jornada_operador_bronze_to_silver.py" target="_blank">📄 job</a></td></tr>
+    <tr><td><code>tb_fila_atendimento</code></td><td>Cast <code>nr_sla_segundos</code>, <code>nr_sla_minutos</code></td><td><a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/src/bronze_to_silver/job_tb_fila_atendimento_bronze_to_silver.py" target="_blank">📄 job</a></td></tr>
+    <tr><td><code>tb_avaliacao_qualidade</code></td><td><code>ds_faixa_nota</code> (CRITICO→EXCELENTE); <code>fl_aprovado</code> (≥7); <code>fl_critico</code> (≤4); drop ds_feedback (LGPD)</td><td><a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/src/bronze_to_silver/job_tb_avaliacao_qualidade_bronze_to_silver.py" target="_blank">📄 job</a></td></tr>
+    <tr><td><code>tb_metricas_operacionais</code></td><td><code>nr_taxa_atendimento</code>, <code>nr_taxa_abandono</code>, <code>nr_tma/tme_minutos</code>, <code>fl_meta_nivel_servico</code></td><td><a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/blob/master/src/bronze_to_silver/job_tb_metricas_operacionais_bronze_to_silver.py" target="_blank">📄 job</a></td></tr>
+  </tbody>
+</table>
+<p style="font-size:12px;color:#718096;">→ Ver pasta completa: <a class="gh-link" href="https://github.com/ilcileyjunior01/contact-center-data-lakehouse/tree/master/src/bronze_to_silver" target="_blank">📁 src/bronze_to_silver/ (todos os 18 jobs)</a></p>
 </div>
 </div>
 
@@ -2343,10 +2431,85 @@ inicio_carga >> log_reprocess >> dim_tasks >> dims_carregadas >> fato_tasks >> c
 </div>
 </div>
 
+<!-- ═══════════════════════════════════════════════════════ PLANOS DE CONTINGÊNCIA -->
+<div class="page-break"></div>
+<div id="contingencia">
+<h2>9. Planos de Contingência — Matriz de Recuperação</h2>
+<p>Princípio de design: <strong>falhas isoladas não se propagam para as camadas seguintes</strong>. Se um dos 40 jobs falha, só a tabela dele fica desatualizada — as outras 39 seguem normalmente.</p>
+
+<div class="callout info">
+  <span class="callout-icon">ℹ️</span>
+  <p><strong>Detecção automática (todos os cenários):</strong> CloudWatch Alarm dispara → SNS notifica por e-mail/SMS. Os analistas continuam consultando via Athena (Silver/Gold no S3) enquanto o Redshift é restaurado.</p>
+</div>
+
+<table>
+  <thead><tr><th>Falha</th><th>Impacto</th><th>Downtime analítico</th><th>Ação de recuperação</th></tr></thead>
+  <tbody>
+    <tr>
+      <td>Job Bronze→Silver (1 tabela)</td>
+      <td>Só a tabela afetada fica desatualizada</td>
+      <td><strong>Nenhum</strong></td>
+      <td><code>start_layer=bronze</code> na data afetada via DAG</td>
+    </tr>
+    <tr>
+      <td>Job Silver→Gold (1 tabela)</td>
+      <td>Só a dimensão/fato afetada desatualizada; Athena na Silver ok</td>
+      <td><strong>Nenhum</strong> (Athena ok)</td>
+      <td><code>start_layer=silver</code> na data afetada via DAG</td>
+    </tr>
+    <tr>
+      <td>Carga Redshift falha</td>
+      <td>Redshift desatualizado; Gold em S3 intacto</td>
+      <td><strong>Temporário</strong> (Athena ok)</td>
+      <td>Trigger manual <code>cc_carga_redshift</code></td>
+    </tr>
+    <tr>
+      <td>Dado corrompido na origem</td>
+      <td>Isolado em quarentena, auditável por data e motivo</td>
+      <td><strong>Nenhum</strong></td>
+      <td>Iceberg Time Travel + <code>start_layer=bronze</code></td>
+    </tr>
+    <tr>
+      <td>Pipeline completo travado</td>
+      <td>Nenhuma camada atualiza</td>
+      <td><strong>Alto</strong></td>
+      <td>CloudWatch → retry manual por wave</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>Reprocessamento por Camada — Cenários de Uso</h3>
+<table>
+  <thead><tr><th>Cenário</th><th>Comando Airflow</th></tr></thead>
+  <tbody>
+    <tr><td>Bug na lógica Silver</td><td><code>start_layer=silver</code> → reprocessa Silver→Gold→Redshift a partir do Bronze existente</td></tr>
+    <tr><td>Bug só no Gold</td><td><code>start_layer=gold</code> → reprocessa Gold→Redshift a partir da Silver existente</td></tr>
+    <tr><td>Recarregar só o Redshift</td><td><code>start_layer=redshift</code> → só TRUNCATE+COPY a partir do Gold existente</td></tr>
+  </tbody>
+</table>
+
+<pre><code><span class="cm"># Exemplo: reprocessar Silver e Gold de uma data específica</span>
+airflow dags trigger cc_pipeline_diario \
+  --conf '{"reprocess_date": "2024-06-15", "start_layer": "silver"}'</code></pre>
+
+<h3>Iceberg Time Travel — Reverter Dado Corrompido</h3>
+<pre><code><span class="cm">-- Consultar snapshot antes da corrupção</span>
+SELECT * FROM glue_catalog.db_silver.chamada
+FOR SYSTEM_TIME AS OF TIMESTAMP '2024-06-14 23:59:00';
+
+<span class="cm">-- Listar snapshots disponíveis</span>
+SELECT * FROM glue_catalog.db_silver.chamada.history;</code></pre>
+
+<div class="callout warning">
+  <span class="callout-icon">⚠️</span>
+  <p><strong>Nunca reprocesse sem identificar a causa raiz.</strong> Verifique os logs CloudWatch do job (campo <code>motivo_erro</code>) e os arquivos de quarentena (<code>_motivo_quarentena</code>) antes de acionar o reprocessamento — caso contrário o erro pode se repetir.</p>
+</div>
+</div>
+
 <!-- ═══════════════════════════════════════════════════════ BOOK VARIAVEIS -->
 <div class="page-break"></div>
 <div id="book-variaveis">
-<h2>9. Book de Variáveis Analíticas</h2>
+<h2>10. Book de Variáveis Analíticas</h2>
 
 <p>Catálogo centralizado das variáveis das camadas <strong>Silver</strong> e <strong>Gold</strong> — definição técnica, origem, lineage, regras de qualidade, governança LGPD e exemplos de valores. Referência para engenheiros, analistas e cientistas de dados.</p>
 
