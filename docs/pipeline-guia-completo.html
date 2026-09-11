@@ -466,6 +466,7 @@
     <li><a href="#etapa8">Etapa 8 — Carga Redshift Serverless</a></li>
     <li><a href="#contingencia">Planos de Contingência — Matriz de Recuperação</a></li>
     <li><a href="#book-variaveis">Book de Variáveis Analíticas</a></li>
+    <li><a href="#testes">Testes e Qualidade de Dados (pytest)</a></li>
     <li><a href="#seguranca">Segurança e Governança LGPD</a></li>
     <li><a href="#custos">Estimativa de Custos AWS</a></li>
     <li><a href="#comparativo">Comparativo de Decisões Arquiteturais</a></li>
@@ -2889,6 +2890,275 @@ SELECT * FROM glue_catalog.db_silver.chamada.history;</code></pre>
 </table>
 
 <p style="font-size:11px; color:#718096; margin-top:8px;">¹ Dado vinculado a pessoa física — acesso controlado via IAM + Lake Formation com controle de coluna. &nbsp; ² Dado agregado — não identifica individualmente.</p>
+
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ TESTES -->
+<div class="page-break"></div>
+<div id="testes">
+<h2>11. Testes e Qualidade de Dados</h2>
+<p>O projeto conta com uma suite de <strong>240 testes pytest</strong> organizados em 5 arquivos, cobrindo sintaxe, lógica de transformação, integridade SQL, DAGs do Airflow e infraestrutura — tudo sem depender de cluster AWS ou servidor Airflow.</p>
+
+<div class="callout info">
+  <span class="callout-icon">ℹ️</span>
+  <p><strong>Estratégia de testes offline:</strong> Os testes de transformação usam <strong>pandas</strong> (não PySpark) para validar regras de negócio em isolamento. Os testes de DAG usam <code>DagBag</code> em modo SQLite sem servidor Airflow. Testes de sintaxe usam <code>py_compile</code> da stdlib — funcionam mesmo sem <code>awsglue</code> instalado.</p>
+</div>
+
+<h3>11.1 — Como executar</h3>
+<pre><code><span class="cmt"># Instalar dependências</span>
+pip install -r requirements.txt
+
+<span class="cmt"># Rodar toda a suite</span>
+pytest tests/ -v
+
+<span class="cmt"># Rodar apenas um módulo</span>
+pytest tests/test_transformations.py -v
+
+<span class="cmt"># Relatório resumido (falhas em destaque)</span>
+pytest tests/ --tb=short -q</code></pre>
+
+<div class="callout warning">
+  <span class="callout-icon">⚠️</span>
+  <p><strong>test_dags.py</strong> exige <code>apache-airflow</code> instalado. Se não estiver disponível no ambiente, os testes são automaticamente pulados via <code>pytest.skip</code> — não quebram a suite.</p>
+</div>
+
+<h3>11.2 — Estrutura da suite</h3>
+<table>
+  <thead><tr><th>Arquivo</th><th>Escopo</th><th>Dependências</th></tr></thead>
+  <tbody>
+    <tr><td><code>test_syntax.py</code></td><td>Sintaxe dos 40 jobs PySpark + scripts de infra</td><td><code>py_compile</code> (stdlib)</td></tr>
+    <tr><td><code>test_transformations.py</code></td><td>Regras de negócio das transformações</td><td><code>pandas</code>, <code>pytest</code></td></tr>
+    <tr><td><code>test_sql_kpis.py</code></td><td>Estrutura e qualidade dos 12 SQLs de KPI</td><td><code>pytest</code> (stdlib)</td></tr>
+    <tr><td><code>test_dags.py</code></td><td>DAGs do Airflow sem servidor</td><td><code>apache-airflow</code> (opcional)</td></tr>
+    <tr><td><code>test_infrastructure.py</code></td><td>IAM policies, scripts de infra, estrutura do repositório</td><td><code>pytest</code> (stdlib)</td></tr>
+  </tbody>
+</table>
+<p>A <code>conftest.py</code> declara uma <code>SparkSession</code> local (<code>local[1]</code>) reutilizada em toda a sessão — criada uma única vez para não penalizar o tempo de execução.</p>
+
+<h3>11.3 — test_syntax.py — Sintaxe e padrões obrigatórios</h3>
+<p>Valida todos os <code>.py</code> do pipeline usando <code>py_compile</code> (compila sem executar).</p>
+
+<div class="grid2">
+  <div class="card">
+    <h4>Contagem de jobs</h4>
+    <table>
+      <thead><tr><th>Asserção</th><th>Valor esperado</th></tr></thead>
+      <tbody>
+        <tr><td>Jobs Bronze → Silver</td><td><strong>18</strong></td></tr>
+        <tr><td>Jobs Silver → Gold</td><td><strong>22</strong> (11 dims + 11 fatos)</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Surrogate keys por tipo</h4>
+    <table>
+      <thead><tr><th>Tipo</th><th>Função</th></tr></thead>
+      <tbody>
+        <tr><td>Dimensões</td><td><code>row_number()</code> — sequencial</td></tr>
+        <tr><td>Fatos</td><td><code>monotonically_increasing_id()</code> — distribuído, sem OOM</td></tr>
+        <tr><td>Exceções</td><td><code>dim_data</code>, <code>dim_canal</code> — SKs fixas</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<h4>Padrões obrigatórios por tipo de job</h4>
+<table>
+  <thead><tr><th>Tipo de job</th><th>Padrão exigido</th><th>Motivo</th></tr></thead>
+  <tbody>
+    <tr><td>Bronze → Silver</td><td><code>QUARANTINE_PATH</code></td><td>Registros inválidos devem ser isolados</td></tr>
+    <tr><td>Bronze → Silver</td><td><code>hash_registro</code></td><td>Hash de integridade para detecção de mudanças</td></tr>
+    <tr><td>Bronze → Silver</td><td><code>MERGE INTO</code></td><td>Idempotência via Iceberg</td></tr>
+    <tr><td>Silver → Gold</td><td><code>MERGE INTO</code> + <code>db_gold</code></td><td>Escrita idempotente na camada Gold</td></tr>
+    <tr><td>Jobs de dimensão</td><td><code>row_number()</code></td><td>Surrogate key sequencial em tabelas pequenas</td></tr>
+    <tr><td>Jobs de fato</td><td><code>monotonically_increasing_id()</code></td><td>Surrogate key distribuída — evita OOM em tabelas grandes</td></tr>
+  </tbody>
+</table>
+
+<h3>11.4 — test_transformations.py — Regras de negócio</h3>
+<p>Testa funções de transformação em isolamento com pandas. Cada helper espelha a lógica real dos jobs Glue — sem PySpark, sem AWS.</p>
+
+<h4>Duração de chamadas</h4>
+<table>
+  <thead><tr><th>Campo</th><th>Regra</th><th>Cenários testados</th></tr></thead>
+  <tbody>
+    <tr><td><code>fl_duracao_valida</code></td><td>= 1 quando duração &gt; 0 <strong>e</strong> <code>dt_fim &gt; dt_inicio</code></td><td>duração zero, negativa, <code>dt_fim</code> nulo, datas invertidas</td></tr>
+    <tr><td><code>fl_chamada_completa</code></td><td>= 1 quando ambas as datas preenchidas</td><td>dt_fim nulo, dt_inicio nulo, ambas nulas</td></tr>
+    <tr><td><code>nr_duracao_minutos</code></td><td><code>round(segundos / 60, 2)</code></td><td>6 combinações parametrizadas (60s→1.0, 61s→1.02, 3600s→60.0…)</td></tr>
+  </tbody>
+</table>
+
+<h4>Hash de integridade (MD5)</h4>
+<table>
+  <thead><tr><th>Teste</th><th>O que verifica</th></tr></thead>
+  <tbody>
+    <tr><td>Hash determinístico</td><td>mesmo input → mesmo MD5</td></tr>
+    <tr><td>Sensível a mudanças</td><td><code>ATENDIDA</code> vs <code>TRANSFERIDA</code> → hashes distintos</td></tr>
+    <tr><td>Formato</td><td>string hexadecimal de exatamente 32 caracteres</td></tr>
+    <tr><td>Resiliência a nulos</td><td><code>None</code> tratado como string vazia — hash não quebra</td></tr>
+  </tbody>
+</table>
+
+<h4>Quarentena</h4>
+<table>
+  <thead><tr><th>Motivo de quarentena</th><th>Campo que dispara</th></tr></thead>
+  <tbody>
+    <tr><td><code>id_chamada_nulo</code></td><td><code>id_chamada IS NULL</code> — prioridade máxima</td></tr>
+    <tr><td><code>id_cliente_nulo</code></td><td><code>id_cliente IS NULL</code></td></tr>
+    <tr><td><code>dt_inicio_nulo</code></td><td><code>dt_inicio IS NULL</code></td></tr>
+    <tr><td><code>duracao_negativa</code></td><td><code>nr_duracao_segundos &lt; 0</code></td></tr>
+  </tbody>
+</table>
+
+<h4>Mascaramento PII (LGPD)</h4>
+<table>
+  <thead><tr><th>Campo</th><th>Formato esperado</th><th>Exemplo</th></tr></thead>
+  <tbody>
+    <tr><td>CPF</td><td>3 primeiros + <code>*****</code> + 2 últimos</td><td><code>123*****01</code></td></tr>
+    <tr><td>E-mail</td><td><code>***@dominio</code></td><td><code>***@empresa.com.br</code></td></tr>
+    <tr><td>Telefone</td><td><code>******</code> + 4 últimos dígitos</td><td><code>******4321</code></td></tr>
+  </tbody>
+</table>
+<p style="font-size:12px;color:#718096;">Testado com múltiplos exemplos parametrizados para garantir que nenhum dígito intermediário vaze.</p>
+
+<h4>SLA de tickets e faixa de qualidade</h4>
+<div class="grid2">
+  <div class="card">
+    <h4>fl_sla_cumprido — limite: 480 min (8h)</h4>
+    <table>
+      <thead><tr><th>Tempo</th><th>Resultado</th></tr></thead>
+      <tbody>
+        <tr><td>0 min, 240 min, 480 min</td><td><code>1</code> ✓</td></tr>
+        <tr><td>481 min, 1440 min</td><td><code>0</code> ✗</td></tr>
+        <tr><td>480.0 → <code>1</code> / 480.1 → <code>0</code></td><td>limite <strong>inclusivo</strong></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="card">
+    <h4>ds_faixa_nota — 14 combinações parametrizadas</h4>
+    <table>
+      <thead><tr><th>Nota</th><th>Faixa</th><th>fl_aprovado</th></tr></thead>
+      <tbody>
+        <tr><td>≥ 9.0</td><td><code>EXCELENTE</code></td><td>1</td></tr>
+        <tr><td>7.0 – 8.99</td><td><code>BOM</code></td><td>1</td></tr>
+        <tr><td>5.0 – 6.99</td><td><code>REGULAR</code></td><td>0</td></tr>
+        <tr><td>3.0 – 4.99</td><td><code>RUIM</code></td><td>0</td></tr>
+        <tr><td>&lt; 3.0</td><td><code>CRITICO</code></td><td>0</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<h3>11.5 — test_sql_kpis.py — Qualidade dos SQLs de KPI</h3>
+<p>Valida os 12 arquivos em <code>sql/athena_kpis/</code> sem executá-los no Athena.</p>
+
+<h4>Regras estruturais (parametrizadas nos 12 arquivos)</h4>
+<table>
+  <thead><tr><th>Regra</th><th>O que impede</th></tr></thead>
+  <tbody>
+    <tr><td>Contém <code>SELECT</code></td><td>Query vazia ou esqueleto</td></tr>
+    <tr><td>Referencia <code>db_gold.</code></td><td>Query apontando para schema errado</td></tr>
+    <tr><td>Filtra por período (<code>nr_ano</code>, <code>dt_inicio_campanha</code>…)</td><td>Full scan nas partições Gold</td></tr>
+    <tr><td>Não usa <code>SELECT * FROM db_gold.&lt;tabela&gt;</code></td><td>Performance e falta de clareza</td></tr>
+    <tr><td>Não referencia colunas inexistentes</td><td>Ex.: <code>fl_fim_semana</code> — correto é <code>fl_fim_de_semana</code></td></tr>
+  </tbody>
+</table>
+
+<h4>Regras de qualidade SQL</h4>
+<table>
+  <thead><tr><th>Regra</th><th>Arquivo(s) afetado(s)</th></tr></thead>
+  <tbody>
+    <tr><td>Divisões devem usar <code>NULLIF</code> (evita divisão por zero)</td><td>KPIs de desempenho, eficiência, ROI</td></tr>
+    <tr><td><code>AVG(...)</code> deve ser envolto em <code>ROUND(...)</code></td><td>Todos com média</td></tr>
+    <tr><td>KPI 01: calcular TMA, taxa de atendimento e abandono</td><td><code>01_volume_desempenho_chamadas.sql</code></td></tr>
+    <tr><td>KPI 09: calcular ROI</td><td><code>09_roi_campanhas.sql</code></td></tr>
+    <tr><td>KPI 12: referenciar <code>fato_ura_navegacao</code></td><td><code>12_efetividade_ura.sql</code></td></tr>
+    <tr><td>Tabelas referenciadas via <code>db_gold.&lt;tabela&gt;</code> devem existir no schema</td><td>Todos os 12 arquivos (22 tabelas validadas)</td></tr>
+  </tbody>
+</table>
+
+<h3>11.6 — test_dags.py — Estrutura das DAGs do Airflow</h3>
+
+<div class="grid2">
+  <div class="card">
+    <h4>DAG <code>cc_pipeline_diario</code></h4>
+    <table>
+      <thead><tr><th>Propriedade</th><th>Valor esperado</th></tr></thead>
+      <tbody>
+        <tr><td>Schedule</td><td><code>0 2 * * *</code> (todo dia às 2h)</td></tr>
+        <tr><td>Catchup</td><td><code>False</code></td></tr>
+        <tr><td>Total de tasks</td><td>≥ 49</td></tr>
+        <tr><td>Jobs Bronze</td><td>18 tasks <code>bronze_to_silver</code></td></tr>
+        <tr><td>Jobs Dimensão</td><td>11 tasks <code>dim_*</code></td></tr>
+        <tr><td>Jobs Fato</td><td>11 tasks (7 wave1 + 4 wave2)</td></tr>
+        <tr><td>Gates</td><td><code>gate_bronze</code>, <code>gate_silver</code>, <code>gate_gold</code></td></tr>
+        <tr><td>Params</td><td><code>reprocess_date</code>, <code>start_layer</code> (default: <code>"bronze"</code>)</td></tr>
+        <tr><td>Trigger</td><td><code>acionar_carga_redshift</code> → <code>cc_carga_redshift</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="card">
+    <h4>DAG <code>cc_carga_redshift</code></h4>
+    <table>
+      <thead><tr><th>Propriedade</th><th>Valor esperado</th></tr></thead>
+      <tbody>
+        <tr><td>Schedule</td><td><code>None</code> (acionada por trigger)</td></tr>
+        <tr><td>Tasks de dimensão</td><td>11 <code>copy_dim_*</code></td></tr>
+        <tr><td>Tasks de fato</td><td>11 <code>copy_fato_*</code></td></tr>
+        <tr><td>Tabelas críticas</td><td><code>copy_dim_data</code>, <code>copy_fato_chamada</code>, <code>copy_fato_qualidade</code>…</td></tr>
+        <tr><td>Antes do COPY</td><td><code>TRUNCATE TABLE</code></td></tr>
+        <tr><td>Formato</td><td><code>FORMAT AS PARQUET</code></td></tr>
+        <tr><td>Autenticação</td><td><code>IAM_ROLE</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<h3>11.7 — test_infrastructure.py — Infraestrutura e IAM</h3>
+
+<h4>IAM Policy do QuickSight</h4>
+<table>
+  <thead><tr><th>Campo</th><th>Regra</th></tr></thead>
+  <tbody>
+    <tr><td><code>Version</code></td><td><code>"2012-10-17"</code></td></tr>
+    <tr><td><code>Statement</code></td><td>Lista não vazia</td></tr>
+    <tr><td><code>Effect</code></td><td>Apenas <code>"Allow"</code> ou <code>"Deny"</code></td></tr>
+    <tr><td>Ações obrigatórias</td><td><code>athena:*</code>, <code>s3:*</code>, <code>glue:*</code></td></tr>
+    <tr><td>Bucket referenciado</td><td><code>act-cc-dev-lakehouse</code></td></tr>
+  </tbody>
+</table>
+
+<h4>Script QuickSight e Pipeline Runner</h4>
+<div class="grid2">
+  <div class="card">
+    <h4>01_setup_quicksight.py</h4>
+    <ul>
+      <li>Exatamente <strong>5 datasets SPICE</strong> com SQL não vazio (&gt;100 chars)</li>
+      <li>Referencia: <code>fato_chamada</code>, <code>fato_ticket</code>, <code>fato_discagem</code>, <code>fato_chat</code>, <code>fato_whatsapp</code></li>
+      <li>Constantes: <code>DEFAULT_REGION</code>, <code>DEFAULT_BUCKET</code>, <code>DEFAULT_ATHENA_WG</code>, <code>DATASOURCE_ID</code>, <code>QUICKSIGHT_ROLE_NAME</code></li>
+      <li>Suporta <code>--dry-run</code> (teste sem criar recursos)</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h4>06_run_pipeline.py</h4>
+    <ul>
+      <li>Referencia os <strong>40 jobs Glue</strong> (≥ 40 entradas <code>job-tb-*</code> / <code>job-dim-*</code> / <code>job-fato-*</code>)</li>
+      <li>Suporta <code>--dry-run</code></li>
+      <li>Suporta <code>--max-parallel</code> (controle de paralelismo)</li>
+    </ul>
+  </div>
+</div>
+
+<h4>Estrutura obrigatória do repositório</h4>
+<table>
+  <thead><tr><th>Artefato</th><th>Verificação</th></tr></thead>
+  <tbody>
+    <tr><td><code>requirements.txt</code></td><td>Contém <code>boto3</code>, <code>pyspark</code>, <code>pytest</code></td></tr>
+    <tr><td>Diretórios de pipeline</td><td><code>pipeline/bronze_to_silver</code>, <code>pipeline/silver_to_gold</code>, <code>pipeline/ingestion</code></td></tr>
+    <tr><td>SQL e infra</td><td><code>sql/athena_kpis/</code>, <code>infrastructure/quicksight/</code>, <code>docs/</code> (≥ 3 arquivos)</td></tr>
+    <tr><td>CI e linting</td><td><code>.github/workflows/ci.yml</code>, <code>.flake8</code></td></tr>
+  </tbody>
+</table>
 
 </div>
 

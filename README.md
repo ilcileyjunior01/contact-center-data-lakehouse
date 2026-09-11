@@ -868,6 +868,236 @@ Os seguintes dados pessoais identificáveis (PII) são mascarados de forma **irr
 
 ---
 
+## Testes e Qualidade de Dados
+
+O projeto conta com uma suite de **240 testes pytest** organizados em 5 arquivos, cobrindo sintaxe, lógica de transformação, integridade SQL, DAGs do Airflow e infraestrutura — tudo sem depender de cluster AWS ou servidor Airflow.
+
+### Como executar
+
+```bash
+# Instalar dependências
+pip install -r requirements.txt
+
+# Rodar toda a suite
+pytest tests/ -v
+
+# Rodar apenas um módulo
+pytest tests/test_transformations.py -v
+
+# Rodar com relatório resumido (falhas em destaque)
+pytest tests/ --tb=short -q
+```
+
+> Os testes de DAG (`test_dags.py`) exigem `apache-airflow` instalado. Se não estiver, os testes são automaticamente pulados com `pytest.skip`.
+
+---
+
+### Estrutura da suite
+
+| Arquivo | Escopo | Dependências |
+|---|---|---|
+| `test_syntax.py` | Sintaxe dos 40 jobs PySpark + scripts de infra | `py_compile` (stdlib) |
+| `test_transformations.py` | Regras de negócio das transformações | `pandas`, `pytest` |
+| `test_sql_kpis.py` | Estrutura e qualidade dos 12 SQLs de KPI | `pytest` (stdlib) |
+| `test_dags.py` | DAGs do Airflow sem servidor | `apache-airflow` (opcional) |
+| `test_infrastructure.py` | IAM policies, scripts de infra, estrutura do repositório | `pytest` (stdlib) |
+
+A `conftest.py` declara uma `SparkSession` local (`local[1]`) reutilizada em toda a sessão — criada uma única vez para não penalizar o tempo de execução.
+
+---
+
+### test_syntax.py — Sintaxe e padrões obrigatórios
+
+Valida todos os `.py` do pipeline usando `py_compile` (compila sem executar — funciona mesmo sem `awsglue` no ambiente de CI).
+
+**Contagem de jobs**
+
+| Asserção | Valor esperado |
+|---|---|
+| Jobs Bronze → Silver | 18 |
+| Jobs Silver → Gold | 22 (11 dims + 11 fatos) |
+
+**Padrões obrigatórios por tipo de job**
+
+| Tipo | Padrão exigido | Motivo |
+|---|---|---|
+| Todos os jobs Bronze→Silver | `QUARANTINE_PATH` | Registros inválidos devem ser separados |
+| Todos os jobs Bronze→Silver | `hash_registro` | Hash de integridade para detectar mudanças |
+| Todos os jobs Bronze→Silver | `MERGE INTO` | Idempotência via Iceberg |
+| Todos os jobs Silver→Gold | `MERGE INTO` + `db_gold` | Escrita idempotente na camada Gold |
+| Jobs de dimensão (exceto `dim_data`, `dim_canal`) | `row_number()` | Geração sequencial de surrogate keys |
+| Jobs de fato | `monotonically_increasing_id()` | Geração distribuída de SKs em tabelas grandes (evita OOM) |
+
+---
+
+### test_transformations.py — Regras de negócio
+
+Testa as funções de transformação em isolamento com pandas — sem PySpark, sem AWS. Cada helper espelha a lógica real dos jobs Glue.
+
+**Módulo: duração de chamadas**
+
+| Teste | Cenário |
+|---|---|
+| `fl_duracao_valida = 1` | duração > 0 **e** `dt_fim > dt_inicio` |
+| `fl_duracao_valida = 0` | duração zero, negativa, `dt_fim` nulo ou invertido |
+| `fl_chamada_completa = 1` | ambas as datas preenchidas |
+| `nr_duracao_minutos` | 6 combinações parametrizadas (60s→1.0, 61s→1.02, 3600s→60.0…) |
+
+**Módulo: hash de integridade**
+
+| Teste | O que verifica |
+|---|---|
+| Hash determinístico | mesmo input → mesmo MD5 |
+| Hash sensível a mudanças | status `ATENDIDA` vs `TRANSFERIDA` → hashes distintos |
+| Formato | string hex de 32 caracteres |
+| Resiliência a nulos | `None` tratado como string vazia, não quebra o hash |
+
+**Módulo: quarentena**
+
+| Motivo de quarentena | Campo que dispara |
+|---|---|
+| `id_chamada_nulo` | `id_chamada IS NULL` |
+| `id_cliente_nulo` | `id_cliente IS NULL` |
+| `dt_inicio_nulo` | `dt_inicio IS NULL` |
+| `duracao_negativa` | `nr_duracao_segundos < 0` |
+
+Prioridade de validação: `id_chamada` tem precedência sobre todos os outros campos.
+
+**Módulo: mascaramento PII (LGPD)**
+
+| Campo | Formato esperado | Exemplo |
+|---|---|---|
+| CPF | `3 primeiros + ***** + 2 últimos` | `123*****01` |
+| E-mail | `***@dominio` | `***@empresa.com.br` |
+| Telefone | `****** + 4 últimos` | `******4321` |
+
+Testado com múltiplos exemplos parametrizados para garantir que nenhum dígito intermediário vaze.
+
+**Módulo: SLA de tickets**
+
+| Tempo de resolução | `fl_sla_cumprido` |
+|---|---|
+| 0 min, 240 min, 479 min, 480 min | `1` (dentro do SLA) |
+| 481 min, 1440 min | `0` (fora do SLA) |
+
+Limite de 480 min (8h) é **inclusivo** — verificado com teste de fronteira `480.0 → 1` e `480.1 → 0`.
+
+**Módulo: faixa de qualidade**
+
+| Nota | `ds_faixa_nota` | `fl_aprovado` |
+|---|---|---|
+| ≥ 9.0 | `EXCELENTE` | 1 |
+| 7.0 – 8.99 | `BOM` | 1 |
+| 5.0 – 6.99 | `REGULAR` | 0 |
+| 3.0 – 4.99 | `RUIM` | 0 |
+| < 3.0 | `CRITICO` | 0 |
+
+14 combinações parametrizadas + 4 testes de fronteira exatos (ex: 9.0 → EXCELENTE, 8.99 → BOM).
+
+---
+
+### test_sql_kpis.py — Qualidade dos SQLs de KPI
+
+Valida os 12 arquivos em `sql/athena_kpis/` sem executá-los no Athena.
+
+**Contagem e consistência**
+
+- Exatamente 12 arquivos existem, numerados de `01` a `12` sem lacunas
+- Nenhum arquivo extra fora dos 12 esperados
+
+**Estrutura por arquivo (parametrizado nos 12)**
+
+| Regra | O que impede |
+|---|---|
+| Contém `SELECT` | Query vazia ou esqueleto |
+| Referencia `db_gold.` | Query apontando para schema errado |
+| Filtra por período (`nr_ano`, `dt_inicio_campanha`…) | Full scan nas partições Gold |
+| Não usa `SELECT * FROM db_gold.<tabela>` | Performance e clareza |
+| Não referencia colunas inexistentes no schema | Ex.: `fl_fim_semana` — correto é `fl_fim_de_semana` |
+
+**Qualidade SQL**
+
+| Regra | Arquivo(s) afetado(s) |
+|---|---|
+| Divisões devem usar `NULLIF` para evitar divisão por zero | KPIs de desempenho, eficiência, ROI |
+| `AVG(...)` deve ser envolto em `ROUND(...)` | Todos com média |
+| KPI 01 deve calcular TMA, taxa de atendimento e taxa de abandono | `01_volume_desempenho_chamadas.sql` |
+| KPI 09 deve calcular ROI | `09_roi_campanhas.sql` |
+| KPI 12 deve referenciar `fato_ura_navegacao` | `12_efetividade_ura.sql` |
+
+Todas as tabelas referenciadas via `db_gold.<tabela>` são validadas contra o schema Gold real (22 tabelas).
+
+---
+
+### test_dags.py — Estrutura das DAGs do Airflow
+
+Valida as duas DAGs sem precisar de servidor Airflow (usa `DagBag` em modo de teste).
+
+**DAG `cc_pipeline_diario`**
+
+| Propriedade | Valor esperado |
+|---|---|
+| Schedule | `0 2 * * *` (todo dia às 2h) |
+| Catchup | `False` |
+| Total de tasks | ≥ 49 (40 Glue + 5 vazios + 3 gates + 1 trigger) |
+| Jobs Bronze | 18 tasks com `bronze_to_silver` no ID |
+| Jobs Dimensão | 11 tasks com `dim_` no ID |
+| Jobs Fato | 11 tasks (7 wave 1 + 4 wave 2) |
+| Gates de reprocessamento | `gate_bronze`, `gate_silver`, `gate_gold` |
+| Params | `reprocess_date`, `start_layer` (default: `"bronze"`) |
+| Trigger final | `acionar_carga_redshift` → aponta para `cc_carga_redshift` |
+
+**DAG `cc_carga_redshift`**
+
+| Propriedade | Valor esperado |
+|---|---|
+| Schedule | `None` (acionada pelo trigger da DAG principal) |
+| Tasks de dimensão | 11 (`copy_dim_*`) |
+| Tasks de fato | 11 (`copy_fato_*`) |
+| Tabelas críticas obrigatórias | `copy_dim_data`, `copy_dim_operador`, `copy_fato_chamada`, `copy_fato_qualidade`… |
+
+**Validação de conteúdo dos arquivos (sem Airflow)**
+
+- DAG de carga faz `TRUNCATE TABLE` antes do `COPY`
+- `COPY` usa `FORMAT AS PARQUET` e `IAM_ROLE`
+- Glue jobs recebem o parâmetro `--REPROCESS_DATE`
+- 4 listas de jobs (`BRONZE_JOBS`, `GOLD_DIM_JOBS`, `GOLD_FATO_WAVE1_JOBS`, `GOLD_FATO_WAVE2_JOBS`)
+
+---
+
+### test_infrastructure.py — Infraestrutura e IAM
+
+**IAM Policy do QuickSight**
+
+| Campo | Regra |
+|---|---|
+| `Version` | `"2012-10-17"` |
+| `Statement` | Lista não vazia |
+| `Effect` em cada statement | Apenas `"Allow"` ou `"Deny"` |
+| Ações obrigatórias | `athena:*`, `s3:*`, `glue:*` |
+| Bucket referenciado | `act-cc-dev-lakehouse` |
+
+**Script QuickSight (`01_setup_quicksight.py`)**
+
+- Exatamente 5 datasets SPICE definidos, cada um com SQL não vazio (> 100 chars)
+- Todas as tabelas fato principais referenciadas: `fato_chamada`, `fato_ticket`, `fato_discagem`, `fato_chat`, `fato_whatsapp`
+- Constantes AWS obrigatórias: `DEFAULT_REGION`, `DEFAULT_BUCKET`, `DEFAULT_ATHENA_WG`, `DATASOURCE_ID`, `QUICKSIGHT_ROLE_NAME`
+- Suporta `--dry-run` para teste sem criar recursos na AWS
+
+**Pipeline Runner (`06_run_pipeline.py`)**
+
+- Referencia os 40 jobs Glue (≥ 40 entradas no padrão `job-tb-*` / `job-dim-*` / `job-fato-*`)
+- Suporta `--dry-run` e `--max-parallel` para controle de paralelismo
+
+**Estrutura do repositório**
+
+- `README.md`, `requirements.txt` (com `boto3`, `pyspark`, `pytest`)
+- Diretórios: `pipeline/bronze_to_silver`, `pipeline/silver_to_gold`, `pipeline/ingestion`
+- `sql/athena_kpis/`, `infrastructure/quicksight/`, `docs/` (≥ 3 arquivos)
+- `.github/workflows/ci.yml`, `.flake8`
+
+---
+
 ## Estrutura do Repositório
 
 ```
