@@ -74,6 +74,7 @@ O projeto foi construído com foco em economia. Em modo de demonstração (sem p
 - [Planos de Contingência](#planos-de-contingência)
 - [Padrões de Engenharia](#padrões-de-engenharia)
 - [Conformidade LGPD](#conformidade-lgpd)
+- [Testes e Qualidade de Dados](#testes-e-qualidade-de-dados)
 - [Estrutura do Repositório](#estrutura-do-repositório)
 - [Como Executar](#como-executar)
 - [KPIs e Queries Athena](#kpis-e-queries-athena)
