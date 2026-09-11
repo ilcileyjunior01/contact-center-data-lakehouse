@@ -80,6 +80,7 @@ O projeto foi construído com foco em economia. Em modo de demonstração (sem p
 - [KPIs e Queries Athena](#kpis-e-queries-athena)
 - [Notebooks de Análise](#notebooks-de-análise)
 - [Custo AWS Estimado](#custo-aws-estimado)
+- [Validação dos Dados (Execução de Referência)](#validação-dos-dados-execução-de-referência)
 - [Glossário](docs/glossary.md)
 - [Autor](#autor)
 
